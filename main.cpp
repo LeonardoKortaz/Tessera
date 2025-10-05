@@ -28,6 +28,17 @@ const float GRID_OFFSET_Y = (1080 - GRID_HEIGHT * CELL_SIZE) / 2.0f;
 const int LEVEL_THRESHOLDS[] = {0, 9, 25, 49, 81, 121};
 const int MAX_LEVEL = 5;
 
+enum class GameState {
+    MainMenu,
+    Playing,
+    GameOver
+};
+
+enum class MenuOption {
+    Start = 0,
+    Exit = 1
+};
+
 struct SaveData {
     int highScore = 0;
     int bestLines = 0;
@@ -45,28 +56,28 @@ struct SaveData {
 
 std::string getSaveFilePath() {
     
-    std::filesystem::path documentsPath;
+    std::filesystem::path saveDataPath;
     
 #ifdef _WIN32
     
     char* appData = std::getenv("APPDATA");
     if (appData) {
-        documentsPath = std::filesystem::path(appData) / "Jigtriz";
+        saveDataPath = std::filesystem::path(appData) / "Jigtriz";
     } else {
-        documentsPath = std::filesystem::current_path() / "Jigtriz_Saves";
+        saveDataPath = std::filesystem::current_path() / "Jigtriz_Saves";
     }
 #else
     
     char* homePath = std::getenv("HOME");
     if (homePath) {
-        documentsPath = std::filesystem::path(homePath) / ".jigz";
+        saveDataPath = std::filesystem::path(homePath) / ".jigz";
     } else {
-        documentsPath = std::filesystem::current_path() / "Jigtriz_Saves";
+        saveDataPath = std::filesystem::current_path() / "Jigtriz_Saves";
     }
 #endif
     
     
-    std::filesystem::path gameFolder = documentsPath;
+    std::filesystem::path gameFolder = saveDataPath;
     if (!std::filesystem::exists(gameFolder)) {
         std::filesystem::create_directories(gameFolder);
     }
@@ -282,6 +293,12 @@ struct PieceShape {
     std::vector<std::vector<bool>> blocks;
     sf::Color color;
     int width, height;
+};
+
+struct ExplosionEffect {
+    int x, y;
+    float timer;
+    ExplosionEffect(int posX, int posY) : x(posX), y(posY), timer(0.5f) {}
 };
 
 class PieceBag {
@@ -993,6 +1010,8 @@ public:
     }
     PieceType getType() const { return type; }
     AbilityType getAbility() const { return ability; }
+    int getX() const { return x; }
+    int getY() const { return y; }
     bool collidesAt(const std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, int testX, int testY) const {
         for (int i = 0; i < shape.height; ++i) {
             for (int j = 0; j < shape.width; ++j) {
@@ -1036,7 +1055,7 @@ public:
             }
         }
     }
-    void ChangeToStatic(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, AbilityType ability = AbilityType::None, std::unique_ptr<sf::Sound>* bombSound = nullptr) {
+    void ChangeToStatic(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, AbilityType ability = AbilityType::None, std::unique_ptr<sf::Sound>* bombSound = nullptr, std::vector<ExplosionEffect>* explosions = nullptr) {
         for (int i = 0; i < shape.height; ++i) {
             for (int j = 0; j < shape.width; ++j) {
                 if (shape.blocks[i][j]) {
@@ -1050,10 +1069,10 @@ public:
         }
         
         if (ability != AbilityType::None) {
-            AbilityEffect(grid, bombSound);
+            AbilityEffect(grid, bombSound, explosions);
         }
     }
-    void BombEffect(int centerX, int centerY, std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, std::unique_ptr<sf::Sound>& bombSound) {
+    void BombEffect(int centerX, int centerY, std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, std::unique_ptr<sf::Sound>& bombSound, std::vector<ExplosionEffect>& explosions) {
         if (bombSound) {
             std::cout << "Playing bomb sound! Volume: " << bombSound->getVolume() << std::endl;
             bombSound->play();
@@ -1062,25 +1081,48 @@ public:
             std::cout << "ERROR: bombSound is null!" << std::endl;
         }
         
+        int minX = std::max(0, centerX - 2);
+        int maxX = std::min(GRID_WIDTH - 1, centerX + 2);
+        int minY = std::max(0, centerY - 2);
+        int maxY = std::min(GRID_HEIGHT - 1, centerY + 2);
+        
         for (int dy = -2; dy <= 2; ++dy) {
             for (int dx = -2; dx <= 2; ++dx) {
                 int x = centerX + dx;
                 int y = centerY + dy;
                 if (x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT) {
                     grid[y][x] = Cell();
+                    explosions.push_back(ExplosionEffect(x, y));
+                }
+            }
+        }
+        
+        for (int col = minX; col <= maxX; ++col) {
+            for (int row = minY - 1; row >= 0; --row) {
+                if (grid[row][col].occupied) {
+                    int fallRow = row;
+                    
+                    while (fallRow + 1 < GRID_HEIGHT && !grid[fallRow + 1][col].occupied) {
+                        fallRow++;
+                    }
+                    
+                    if (fallRow != row) {
+                        grid[fallRow][col] = grid[row][col];
+                        grid[row][col] = Cell();
+                    }
                 }
             }
         }
     }
-    void AbilityEffect(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, std::unique_ptr<sf::Sound>* bombSound = nullptr)
+    void AbilityEffect(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, std::unique_ptr<sf::Sound>* bombSound = nullptr, std::vector<ExplosionEffect>* explosions = nullptr)
     {
         switch(ability)
         {
             case AbilityType::Bomb:
-                if (bombSound) {
-                    BombEffect(x, y, grid, *bombSound);
+                if (bombSound && explosions) {
+                    BombEffect(x, y, grid, *bombSound, *explosions);
                 } else {
-                    std::cout << "Bomb ability activated (no sound)!" << std::endl;
+                    std::cout << "Bomb ability activated (no sound/explosions)!" << std::endl;
                 }
                 std::cout << "Bomb ability activated!" << std::endl;
                 break;
@@ -1094,6 +1136,25 @@ public:
     bool hasStopped() const { return isStatic; }
     void makeStatic() { isStatic = true; }
     void draw(sf::RenderWindow& window, const std::map<TextureType, sf::Texture>& textures, bool useTextures) const {
+        if (ability == AbilityType::Bomb) {
+            for (int dy = -2; dy <= 2; ++dy) {
+                for (int dx = -2; dx <= 2; ++dx) {
+                    float worldX = GRID_OFFSET_X + (x + dx) * CELL_SIZE;
+                    float worldY = GRID_OFFSET_Y + (y + dy) * CELL_SIZE;
+                    
+                    if (x + dx >= 0 && x + dx < GRID_WIDTH && y + dy >= 0 && y + dy < GRID_HEIGHT) {
+                        sf::RectangleShape explosionPreview;
+                        explosionPreview.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
+                        explosionPreview.setPosition(sf::Vector2f(worldX, worldY));
+                        explosionPreview.setFillColor(sf::Color(255, 0, 0, 60));
+                        explosionPreview.setOutlineColor(sf::Color(255, 0, 0, 120));
+                        explosionPreview.setOutlineThickness(1);
+                        window.draw(explosionPreview);
+                    }
+                }
+            }
+        }
+        
         for (int i = 0; i < shape.height; ++i) {
             for (int j = 0; j < shape.width; ++j) {
                 if (shape.blocks[i][j]) {
@@ -1580,7 +1641,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawJigtrizTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigtriz 0.1.1");
+    sf::Text titleText(font, "Jigtriz 0.1.5");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -1645,6 +1706,116 @@ void insertNewScore(SaveData& saveData, int score, int lines, int level) {
     }
 }
 
+void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption) {
+    sf::RectangleShape overlay;
+    overlay.setFillColor(sf::Color(0, 0, 0, 230));
+    overlay.setSize(sf::Vector2f(1920, 1080));
+    overlay.setPosition(sf::Vector2f(0, 0));
+    window.draw(overlay);
+    
+    float centerX = 1920 / 2.0f;
+    float centerY = 1080 / 2.0f;
+    
+    if (fontLoaded) {
+        sf::Text titleText(titleFont, "JIGTRIZ");
+        titleText.setCharacterSize(96);
+        titleText.setFillColor(sf::Color(100, 255, 150));
+        titleText.setStyle(sf::Text::Bold);
+        titleText.setOutlineColor(sf::Color::Black);
+        titleText.setOutlineThickness(4);
+        sf::FloatRect titleBounds = titleText.getLocalBounds();
+        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 250));
+        window.draw(titleText);
+        
+        sf::Text versionText(menuFont, "v0.1.3");
+        versionText.setCharacterSize(24);
+        versionText.setFillColor(sf::Color(150, 150, 150));
+        sf::FloatRect versionBounds = versionText.getLocalBounds();
+        versionText.setPosition(sf::Vector2f(centerX - versionBounds.size.x/2, centerY - 150));
+        window.draw(versionText);
+        
+        sf::Text startText(menuFont, "START");
+        startText.setCharacterSize(48);
+        if (selectedOption == MenuOption::Start) {
+            startText.setFillColor(sf::Color::Yellow);
+            startText.setStyle(sf::Text::Bold);
+            
+            sf::RectangleShape selector;
+            selector.setSize(sf::Vector2f(300, 60));
+            selector.setFillColor(sf::Color(255, 255, 0, 50));
+            selector.setOutlineColor(sf::Color::Yellow);
+            selector.setOutlineThickness(3);
+            selector.setPosition(sf::Vector2f(centerX - 150, centerY - 30));
+            window.draw(selector);
+        } else {
+            startText.setFillColor(sf::Color::White);
+        }
+        sf::FloatRect startBounds = startText.getLocalBounds();
+        startText.setPosition(sf::Vector2f(centerX - startBounds.size.x/2, centerY - 20));
+        window.draw(startText);
+        
+        sf::Text exitText(menuFont, "EXIT");
+        exitText.setCharacterSize(48);
+        if (selectedOption == MenuOption::Exit) {
+            exitText.setFillColor(sf::Color::Yellow);
+            exitText.setStyle(sf::Text::Bold);
+            
+            sf::RectangleShape selector;
+            selector.setSize(sf::Vector2f(300, 60));
+            selector.setFillColor(sf::Color(255, 255, 0, 50));
+            selector.setOutlineColor(sf::Color::Yellow);
+            selector.setOutlineThickness(3);
+            selector.setPosition(sf::Vector2f(centerX - 150, centerY + 70));
+            window.draw(selector);
+        } else {
+            exitText.setFillColor(sf::Color::White);
+        }
+        sf::FloatRect exitBounds = exitText.getLocalBounds();
+        exitText.setPosition(sf::Vector2f(centerX - exitBounds.size.x/2, centerY + 80));
+        window.draw(exitText);
+        
+        sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE to confirm");
+        controlsText.setCharacterSize(20);
+        controlsText.setFillColor(sf::Color(150, 150, 150));
+        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
+        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 200));
+        window.draw(controlsText);
+    } else {
+        sf::RectangleShape titleBar;
+        titleBar.setFillColor(sf::Color(100, 255, 150));
+        titleBar.setSize(sf::Vector2f(400, 80));
+        titleBar.setPosition(sf::Vector2f(centerX - 200, centerY - 250));
+        window.draw(titleBar);
+        
+        float optionY = centerY - 20;
+        for (int i = 0; i < 2; i++) {
+            sf::RectangleShape option;
+            option.setSize(sf::Vector2f(300, 60));
+            if ((i == 0 && selectedOption == MenuOption::Start) || (i == 1 && selectedOption == MenuOption::Exit)) {
+                option.setFillColor(sf::Color::Yellow);
+            } else {
+                option.setFillColor(sf::Color::White);
+            }
+            option.setPosition(sf::Vector2f(centerX - 150, optionY + i * 100));
+            window.draw(option);
+        }
+    }
+}
+
+void drawExplosionEffects(sf::RenderWindow& window, const std::vector<ExplosionEffect>& explosions) {
+    for (const auto& explosion : explosions) {
+        float worldX = GRID_OFFSET_X + explosion.x * CELL_SIZE;
+        float worldY = GRID_OFFSET_Y + explosion.y * CELL_SIZE;
+        
+        sf::RectangleShape explosionBox;
+        explosionBox.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
+        explosionBox.setPosition(sf::Vector2f(worldX, worldY));
+        explosionBox.setFillColor(sf::Color::White);
+        
+        window.draw(explosionBox);
+    }
+}
+
 int main() {
     srand(static_cast<unsigned int>(time(nullptr)));
     
@@ -1665,51 +1836,51 @@ int main() {
     std::map<TextureType, sf::Texture> textures;
     struct TextureInfo { TextureType type; std::string filename; sf::Color fallbackColor; };
     std::vector<TextureInfo> textureList = {
-        {TextureType::Empty, "assets/cell_background.png", sf::Color(50, 50, 60)},
+        {TextureType::Empty, "Assets/Texture/Cells/cell_background.png", sf::Color(50, 50, 60)},
         
 
-        {TextureType::I_Basic, "assets/piece_i.png", sf::Color::Cyan},
-        {TextureType::T_Basic, "assets/piece_t.png", sf::Color::Magenta},
-        {TextureType::L_Basic, "assets/piece_l.png", sf::Color(255, 165, 0)},
-        {TextureType::J_Basic, "assets/piece_j.png", sf::Color::Blue},
-        {TextureType::O_Basic, "assets/piece_o.png", sf::Color::Yellow},
-        {TextureType::S_Basic, "assets/piece_s.png", sf::Color::Green},
-        {TextureType::Z_Basic, "assets/piece_z.png", sf::Color::Red},
+        {TextureType::I_Basic, "Assets/Texture/Cells/piece_i.png", sf::Color::Cyan},
+        {TextureType::T_Basic, "Assets/Texture/Cells/piece_t.png", sf::Color::Magenta},
+        {TextureType::L_Basic, "Assets/Texture/Cells/piece_l.png", sf::Color(255, 165, 0)},
+        {TextureType::J_Basic, "Assets/Texture/Cells/piece_j.png", sf::Color::Blue},
+        {TextureType::O_Basic, "Assets/Texture/Cells/piece_o.png", sf::Color::Yellow},
+        {TextureType::S_Basic, "Assets/Texture/Cells/piece_s.png", sf::Color::Green},
+        {TextureType::Z_Basic, "Assets/Texture/Cells/piece_z.png", sf::Color::Red},
         
 
-        {TextureType::I_Medium, "assets/piece_i++.png", sf::Color(0, 200, 255)},
-        {TextureType::T_Medium, "assets/piece_t++.png", sf::Color(255, 100, 255)},
-        {TextureType::L_Medium, "assets/piece_l++.png", sf::Color(255, 200, 50)},
-        {TextureType::J_Medium, "assets/piece_j++.png", sf::Color(100, 100, 255)},
-        {TextureType::O_Medium, "assets/piece_o++.png", sf::Color(255, 255, 100)},
-        {TextureType::S_Medium, "assets/piece_s++.png", sf::Color(100, 255, 100)},
-        {TextureType::Z_Medium, "assets/piece_z++.png", sf::Color(255, 100, 100)},
+        {TextureType::I_Medium, "Assets/Texture/Cells/piece_i++.png", sf::Color(0, 200, 255)},
+        {TextureType::T_Medium, "Assets/Texture/Cells/piece_t++.png", sf::Color(255, 100, 255)},
+        {TextureType::L_Medium, "Assets/Texture/Cells/piece_l++.png", sf::Color(255, 200, 50)},
+        {TextureType::J_Medium, "Assets/Texture/Cells/piece_j++.png", sf::Color(100, 100, 255)},
+        {TextureType::O_Medium, "Assets/Texture/Cells/piece_o++.png", sf::Color(255, 255, 100)},
+        {TextureType::S_Medium, "Assets/Texture/Cells/piece_s++.png", sf::Color(100, 255, 100)},
+        {TextureType::Z_Medium, "Assets/Texture/Cells/piece_z++.png", sf::Color(255, 100, 100)},
         
 
-        {TextureType::I_Hard, "assets/piece_i#.png", sf::Color(0, 150, 255)},
-        {TextureType::T_Hard, "assets/piece_t#.png", sf::Color(200, 50, 200)},
-        {TextureType::L_Hard, "assets/piece_l#.png", sf::Color(200, 120, 0)},
-        {TextureType::J_Hard, "assets/piece_j#.png", sf::Color(0, 0, 200)},
-        {TextureType::O_Hard, "assets/piece_o#.png", sf::Color(200, 200, 0)},
-        {TextureType::S_Hard, "assets/piece_s#.png", sf::Color(0, 200, 0)},
-        {TextureType::Z_Hard, "assets/piece_z#.png", sf::Color(200, 0, 0)},
+        {TextureType::I_Hard, "Assets/Texture/Cells/piece_i#.png", sf::Color(0, 150, 255)},
+        {TextureType::T_Hard, "Assets/Texture/Cells/piece_t#.png", sf::Color(200, 50, 200)},
+        {TextureType::L_Hard, "Assets/Texture/Cells/piece_l#.png", sf::Color(200, 120, 0)},
+        {TextureType::J_Hard, "Assets/Texture/Cells/piece_j#.png", sf::Color(0, 0, 200)},
+        {TextureType::O_Hard, "Assets/Texture/Cells/piece_o#.png", sf::Color(200, 200, 0)},
+        {TextureType::S_Hard, "Assets/Texture/Cells/piece_s#.png", sf::Color(0, 200, 0)},
+        {TextureType::Z_Hard, "Assets/Texture/Cells/piece_z#.png", sf::Color(200, 0, 0)},
         
 
-        {TextureType::A_Bomb, "assets/bomb.png", sf::Color(255, 100, 100)},
-        {TextureType::A_Fill, "assets/fill.png", sf::Color(100, 255, 100)},
-        {TextureType::A_Drill, "assets/drill.png", sf::Color(255, 255, 100)},
+        {TextureType::A_Bomb, "Assets/Texture/Cells/bomb.png", sf::Color(255, 100, 100)},
+        {TextureType::A_Fill, "Assets/Texture/Cells/fill.png", sf::Color(100, 255, 100)},
+        {TextureType::A_Drill, "Assets/Texture/Cells/drill.png", sf::Color(255, 255, 100)},
         
 
-        {TextureType::Digit0, "assets/0.png", sf::Color::White},
-        {TextureType::Digit1, "assets/1.png", sf::Color::White},
-        {TextureType::Digit2, "assets/2.png", sf::Color::White},
-        {TextureType::Digit3, "assets/3.png", sf::Color::White},
-        {TextureType::Digit4, "assets/4.png", sf::Color::White},
-        {TextureType::Digit5, "assets/5.png", sf::Color::White},
-        {TextureType::Digit6, "assets/6.png", sf::Color::White},
-        {TextureType::Digit7, "assets/7.png", sf::Color::White},
-        {TextureType::Digit8, "assets/8.png", sf::Color::White},
-        {TextureType::Digit9, "assets/9.png", sf::Color::White}
+        {TextureType::Digit0, "Assets/Texture/Cells/0.png", sf::Color::White},
+        {TextureType::Digit1, "Assets/Texture/Cells/1.png", sf::Color::White},
+        {TextureType::Digit2, "Assets/Texture/Cells/2.png", sf::Color::White},
+        {TextureType::Digit3, "Assets/Texture/Cells/3.png", sf::Color::White},
+        {TextureType::Digit4, "Assets/Texture/Cells/4.png", sf::Color::White},
+        {TextureType::Digit5, "Assets/Texture/Cells/5.png", sf::Color::White},
+        {TextureType::Digit6, "Assets/Texture/Cells/6.png", sf::Color::White},
+        {TextureType::Digit7, "Assets/Texture/Cells/7.png", sf::Color::White},
+        {TextureType::Digit8, "Assets/Texture/Cells/8.png", sf::Color::White},
+        {TextureType::Digit9, "Assets/Texture/Cells/9.png", sf::Color::White}
     };
     bool useTextures = false;
     for (const auto& info : textureList) {
@@ -1723,14 +1894,25 @@ int main() {
         }
     }
     
-    sf::Font gameFont;
-    bool fontLoaded = false;
-    if (gameFont.openFromFile("assets/PixelifySans-VariableFont_wght.ttf")) {
-        fontLoaded = true;
-        std::cout << "Font loaded successfully: PixelifySans-VariableFont_wght.ttf" << std::endl;
+    sf::Font titleFont;
+    bool titleFontLoaded = false;
+    if (titleFont.openFromFile("Assets/Fonts/Jersey25-Regular.ttf")) {
+        titleFontLoaded = true;
+        std::cout << "Font loaded successfully: Jersey25-Regular.ttf" << std::endl;
     } else {
-        std::cout << "Unable to load font: assets/PixelifySans-VariableFont_wght.ttf - text will not be displayed" << std::endl;
+        std::cout << "Unable to load font: Assets/Fonts/Jersey25-Regular.ttf" << std::endl;
     }
+    
+    sf::Font menuFont;
+    bool menuFontLoaded = false;
+    if (menuFont.openFromFile("Assets/Fonts/Jersey15-Regular.ttf")) {
+        menuFontLoaded = true;
+        std::cout << "Font loaded successfully: Jersey15-Regular.ttf" << std::endl;
+    } else {
+        std::cout << "Unable to load font: Assets/Fonts/Jersey15-Regular.ttf" << std::endl;
+    }
+    
+    bool fontLoaded = titleFontLoaded && menuFontLoaded;
     
     sf::Music backgroundMusic;
     sf::SoundBuffer spaceSoundBuffer;
@@ -1752,40 +1934,40 @@ int main() {
     const float baseBombVolume = 100.0f;
     const float baseWowVolume = 70.0f;
     
-    if (backgroundMusic.openFromFile("assets/Jigtriz.ogg")) {
+    if (backgroundMusic.openFromFile("Assets/Sound/Music/Jigtriz.ogg")) {
         backgroundMusic.setLooping(true);
         backgroundMusic.setVolume((baseMusicVolume * masterVolume) / 100.0f);
         backgroundMusic.play();
         std::cout << "Background music loaded successfully!" << std::endl;
     } else {
-        std::cout << "Unable to load background music (assets/Jigtriz.ogg) - continuing without music." << std::endl;
+        std::cout << "Unable to load background music (Assets/Sound/Music/Jigtriz.ogg) - continuing without music." << std::endl;
     }
-    if (spaceSoundBuffer.loadFromFile("assets/ground.ogg")) {
+    if (spaceSoundBuffer.loadFromFile("Assets/Sound/SFX/ground.ogg")) {
         spaceSound = std::make_unique<sf::Sound>(spaceSoundBuffer);
         spaceSound->setVolume((baseSpaceVolume * masterVolume) / 100.0f);
         std::cout << "Space sound loaded successfully!" << std::endl;
     } else {
-        std::cout << "Unable to load space sound (assets/ground.ogg) - continuing without sound." << std::endl;
+        std::cout << "Unable to load space sound (Assets/Sound/SFX/ground.ogg) - continuing without sound." << std::endl;
     }
-    if (laserSoundBuffer.loadFromFile("assets/laser.ogg")) {
+    if (laserSoundBuffer.loadFromFile("Assets/Sound/SFX/laser.ogg")) {
         laserSound = std::make_unique<sf::Sound>(laserSoundBuffer);
         laserSound->setVolume((baseLaserVolume * masterVolume) / 100.0f);
         std::cout << "Laser sound loaded successfully!" << std::endl;
     } else {
-        std::cout << "Unable to load laser sound (assets/laser.ogg) - continuing without sound." << std::endl;
+        std::cout << "Unable to load laser sound (Assets/Sound/SFX/laser.ogg) - continuing without sound." << std::endl;
     }
-    if (bombSoundBuffer.loadFromFile("assets/bomb.ogg")) {
+    if (bombSoundBuffer.loadFromFile("Assets/Sound/SFX/bomb.ogg")) {
         bombSound = std::make_unique<sf::Sound>(bombSoundBuffer);
         bombSound->setVolume((baseBombVolume * masterVolume) / 100.0f);
         std::cout << "Bomb sound loaded successfully! Master volume: " << masterVolume << ", Base volume: " << baseBombVolume << ", Final volume: " << bombSound->getVolume() << std::endl;
     } else {
-        std::cout << "Unable to load bomb sound (assets/bomb.ogg) - continuing without sound." << std::endl;
+        std::cout << "Unable to load bomb sound (Assets/Sound/SFX/bomb.ogg) - continuing without sound." << std::endl;
     }
 
     wowSoundBuffers.resize(3);
     wowSounds.resize(3);
     for (int i = 0; i < 3; i++) {
-        std::string filename = "assets/wow_0" + std::to_string(i + 1) + ".ogg";
+        std::string filename = "Assets/Sound/SFX/wow_0" + std::to_string(i + 1) + ".ogg";
         if (wowSoundBuffers[i].loadFromFile(filename)) {
             wowSounds[i] = std::make_unique<sf::Sound>(wowSoundBuffers[i]);
             wowSounds[i]->setVolume((baseWowVolume * masterVolume) / 100.0f);
@@ -1796,9 +1978,13 @@ int main() {
     }
     
     std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT> grid;
-    PieceBag tetrisBag;
+    PieceBag jigtrizBag;
     
+    std::vector<ExplosionEffect> explosionEffects;
 
+    GameState gameState = GameState::MainMenu;
+    MenuOption selectedMenuOption = MenuOption::Start;
+    
     int totalLinesCleared = 0;
     int currentLevel = 0;
     int totalScore = 0;
@@ -1822,7 +2008,7 @@ int main() {
     bool leftPressed = false;
     bool rightPressed = false;
     
-    PieceType initType = tetrisBag.getNextPiece();
+    PieceType initType = jigtrizBag.getNextPiece();
     std::cout << "Initial spawn: " << pieceTypeToString(initType) << " (Bag System)" << std::endl;
     PieceShape initShape = getPieceShape(initType);
     int startX = (GRID_WIDTH - initShape.width) / 2;
@@ -1835,8 +2021,63 @@ int main() {
         while (auto event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) { window.close(); }
             if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                if (gameState == GameState::MainMenu) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape: 
+                            window.close(); 
+                            break;
+                        case sf::Keyboard::Key::Up:
+                        case sf::Keyboard::Key::W:
+                            selectedMenuOption = MenuOption::Start;
+                            break;
+                        case sf::Keyboard::Key::Down:
+                        case sf::Keyboard::Key::S:
+                            selectedMenuOption = MenuOption::Exit;
+                            break;
+                        case sf::Keyboard::Key::Space:
+                            if (selectedMenuOption == MenuOption::Start) {
+                                gameState = GameState::Playing;
+                                gameOver = false;
+                                
+                                for (int i = 0; i < GRID_HEIGHT; ++i) {
+                                    for (int j = 0; j < GRID_WIDTH; ++j) {
+                                        grid[i][j] = Cell();
+                                    }
+                                }
+                                totalLinesCleared = 0;
+                                currentLevel = 0;
+                                totalScore = 0;
+                                jigtrizBag.reset();
+                                hasHeldPiece = false;
+                                canUseHold = true;
+                                linesSinceLastAbility = 0;
+                                bombAbilityAvailable = false;
+                                explosionEffects.clear();
+                                leftHoldTime = 0.0f;
+                                rightHoldTime = 0.0f;
+                                dasTimer = 0.0f;
+                                leftPressed = false;
+                                rightPressed = false;
+                                
+                                PieceType startType = jigtrizBag.getNextPiece();
+                                PieceShape startShape = getPieceShape(startType);
+                                int startX = (GRID_WIDTH - startShape.width) / 2;
+                                activePiece = Piece(startX, 0, startType);
+                                
+                                std::cout << "Game started from menu!" << std::endl;
+                            } else if (selectedMenuOption == MenuOption::Exit) {
+                                window.close();
+                            }
+                            break;
+                        default: 
+                            break;
+                    }
+                } else if (gameState == GameState::Playing) {
                 switch (keyPressed->code) {
-                    case sf::Keyboard::Key::Escape: window.close(); break;
+                    case sf::Keyboard::Key::Escape: 
+                        gameState = GameState::MainMenu;
+                        selectedMenuOption = MenuOption::Start;
+                        break;
                     case sf::Keyboard::Key::Up:
                     case sf::Keyboard::Key::W:
                     case sf::Keyboard::Key::J: if (!gameOver) activePiece.rotateRight(grid); break;
@@ -1850,7 +2091,7 @@ int main() {
                             heldPiece = activePiece.getType();
                             hasHeldPiece = true;
                             
-                            PieceType newType = tetrisBag.getNextPiece();
+                            PieceType newType = jigtrizBag.getNextPiece();
                             std::cout << "HOLD: Stored " << pieceTypeToString(heldPiece) << ", spawning " << pieceTypeToString(newType) << std::endl;
                             PieceShape newShape = getPieceShape(newType);
                             int spawnX = (GRID_WIDTH - newShape.width) / 2;
@@ -1870,9 +2111,73 @@ int main() {
                         canUseHold = false;
                         break;
                     }
-                    case sf::Keyboard::Key::Space: if (!gameOver) { activePiece.moveGround(grid); if (spaceSound) { spaceSound->play(); } } break;
+                    case sf::Keyboard::Key::Space: {
+                        if (!gameOver) {
+                            if (activePiece.getAbility() == AbilityType::Bomb) {
+                                std::cout << "BOMB EXPLOSION TRIGGERED!" << std::endl;
+                                
+                                int bombCenterX = activePiece.getX();
+                                int bombCenterY = activePiece.getY();
+                                
+                                if (bombSound) {
+                                    std::cout << "Playing bomb sound! Volume: " << bombSound->getVolume() << std::endl;
+                                    bombSound->play();
+                                }
+                                
+                                int minX = std::max(0, bombCenterX - 2);
+                                int maxX = std::min(GRID_WIDTH - 1, bombCenterX + 2);
+                                int minY = std::max(0, bombCenterY - 2);
+                                int maxY = std::min(GRID_HEIGHT - 1, bombCenterY + 2);
+                                
+                                for (int dy = -2; dy <= 2; ++dy) {
+                                    for (int dx = -2; dx <= 2; ++dx) {
+                                        int x = bombCenterX + dx;
+                                        int y = bombCenterY + dy;
+                                        if (x >= 0 && x < GRID_WIDTH && y >= 0 && y < GRID_HEIGHT) {
+                                            grid[y][x] = Cell();
+                                            explosionEffects.push_back(ExplosionEffect(x, y));
+                                        }
+                                    }
+                                }
+                                
+                                for (int col = minX; col <= maxX; ++col) {
+                                    for (int row = minY - 1; row >= 0; --row) {
+                                        if (grid[row][col].occupied) {
+                                            int fallRow = row;
+                                            
+                                            while (fallRow + 1 < GRID_HEIGHT && !grid[fallRow + 1][col].occupied) {
+                                                fallRow++;
+                                            }
+                                            
+                                            if (fallRow != row) {
+                                                grid[fallRow][col] = grid[row][col];
+                                                grid[row][col] = Cell();
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                PieceType newType = jigtrizBag.getNextPiece();
+                                std::cout << "Spawning new piece after explosion: " << pieceTypeToString(newType) << std::endl;
+                                PieceShape newShape = getPieceShape(newType);
+                                int spawnX = (GRID_WIDTH - newShape.width) / 2;
+                                activePiece = Piece(spawnX, 0, newType);
+                                canUseHold = true;
+                            } else {
+                                activePiece.moveGround(grid);
+                                if (spaceSound) {
+                                    spaceSound->play();
+                                }
+                            }
+                        }
+                        break;
+                    }
                     case sf::Keyboard::Key::R: {
-
+                        std::cout << "R key pressed! Returning to main menu..." << std::endl;
+                        gameState = GameState::MainMenu;
+                        selectedMenuOption = MenuOption::Start;
+                        
+                        // Reset game state for next play
                         for (int i = 0; i < GRID_HEIGHT; ++i) {
                             for (int j = 0; j < GRID_WIDTH; ++j) {
                                 grid[i][j] = Cell();
@@ -1883,7 +2188,7 @@ int main() {
                         totalScore = 0;
                         gameOver = false;
                         
-                        tetrisBag.reset();
+                        jigtrizBag.reset();
                         
                         hasHeldPiece = false;
                         canUseHold = true;
@@ -1894,20 +2199,15 @@ int main() {
                         leftPressed = false;
                         rightPressed = false;
                         
-                        PieceType resetType = tetrisBag.getNextPiece();
-                        std::cout << "Game Reset! New piece: " << pieceTypeToString(resetType) << " - Level reset!" << std::endl;
-                        PieceShape resetShape = getPieceShape(resetType);
-                        int resetX = (GRID_WIDTH - resetShape.width) / 2;
-                        activePiece = Piece(resetX, 0, resetType);
-                        
                         linesSinceLastAbility = 0;
                         bombAbilityAvailable = false;
+                        explosionEffects.clear();
                         
                         break;
                     }
                     case sf::Keyboard::Key::I: {
                         if (bombAbilityAvailable && !gameOver) {
-                            std::cout << "BOMB ABILITY ACTIVATED!" << std::endl;
+                            std::cout << "BOMB ABILITY ACTIVATED - Spawning bomb!" << std::endl;
                             
                             PieceType newType = PieceType::A_Bomb;
                             std::cout << "Spawning bomb piece!" << std::endl;
@@ -1985,9 +2285,11 @@ int main() {
                     }
                     default: break;
                 }
+                }
             }
         }
         
+        if (gameState == GameState::Playing) {
 
         bool currentLeftPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A);
         bool currentRightPressed = sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D);
@@ -2048,8 +2350,18 @@ int main() {
         if (!gameOver) {
             activePiece.update(deltaTime, fastFall, grid);
         }
+        
+        for (auto it = explosionEffects.begin(); it != explosionEffects.end(); ) {
+            it->timer -= deltaTime;
+            if (it->timer <= 0.0f) {
+                it = explosionEffects.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        
         if (activePiece.hasStopped() && !gameOver) {
-            activePiece.ChangeToStatic(grid, activePiece.getAbility(), &bombSound);
+            activePiece.ChangeToStatic(grid, activePiece.getAbility(), &bombSound, &explosionEffects);
             int clearedLines = clearFullLines(grid, laserSound, wowSounds);
             totalLinesCleared += clearedLines;
             
@@ -2072,19 +2384,19 @@ int main() {
             int newLevel = calculateLevel(totalLinesCleared);
             if (newLevel != currentLevel) {
                 currentLevel = newLevel;
-                tetrisBag.updateLevel(currentLevel);
+                jigtrizBag.updateLevel(currentLevel);
                 std::cout << "LEVEL UP! Level " << currentLevel << " reached! (Lines: " << totalLinesCleared << ")" << std::endl;
             }
             
-            PieceType randomType = tetrisBag.getNextPiece();
+            PieceType randomType = jigtrizBag.getNextPiece();
             std::cout << "Respawn: " << pieceTypeToString(randomType) << " (Bag System)" << std::endl;
             PieceShape newShape = getPieceShape(randomType);
             int spawnX = (GRID_WIDTH - newShape.width) / 2;
-            activePiece = Piece(spawnX, -1, randomType);
+            activePiece = Piece(spawnX, 0, randomType);
             
             if (activePiece.collidesAt(grid, spawnX, 0)) {
                 gameOver = true;
-                std::cout << "GAME OVER! Cannot spawn new piece at position (" << spawnX << ", 0)" << std::endl;
+                std::cout << "GAME OVER! New piece overlaps with existing blocks at spawn position (" << spawnX << ", 0)" << std::endl;
                 std::cout << "Final Score: " << totalScore << " | Lines: " << totalLinesCleared << " | Level: " << currentLevel << std::endl;
                 
                 insertNewScore(saveData, totalScore, totalLinesCleared, currentLevel);
@@ -2118,7 +2430,14 @@ int main() {
             leftPressed = false;
             rightPressed = false;
         }
+        
+        }
+        
         window.clear(sf::Color::Black);
+        
+        if (gameState == GameState::MainMenu) {
+            drawMainMenu(window, titleFont, menuFont, fontLoaded, selectedMenuOption);
+        } else if (gameState == GameState::Playing) {
         drawGridBackground(window);
         for (int i = 0; i < GRID_HEIGHT; ++i) {
             for (int j = 0; j < GRID_WIDTH; ++j) {
@@ -2151,15 +2470,18 @@ int main() {
 
         activePiece.drawGhost(window, textures, useTextures, grid);
         activePiece.draw(window, textures, useTextures);
-        drawNextPieces(window, tetrisBag.getNextQueue(), textures, useTextures);
+        drawExplosionEffects(window, explosionEffects);
+        drawNextPieces(window, jigtrizBag.getNextQueue(), textures, useTextures);
         drawHeldPiece(window, heldPiece, hasHeldPiece, textures, useTextures);
-        drawBombAbility(window, bombAbilityAvailable, linesSinceLastAbility, textures, useTextures, gameFont, fontLoaded);
-        drawLevelInfo(window, totalLinesCleared, currentLevel, totalScore, textures, useTextures, gameFont, fontLoaded);
+        drawBombAbility(window, bombAbilityAvailable, linesSinceLastAbility, textures, useTextures, menuFont, fontLoaded);
+        drawLevelInfo(window, totalLinesCleared, currentLevel, totalScore, textures, useTextures, menuFont, fontLoaded);
         drawGridBorder(window);
-        drawJigtrizTitle(window, gameFont, fontLoaded);
+        drawJigtrizTitle(window, titleFont, fontLoaded);
         
         if (gameOver) {
-            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, gameFont, fontLoaded, saveData);
+            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData);
+        }
+        
         }
         
         window.display();
