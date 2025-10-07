@@ -528,7 +528,7 @@ void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceL
     }
 }
 
-void drawHeldPiece(sf::RenderWindow& window, PieceType heldType, bool hasHeld, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
+void drawHeldPiece(sf::RenderWindow& window, PieceType heldType, bool hasHeld, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded) {
     float panelX = 50;
     float panelY = GRID_OFFSET_Y + 200;
 
@@ -540,11 +540,20 @@ void drawHeldPiece(sf::RenderWindow& window, PieceType heldType, bool hasHeld, c
     panelBg.setSize(sf::Vector2f(120, 80));
     window.draw(panelBg);
     
-    sf::RectangleShape holdLabel;
-    holdLabel.setFillColor(sf::Color(255, 150, 100));
-    holdLabel.setSize(sf::Vector2f(80, 8));
-    holdLabel.setPosition(sf::Vector2f(panelX + 10, panelY + 5));
-    window.draw(holdLabel);
+    if (fontLoaded) {
+        sf::Text holdLabel(font, "HOLD");
+        holdLabel.setCharacterSize(14);
+        holdLabel.setFillColor(sf::Color(255, 150, 100));
+        holdLabel.setStyle(sf::Text::Bold);
+        holdLabel.setPosition(sf::Vector2f(panelX + 35, panelY + 5));
+        window.draw(holdLabel);
+    } else {
+        sf::RectangleShape holdLabel;
+        holdLabel.setFillColor(sf::Color(255, 150, 100));
+        holdLabel.setSize(sf::Vector2f(80, 8));
+        holdLabel.setPosition(sf::Vector2f(panelX + 10, panelY + 5));
+        window.draw(holdLabel);
+    }
     
     if (hasHeld) {
         PieceShape shape = getPieceShape(heldType);
@@ -589,174 +598,53 @@ void drawLevelInfo(sf::RenderWindow& window, int totalLinesCleared, int currentL
     float panelX = 50;
     float panelY = GRID_OFFSET_Y + 50;
     
-
     sf::RectangleShape bg;
     bg.setFillColor(sf::Color(30, 30, 40, 200));
     bg.setOutlineColor(sf::Color(255, 200, 100, 255));
     bg.setOutlineThickness(2);
     bg.setPosition(sf::Vector2f(panelX - 10, panelY - 10));
-    bg.setSize(sf::Vector2f(120, 120));
+    bg.setSize(sf::Vector2f(140, 130));
     window.draw(bg);
     
-    auto getDigitTexture = [](int digit) -> TextureType {
-        switch(digit) {
-            case 0: return TextureType::Digit0;
-            case 1: return TextureType::Digit1;
-            case 2: return TextureType::Digit2;
-            case 3: return TextureType::Digit3;
-            case 4: return TextureType::Digit4;
-            case 5: return TextureType::Digit5;
-            case 6: return TextureType::Digit6;
-            case 7: return TextureType::Digit7;
-            case 8: return TextureType::Digit8;
-            case 9: return TextureType::Digit9;
-            default: return TextureType::Digit0;
-        }
-    };
-    
-    float digitSize = 16.0f;
-    
     if (fontLoaded) {
-        sf::Text scoreText(font, "SCORE");
-        scoreText.setCharacterSize(12);
-        scoreText.setFillColor(sf::Color::Yellow);
-        scoreText.setPosition(sf::Vector2f(panelX + 10, panelY + 5));
-        window.draw(scoreText);
-    } else {
-        sf::RectangleShape scoreLabel;
+        sf::Text scoreLabel(font, "SCORE");
+        scoreLabel.setCharacterSize(14);
         scoreLabel.setFillColor(sf::Color::Yellow);
-        scoreLabel.setSize(sf::Vector2f(80, 6));
-        scoreLabel.setPosition(sf::Vector2f(panelX + 10, panelY + 5));
+        scoreLabel.setStyle(sf::Text::Bold);
+        scoreLabel.setPosition(sf::Vector2f(panelX + 5, panelY));
         window.draw(scoreLabel);
-    }
-    
-    int tempScore = totalScore;
-    if (tempScore == 0) {
-        TextureType digitTex = getDigitTexture(0);
-        if (useTextures && textures.find(digitTex) != textures.end()) {
-            sf::Sprite digitSprite(textures.at(digitTex));
-            digitSprite.setPosition(sf::Vector2f(panelX + 50, panelY + 15));
-            sf::Vector2u textureSize = textures.at(digitTex).getSize();
-            digitSprite.setScale(sf::Vector2f(digitSize / textureSize.x, digitSize / textureSize.y));
-            window.draw(digitSprite);
-        } else {
-            sf::RectangleShape digit;
-            digit.setFillColor(sf::Color::White);
-            digit.setSize(sf::Vector2f(digitSize, digitSize));
-            digit.setPosition(sf::Vector2f(panelX + 50, panelY + 15));
-            window.draw(digit);
-        }
-    } else {
-        std::vector<int> digits;
-        while (tempScore > 0) {
-            digits.push_back(tempScore % 10);
-            tempScore /= 10;
-        }
         
-        for (int i = digits.size() - 1; i >= 0; i--) {
-            float digitX = panelX + 15 + (digits.size() - 1 - i) * (digitSize + 1);
-            TextureType digitTex = getDigitTexture(digits[i]);
-            
-            if (useTextures && textures.find(digitTex) != textures.end()) {
-                sf::Sprite digitSprite(textures.at(digitTex));
-                digitSprite.setPosition(sf::Vector2f(digitX, panelY + 15));
-                sf::Vector2u textureSize = textures.at(digitTex).getSize();
-                digitSprite.setScale(sf::Vector2f(digitSize / textureSize.x, digitSize / textureSize.y));
-                window.draw(digitSprite);
-            } else {
-                sf::RectangleShape digit;
-                digit.setFillColor(sf::Color::White);
-                digit.setSize(sf::Vector2f(digitSize, digitSize));
-                digit.setPosition(sf::Vector2f(digitX, panelY + 15));
-                window.draw(digit);
-            }
-        }
-    }
-    
-    if (fontLoaded) {
-        sf::Text linesText(font, "LINES");
-        linesText.setCharacterSize(12);
-        linesText.setFillColor(sf::Color::Green);
-        linesText.setPosition(sf::Vector2f(panelX + 10, panelY + 45));
-        window.draw(linesText);
-    } else {
-        sf::RectangleShape linesLabel;
+        sf::Text scoreValue(font, std::to_string(totalScore));
+        scoreValue.setCharacterSize(18);
+        scoreValue.setFillColor(sf::Color::White);
+        scoreValue.setPosition(sf::Vector2f(panelX + 45, panelY));
+        window.draw(scoreValue);
+        
+        sf::Text linesLabel(font, "LINES");
+        linesLabel.setCharacterSize(14);
         linesLabel.setFillColor(sf::Color::Green);
-        linesLabel.setSize(sf::Vector2f(80, 6));
-        linesLabel.setPosition(sf::Vector2f(panelX + 10, panelY + 45));
+        linesLabel.setStyle(sf::Text::Bold);
+        linesLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 40));
         window.draw(linesLabel);
-    }
-    
-    int tempLines = totalLinesCleared;
-    if (tempLines == 0) {
-        TextureType digitTex = getDigitTexture(0);
-        if (useTextures && textures.find(digitTex) != textures.end()) {
-            sf::Sprite digitSprite(textures.at(digitTex));
-            digitSprite.setPosition(sf::Vector2f(panelX + 50, panelY + 55));
-            sf::Vector2u textureSize = textures.at(digitTex).getSize();
-            digitSprite.setScale(sf::Vector2f(digitSize / textureSize.x, digitSize / textureSize.y));
-            window.draw(digitSprite);
-        } else {
-            sf::RectangleShape digit;
-            digit.setFillColor(sf::Color::White);
-            digit.setSize(sf::Vector2f(digitSize, digitSize));
-            digit.setPosition(sf::Vector2f(panelX + 50, panelY + 55));
-            window.draw(digit);
-        }
-    } else {
-        std::vector<int> digits;
-        while (tempLines > 0) {
-            digits.push_back(tempLines % 10);
-            tempLines /= 10;
-        }
         
-        for (int i = digits.size() - 1; i >= 0; i--) {
-            float digitX = panelX + 15 + (digits.size() - 1 - i) * (digitSize + 1);
-            TextureType digitTex = getDigitTexture(digits[i]);
-            
-            if (useTextures && textures.find(digitTex) != textures.end()) {
-                sf::Sprite digitSprite(textures.at(digitTex));
-                digitSprite.setPosition(sf::Vector2f(digitX, panelY + 55));
-                sf::Vector2u textureSize = textures.at(digitTex).getSize();
-                digitSprite.setScale(sf::Vector2f(digitSize / textureSize.x, digitSize / textureSize.y));
-                window.draw(digitSprite);
-            } else {
-                sf::RectangleShape digit;
-                digit.setFillColor(sf::Color::White);
-                digit.setSize(sf::Vector2f(digitSize, digitSize));
-                digit.setPosition(sf::Vector2f(digitX, panelY + 55));
-                window.draw(digit);
-            }
-        }
-    }
-    
-    if (fontLoaded) {
-        sf::Text levelText(font, "Level");
-        levelText.setCharacterSize(12);
-        levelText.setFillColor(sf::Color::Red);
-        levelText.setPosition(sf::Vector2f(panelX + 10, panelY + 85));
-        window.draw(levelText);
-    } else {
-        sf::RectangleShape levelLabel;
-        levelLabel.setFillColor(sf::Color::Red);
-        levelLabel.setSize(sf::Vector2f(80, 6));
-        levelLabel.setPosition(sf::Vector2f(panelX + 10, panelY + 85));
+        sf::Text linesValue(font, std::to_string(totalLinesCleared));
+        linesValue.setCharacterSize(18);
+        linesValue.setFillColor(sf::Color::White);
+        linesValue.setPosition(sf::Vector2f(panelX + 45, panelY + 40));
+        window.draw(linesValue);
+        
+        sf::Text levelLabel(font, "LEVEL");
+        levelLabel.setCharacterSize(14);
+        levelLabel.setFillColor(sf::Color::Cyan);
+        levelLabel.setStyle(sf::Text::Bold);
+        levelLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 80));
         window.draw(levelLabel);
-    }
-    
-    TextureType levelTex = getDigitTexture(currentLevel);
-    if (useTextures && textures.find(levelTex) != textures.end()) {
-        sf::Sprite levelSprite(textures.at(levelTex));
-        levelSprite.setPosition(sf::Vector2f(panelX + 50, panelY + 95));
-        sf::Vector2u textureSize = textures.at(levelTex).getSize();
-        levelSprite.setScale(sf::Vector2f(digitSize / textureSize.x, digitSize / textureSize.y));
-        window.draw(levelSprite);
-    } else {
-        sf::RectangleShape levelDigit;
-        levelDigit.setFillColor(sf::Color::Cyan);
-        levelDigit.setSize(sf::Vector2f(digitSize, digitSize));
-        levelDigit.setPosition(sf::Vector2f(panelX + 50, panelY + 95));
-        window.draw(levelDigit);
+        
+        sf::Text levelValue(font, std::to_string(currentLevel));
+        levelValue.setCharacterSize(18);
+        levelValue.setFillColor(sf::Color::White);
+        levelValue.setPosition(sf::Vector2f(panelX + 45, panelY + 80));
+        window.draw(levelValue);
     }
 }
 
@@ -768,14 +656,13 @@ PieceShape getPieceShape(PieceType type) {
             shape.color = sf::Color::Cyan;
             break;
         case PieceType::I_Medium:
-            shape.blocks = {{true, true, true, true, true},{false, false, false, false, false}};
+            shape.blocks = {{false, false, false, false, false},{true, true, true, true, true},{false, false, false, false, false},{false, false, false, false, false}};
             shape.color = sf::Color(0, 200, 255);
             break;
         case PieceType::I_Hard:
-            shape.blocks = {{true, true, true, true, true},{false, false, true, false, false}};
+            shape.blocks = {{false, false, false, false, false},{true, true, true, true, true},{false, false, true, false, false},{false, false, false, false, false}};
             shape.color = sf::Color(0, 150, 255);
             break;
-            
         case PieceType::T_Basic:
             shape.blocks = {{false, true, false},{true, true, true},{false, false, false}};
             shape.color = sf::Color::Magenta;
@@ -1392,214 +1279,83 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
     gameOverBg.setPosition(sf::Vector2f(centerX - 250, centerY - 200));
     window.draw(gameOverBg);
     
+    bool newHighScore = finalScore > saveData.highScore;
+    bool newBestLines = finalLines > saveData.bestLines;
+    bool newBestLevel = finalLevel > saveData.bestLevel;
+    
     if (fontLoaded) {
         sf::Text gameOverText(font, "GAME OVER");
-        gameOverText.setCharacterSize(28);
+        gameOverText.setCharacterSize(32);
         gameOverText.setFillColor(sf::Color(255, 100, 100));
         gameOverText.setStyle(sf::Text::Bold);
         sf::FloatRect textBounds = gameOverText.getLocalBounds();
         gameOverText.setPosition(sf::Vector2f(centerX - textBounds.size.x/2, centerY - 170));
         window.draw(gameOverText);
-    } else {
-        sf::RectangleShape titleBar;
-        titleBar.setFillColor(sf::Color(255, 100, 100));
-        titleBar.setSize(sf::Vector2f(300, 40));
-        titleBar.setPosition(sf::Vector2f(centerX - 150, centerY - 170));
-        window.draw(titleBar);
-    }
-    
-    bool newHighScore = finalScore > saveData.highScore;
-    bool newBestLines = finalLines > saveData.bestLines;
-    bool newBestLevel = finalLevel > saveData.bestLevel;
-    
-    if (newHighScore && fontLoaded) {
-        sf::Text newRecordText(font, "NEW HIGH SCORE!");
-        newRecordText.setCharacterSize(16);
-        newRecordText.setFillColor(sf::Color(255, 215, 0));
-        newRecordText.setStyle(sf::Text::Bold);
-        sf::FloatRect textBounds = newRecordText.getLocalBounds();
-        newRecordText.setPosition(sf::Vector2f(centerX - textBounds.size.x/2, centerY - 140));
-        window.draw(newRecordText);
-    }
-    
-    auto getDigitTexture = [](int digit) -> TextureType {
-        switch(digit) {
-            case 0: return TextureType::Digit0;
-            case 1: return TextureType::Digit1;
-            case 2: return TextureType::Digit2;
-            case 3: return TextureType::Digit3;
-            case 4: return TextureType::Digit4;
-            case 5: return TextureType::Digit5;
-            case 6: return TextureType::Digit6;
-            case 7: return TextureType::Digit7;
-            case 8: return TextureType::Digit8;
-            case 9: return TextureType::Digit9;
-            default: return TextureType::Digit0;
+        
+        if (newHighScore) {
+            sf::Text newRecordText(font, "NEW HIGH SCORE!");
+            newRecordText.setCharacterSize(18);
+            newRecordText.setFillColor(sf::Color(255, 215, 0));
+            newRecordText.setStyle(sf::Text::Bold);
+            sf::FloatRect recordBounds = newRecordText.getLocalBounds();
+            newRecordText.setPosition(sf::Vector2f(centerX - recordBounds.size.x/2, centerY - 130));
+            window.draw(newRecordText);
         }
-    };
-    
-    float digitSize = 24.0f;
-    
-    if (fontLoaded) {
-        sf::Text scoreText(font, "SCORE");
-        scoreText.setCharacterSize(16);
-        scoreText.setFillColor(newHighScore ? sf::Color(255, 215, 0) : sf::Color::Yellow);
-        scoreText.setPosition(sf::Vector2f(centerX - 75, centerY - 100));
-        window.draw(scoreText);
-    } else {
-        sf::RectangleShape scoreLabel;
-        scoreLabel.setFillColor(sf::Color::Yellow);
-        scoreLabel.setSize(sf::Vector2f(150, 8));
-        scoreLabel.setPosition(sf::Vector2f(centerX - 75, centerY - 100));
+        
+
+        sf::Text scoreLabel(font, "SCORE");
+        scoreLabel.setCharacterSize(18);
+        scoreLabel.setFillColor(newHighScore ? sf::Color(255, 215, 0) : sf::Color::Yellow);
+        scoreLabel.setStyle(sf::Text::Bold);
+        scoreLabel.setPosition(sf::Vector2f(centerX - 100, centerY - 90));
         window.draw(scoreLabel);
-    }
-    
-    int tempScore = finalScore;
-    if (tempScore == 0) {
-        TextureType digitTex = getDigitTexture(0);
-        if (useTextures && textures.find(digitTex) != textures.end()) {
-            sf::Sprite digitSprite(textures.at(digitTex));
-            digitSprite.setPosition(sf::Vector2f(centerX - digitSize/2, centerY - 80));
-            sf::Vector2u textureSize = textures.at(digitTex).getSize();
-            digitSprite.setScale(sf::Vector2f(digitSize / textureSize.x, digitSize / textureSize.y));
-            window.draw(digitSprite);
-        } else {
-            sf::RectangleShape digit;
-            digit.setFillColor(sf::Color::White);
-            digit.setSize(sf::Vector2f(digitSize, digitSize));
-            digit.setPosition(sf::Vector2f(centerX - digitSize/2, centerY - 80));
-            window.draw(digit);
-        }
-    } else {
-        std::vector<int> digits;
-        while (tempScore > 0) {
-            digits.push_back(tempScore % 10);
-            tempScore /= 10;
-        }
         
-        float totalWidth = digits.size() * (digitSize + 2);
-        float startX = centerX - totalWidth / 2;
+        sf::Text scoreValue(font, std::to_string(finalScore));
+        scoreValue.setCharacterSize(28);
+        scoreValue.setFillColor(sf::Color::White);
+        sf::FloatRect scoreBounds = scoreValue.getLocalBounds();
+        scoreValue.setPosition(sf::Vector2f(centerX - scoreBounds.size.x/2, centerY - 60));
+        window.draw(scoreValue);
         
-        for (int i = digits.size() - 1; i >= 0; i--) {
-            float digitX = startX + (digits.size() - 1 - i) * (digitSize + 2);
-            TextureType digitTex = getDigitTexture(digits[i]);
-            
-            if (useTextures && textures.find(digitTex) != textures.end()) {
-                sf::Sprite digitSprite(textures.at(digitTex));
-                digitSprite.setPosition(sf::Vector2f(digitX, centerY - 80));
-                sf::Vector2u textureSize = textures.at(digitTex).getSize();
-                digitSprite.setScale(sf::Vector2f(digitSize / textureSize.x, digitSize / textureSize.y));
-                window.draw(digitSprite);
-            } else {
-                sf::RectangleShape digit;
-                digit.setFillColor(sf::Color::White);
-                digit.setSize(sf::Vector2f(digitSize, digitSize));
-                digit.setPosition(sf::Vector2f(digitX, centerY - 80));
-                window.draw(digit);
-            }
-        }
-    }
-    
-    if (fontLoaded) {
-        sf::Text linesText(font, "LINES");
-        linesText.setCharacterSize(16);
-        linesText.setFillColor(sf::Color::Green);
-        linesText.setPosition(sf::Vector2f(centerX - 75, centerY + 10));
-        window.draw(linesText);
-    } else {
-        sf::RectangleShape linesLabel;
-        linesLabel.setFillColor(sf::Color::Green);
-        linesLabel.setSize(sf::Vector2f(150, 8));
-        linesLabel.setPosition(sf::Vector2f(centerX - 75, centerY + 10));
+        sf::Text linesLabel(font, "LINES");
+        linesLabel.setCharacterSize(18);
+        linesLabel.setFillColor(newBestLines ? sf::Color(255, 215, 0) : sf::Color::Green);
+        linesLabel.setStyle(sf::Text::Bold);
+        linesLabel.setPosition(sf::Vector2f(centerX - 100, centerY + 10));
         window.draw(linesLabel);
-    }
-    
-    int tempLines = finalLines;
-    if (tempLines == 0) {
-        TextureType digitTex = getDigitTexture(0);
-        if (useTextures && textures.find(digitTex) != textures.end()) {
-            sf::Sprite digitSprite(textures.at(digitTex));
-            digitSprite.setPosition(sf::Vector2f(centerX - digitSize/2, centerY + 25));
-            sf::Vector2u textureSize = textures.at(digitTex).getSize();
-            digitSprite.setScale(sf::Vector2f(digitSize / textureSize.x, digitSize / textureSize.y));
-            window.draw(digitSprite);
-        } else {
-            sf::RectangleShape digit;
-            digit.setFillColor(sf::Color::White);
-            digit.setSize(sf::Vector2f(digitSize, digitSize));
-            digit.setPosition(sf::Vector2f(centerX - digitSize/2, centerY + 25));
-            window.draw(digit);
-        }
-    } else {
-        std::vector<int> digits;
-        while (tempLines > 0) {
-            digits.push_back(tempLines % 10);
-            tempLines /= 10;
-        }
         
-        float totalWidth = digits.size() * (digitSize + 2);
-        float startX = centerX - totalWidth / 2;
+        sf::Text linesValue(font, std::to_string(finalLines));
+        linesValue.setCharacterSize(28);
+        linesValue.setFillColor(sf::Color::White);
+        sf::FloatRect linesBounds = linesValue.getLocalBounds();
+        linesValue.setPosition(sf::Vector2f(centerX - linesBounds.size.x/2, centerY + 40));
+        window.draw(linesValue);
         
-        for (int i = digits.size() - 1; i >= 0; i--) {
-            float digitX = startX + (digits.size() - 1 - i) * (digitSize + 2);
-            TextureType digitTex = getDigitTexture(digits[i]);
-            
-            if (useTextures && textures.find(digitTex) != textures.end()) {
-                sf::Sprite digitSprite(textures.at(digitTex));
-                digitSprite.setPosition(sf::Vector2f(digitX, centerY + 25));
-                sf::Vector2u textureSize = textures.at(digitTex).getSize();
-                digitSprite.setScale(sf::Vector2f(digitSize / textureSize.x, digitSize / textureSize.y));
-                window.draw(digitSprite);
-            } else {
-                sf::RectangleShape digit;
-                digit.setFillColor(sf::Color::White);
-                digit.setSize(sf::Vector2f(digitSize, digitSize));
-                digit.setPosition(sf::Vector2f(digitX, centerY + 25));
-                window.draw(digit);
-            }
-        }
-    }
-    
-    if (fontLoaded) {
-        sf::Text levelText(font, "Level");
-        levelText.setCharacterSize(16);
-        levelText.setFillColor(sf::Color::Red);
-        levelText.setPosition(sf::Vector2f(centerX - 75, centerY + 60));
-        window.draw(levelText);
-    } else {
-        sf::RectangleShape levelLabel;
-        levelLabel.setFillColor(sf::Color::Red);
-        levelLabel.setSize(sf::Vector2f(150, 8));
-        levelLabel.setPosition(sf::Vector2f(centerX - 75, centerY + 60));
+        sf::Text levelLabel(font, "LEVEL");
+        levelLabel.setCharacterSize(18);
+        levelLabel.setFillColor(newBestLevel ? sf::Color(255, 215, 0) : sf::Color::Cyan);
+        levelLabel.setStyle(sf::Text::Bold);
+        levelLabel.setPosition(sf::Vector2f(centerX - 100, centerY + 90));
         window.draw(levelLabel);
-    }
-    
-    TextureType levelTex = getDigitTexture(finalLevel);
-    if (useTextures && textures.find(levelTex) != textures.end()) {
-        sf::Sprite levelSprite(textures.at(levelTex));
-        levelSprite.setPosition(sf::Vector2f(centerX - digitSize/2, centerY + 75));
-        sf::Vector2u textureSize = textures.at(levelTex).getSize();
-        levelSprite.setScale(sf::Vector2f(digitSize / textureSize.x, digitSize / textureSize.y));
-        window.draw(levelSprite);
-    } else {
-        sf::RectangleShape levelDigit;
-        levelDigit.setFillColor(sf::Color::Cyan);
-        levelDigit.setSize(sf::Vector2f(digitSize, digitSize));
-        levelDigit.setPosition(sf::Vector2f(centerX - digitSize/2, centerY + 75));
-        window.draw(levelDigit);
-    }
-    
-    if (fontLoaded) {
-        sf::Text restartText(font, "Press R to restart");
+        
+        sf::Text levelValue(font, std::to_string(finalLevel));
+        levelValue.setCharacterSize(28);
+        levelValue.setFillColor(sf::Color::White);
+        sf::FloatRect levelBounds = levelValue.getLocalBounds();
+        levelValue.setPosition(sf::Vector2f(centerX - levelBounds.size.x/2, centerY + 120));
+        window.draw(levelValue);
+        
+        sf::Text restartText(font, "Press R to return to menu");
         restartText.setCharacterSize(14);
         restartText.setFillColor(sf::Color(150, 150, 255));
-        sf::FloatRect textBounds = restartText.getLocalBounds();
-        restartText.setPosition(sf::Vector2f(centerX - textBounds.size.x/2, centerY + 160));
+        sf::FloatRect restartBounds = restartText.getLocalBounds();
+        restartText.setPosition(sf::Vector2f(centerX - restartBounds.size.x/2, centerY + 165));
         window.draw(restartText);
         
         sf::Text topScoresTitle(font, "TOP 3 SCORES");
-        topScoresTitle.setCharacterSize(14);
+        topScoresTitle.setCharacterSize(16);
         topScoresTitle.setFillColor(sf::Color(100, 255, 150));
+        topScoresTitle.setStyle(sf::Text::Bold);
         topScoresTitle.setPosition(sf::Vector2f(centerX + 120, centerY - 100));
         window.draw(topScoresTitle);
         
@@ -1611,25 +1367,31 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
                 else if (i == 2) scoreColor = sf::Color(205, 127, 50);
                 
                 sf::Text rankText(font, "#" + std::to_string(i + 1) + ": " + std::to_string(saveData.topScores[i].score));
-                rankText.setCharacterSize(12);
+                rankText.setCharacterSize(14);
                 rankText.setFillColor(scoreColor);
-                rankText.setPosition(sf::Vector2f(centerX + 120, centerY - 75 + i * 35));
+                rankText.setPosition(sf::Vector2f(centerX + 120, centerY - 70 + i * 40));
                 window.draw(rankText);
                 
                 sf::Text detailText(font, "L" + std::to_string(saveData.topScores[i].lines) + " Lv" + std::to_string(saveData.topScores[i].level));
-                detailText.setCharacterSize(10);
+                detailText.setCharacterSize(11);
                 detailText.setFillColor(sf::Color(180, 180, 180));
-                detailText.setPosition(sf::Vector2f(centerX + 130, centerY - 55 + i * 35));
+                detailText.setPosition(sf::Vector2f(centerX + 130, centerY - 50 + i * 40));
                 window.draw(detailText);
             } else {
                 sf::Text emptyText(font, "#" + std::to_string(i + 1) + ": ---");
-                emptyText.setCharacterSize(12);
+                emptyText.setCharacterSize(14);
                 emptyText.setFillColor(sf::Color(100, 100, 100));
-                emptyText.setPosition(sf::Vector2f(centerX + 120, centerY - 75 + i * 35));
+                emptyText.setPosition(sf::Vector2f(centerX + 120, centerY - 70 + i * 40));
                 window.draw(emptyText);
             }
         }
     } else {
+        sf::RectangleShape titleBar;
+        titleBar.setFillColor(sf::Color(255, 100, 100));
+        titleBar.setSize(sf::Vector2f(300, 40));
+        titleBar.setPosition(sf::Vector2f(centerX - 150, centerY - 170));
+        window.draw(titleBar);
+        
         sf::RectangleShape restartHint;
         restartHint.setFillColor(sf::Color(150, 150, 255));
         restartHint.setSize(sf::Vector2f(200, 20));
@@ -1641,7 +1403,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawJigtrizTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigtriz 0.1.5");
+    sf::Text titleText(font, "Jigtriz 0.1.6");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -1718,20 +1480,20 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
     
     if (fontLoaded) {
         sf::Text titleText(titleFont, "JIGTRIZ");
-        titleText.setCharacterSize(96);
+        titleText.setCharacterSize(128);
         titleText.setFillColor(sf::Color(100, 255, 150));
         titleText.setStyle(sf::Text::Bold);
         titleText.setOutlineColor(sf::Color::Black);
         titleText.setOutlineThickness(4);
         sf::FloatRect titleBounds = titleText.getLocalBounds();
-        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 250));
+        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 320));
         window.draw(titleText);
         
-        sf::Text versionText(menuFont, "v0.1.3");
+        sf::Text versionText(menuFont, "v0.1.6");
         versionText.setCharacterSize(24);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();
-        versionText.setPosition(sf::Vector2f(centerX - versionBounds.size.x/2, centerY - 150));
+        versionText.setPosition(sf::Vector2f(centerX - versionBounds.size.x/2, centerY - 170));
         window.draw(versionText);
         
         sf::Text startText(menuFont, "START");
@@ -1745,7 +1507,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
             selector.setFillColor(sf::Color(255, 255, 0, 50));
             selector.setOutlineColor(sf::Color::Yellow);
             selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 150, centerY - 30));
+            selector.setPosition(sf::Vector2f(centerX - 150, centerY - 15));
             window.draw(selector);
         } else {
             startText.setFillColor(sf::Color::White);
@@ -1765,7 +1527,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
             selector.setFillColor(sf::Color(255, 255, 0, 50));
             selector.setOutlineColor(sf::Color::Yellow);
             selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 150, centerY + 70));
+            selector.setPosition(sf::Vector2f(centerX - 150, centerY + 85));
             window.draw(selector);
         } else {
             exitText.setFillColor(sf::Color::White);
@@ -2177,7 +1939,6 @@ int main() {
                         gameState = GameState::MainMenu;
                         selectedMenuOption = MenuOption::Start;
                         
-                        // Reset game state for next play
                         for (int i = 0; i < GRID_HEIGHT; ++i) {
                             for (int j = 0; j < GRID_WIDTH; ++j) {
                                 grid[i][j] = Cell();
@@ -2472,7 +2233,7 @@ int main() {
         activePiece.draw(window, textures, useTextures);
         drawExplosionEffects(window, explosionEffects);
         drawNextPieces(window, jigtrizBag.getNextQueue(), textures, useTextures);
-        drawHeldPiece(window, heldPiece, hasHeldPiece, textures, useTextures);
+        drawHeldPiece(window, heldPiece, hasHeldPiece, textures, useTextures, menuFont, fontLoaded);
         drawBombAbility(window, bombAbilityAvailable, linesSinceLastAbility, textures, useTextures, menuFont, fontLoaded);
         drawLevelInfo(window, totalLinesCleared, currentLevel, totalScore, textures, useTextures, menuFont, fontLoaded);
         drawGridBorder(window);
