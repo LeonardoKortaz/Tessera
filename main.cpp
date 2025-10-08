@@ -31,12 +31,19 @@ const int MAX_LEVEL = 5;
 enum class GameState {
     MainMenu,
     Playing,
+    Paused,
     GameOver
 };
 
 enum class MenuOption {
     Start = 0,
     Exit = 1
+};
+
+enum class PauseOption {
+    Resume = 0,
+    Restart = 1,
+    QuitToMenu = 2
 };
 
 struct SaveData {
@@ -1403,7 +1410,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawJigtrizTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigtriz 0.1.6");
+    sf::Text titleText(font, "Jigtriz 0.1.7");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -1468,6 +1475,117 @@ void insertNewScore(SaveData& saveData, int score, int lines, int level) {
     }
 }
 
+void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, PauseOption selectedOption) {
+    sf::RectangleShape overlay;
+    overlay.setFillColor(sf::Color(0, 0, 0, 180));
+    overlay.setSize(sf::Vector2f(1920, 1080));
+    overlay.setPosition(sf::Vector2f(0, 0));
+    window.draw(overlay);
+    
+    float centerX = 1920 / 2.0f;
+    float centerY = 1080 / 2.0f;
+    
+    sf::RectangleShape menuBg;
+    menuBg.setFillColor(sf::Color(40, 40, 50, 240));
+    menuBg.setOutlineColor(sf::Color(100, 150, 255, 255));
+    menuBg.setOutlineThickness(4);
+    menuBg.setSize(sf::Vector2f(400, 350));
+    menuBg.setPosition(sf::Vector2f(centerX - 200, centerY - 175));
+    window.draw(menuBg);
+    
+    if (fontLoaded) {
+        sf::Text pausedText(menuFont, "PAUSED");
+        pausedText.setCharacterSize(48);
+        pausedText.setFillColor(sf::Color(100, 150, 255));
+        pausedText.setStyle(sf::Text::Bold);
+        sf::FloatRect titleBounds = pausedText.getLocalBounds();
+        pausedText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 140));
+        window.draw(pausedText);
+        
+        sf::Text resumeText(menuFont, "RESUME");
+        resumeText.setCharacterSize(32);
+        if (selectedOption == PauseOption::Resume) {
+            resumeText.setFillColor(sf::Color::Yellow);
+            resumeText.setStyle(sf::Text::Bold);
+            
+            sf::RectangleShape selector;
+            selector.setSize(sf::Vector2f(300, 50));
+            selector.setFillColor(sf::Color(255, 255, 0, 50));
+            selector.setOutlineColor(sf::Color::Yellow);
+            selector.setOutlineThickness(2);
+            selector.setPosition(sf::Vector2f(centerX - 150, centerY - 50));
+            window.draw(selector);
+        } else {
+            resumeText.setFillColor(sf::Color::White);
+        }
+        sf::FloatRect resumeBounds = resumeText.getLocalBounds();
+        resumeText.setPosition(sf::Vector2f(centerX - resumeBounds.size.x/2, centerY - 40));
+        window.draw(resumeText);
+        
+        sf::Text restartText(menuFont, "RESTART");
+        restartText.setCharacterSize(32);
+        if (selectedOption == PauseOption::Restart) {
+            restartText.setFillColor(sf::Color::Yellow);
+            restartText.setStyle(sf::Text::Bold);
+            
+            sf::RectangleShape selector;
+            selector.setSize(sf::Vector2f(300, 50));
+            selector.setFillColor(sf::Color(255, 255, 0, 50));
+            selector.setOutlineColor(sf::Color::Yellow);
+            selector.setOutlineThickness(2);
+            selector.setPosition(sf::Vector2f(centerX - 150, centerY + 20));
+            window.draw(selector);
+        } else {
+            restartText.setFillColor(sf::Color::White);
+        }
+        sf::FloatRect restartBounds = restartText.getLocalBounds();
+        restartText.setPosition(sf::Vector2f(centerX - restartBounds.size.x/2, centerY + 30));
+        window.draw(restartText);
+        
+        sf::Text quitText(menuFont, "QUIT TO MENU");
+        quitText.setCharacterSize(32);
+        if (selectedOption == PauseOption::QuitToMenu) {
+            quitText.setFillColor(sf::Color::Yellow);
+            quitText.setStyle(sf::Text::Bold);
+            
+            sf::RectangleShape selector;
+            selector.setSize(sf::Vector2f(300, 50));
+            selector.setFillColor(sf::Color(255, 255, 0, 50));
+            selector.setOutlineColor(sf::Color::Yellow);
+            selector.setOutlineThickness(2);
+            selector.setPosition(sf::Vector2f(centerX - 150, centerY + 90));
+            window.draw(selector);
+        } else {
+            quitText.setFillColor(sf::Color::White);
+        }
+        sf::FloatRect quitBounds = quitText.getLocalBounds();
+        quitText.setPosition(sf::Vector2f(centerX - quitBounds.size.x/2, centerY + 100));
+        window.draw(quitText);
+        
+        sf::Text controlsText(menuFont, "W/S or UP/DOWN | SPACE to confirm | P to resume");
+        controlsText.setCharacterSize(14);
+        controlsText.setFillColor(sf::Color(150, 150, 150));
+        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
+        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 155));
+        window.draw(controlsText);
+    } else {
+        sf::RectangleShape titleBar;
+        titleBar.setFillColor(sf::Color(100, 150, 255));
+        titleBar.setSize(sf::Vector2f(300, 60));
+        titleBar.setPosition(sf::Vector2f(centerX - 150, centerY - 140));
+        window.draw(titleBar);
+        
+        float optionY = centerY - 40;
+        for (int i = 0; i < 3; i++) {
+            sf::RectangleShape option;
+            option.setFillColor(i == static_cast<int>(selectedOption) ? sf::Color::Yellow : sf::Color::White);
+            option.setSize(sf::Vector2f(280, 40));
+            option.setPosition(sf::Vector2f(centerX - 140, optionY + i * 70));
+            window.draw(option);
+        }
+    }
+}
+
 void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 230));
@@ -1489,7 +1607,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 320));
         window.draw(titleText);
         
-        sf::Text versionText(menuFont, "v0.1.6");
+        sf::Text versionText(menuFont, "v0.1.7");
         versionText.setCharacterSize(24);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();
@@ -1746,6 +1864,7 @@ int main() {
 
     GameState gameState = GameState::MainMenu;
     MenuOption selectedMenuOption = MenuOption::Start;
+    PauseOption selectedPauseOption = PauseOption::Resume;
     
     int totalLinesCleared = 0;
     int currentLevel = 0;
@@ -1829,6 +1948,64 @@ int main() {
                                 std::cout << "Game started from menu!" << std::endl;
                             } else if (selectedMenuOption == MenuOption::Exit) {
                                 window.close();
+                            }
+                            break;
+                        default: 
+                            break;
+                    }
+                } else if (gameState == GameState::Paused) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                        case sf::Keyboard::Key::P:
+                            gameState = GameState::Playing;
+                            std::cout << "Game resumed" << std::endl;
+                            break;
+                        case sf::Keyboard::Key::Up:
+                        case sf::Keyboard::Key::W:
+                            selectedPauseOption = static_cast<PauseOption>((static_cast<int>(selectedPauseOption) - 1 + 3) % 3);
+                            break;
+                        case sf::Keyboard::Key::Down:
+                        case sf::Keyboard::Key::S:
+                            selectedPauseOption = static_cast<PauseOption>((static_cast<int>(selectedPauseOption) + 1) % 3);
+                            break;
+                        case sf::Keyboard::Key::Space:
+                            if (selectedPauseOption == PauseOption::Resume) {
+                                gameState = GameState::Playing;
+                                std::cout << "Game resumed from menu" << std::endl;
+                            } else if (selectedPauseOption == PauseOption::Restart) {
+                                gameState = GameState::Playing;
+                                gameOver = false;
+                                
+                                for (int i = 0; i < GRID_HEIGHT; ++i) {
+                                    for (int j = 0; j < GRID_WIDTH; ++j) {
+                                        grid[i][j] = Cell();
+                                    }
+                                }
+                                totalLinesCleared = 0;
+                                currentLevel = 0;
+                                totalScore = 0;
+                                jigtrizBag.reset();
+                                hasHeldPiece = false;
+                                canUseHold = true;
+                                linesSinceLastAbility = 0;
+                                bombAbilityAvailable = false;
+                                explosionEffects.clear();
+                                leftHoldTime = 0.0f;
+                                rightHoldTime = 0.0f;
+                                dasTimer = 0.0f;
+                                leftPressed = false;
+                                rightPressed = false;
+                                
+                                PieceType startType = jigtrizBag.getNextPiece();
+                                PieceShape startShape = getPieceShape(startType);
+                                int startX = (GRID_WIDTH - startShape.width) / 2;
+                                activePiece = Piece(startX, 0, startType);
+                                
+                                std::cout << "Game restarted from pause menu!" << std::endl;
+                            } else if (selectedPauseOption == PauseOption::QuitToMenu) {
+                                gameState = GameState::MainMenu;
+                                selectedMenuOption = MenuOption::Start;
+                                std::cout << "Returned to main menu" << std::endl;
                             }
                             break;
                         default: 
@@ -2031,6 +2208,14 @@ int main() {
                         break;
                     }
                     case sf::Keyboard::Key::P: {
+                        if (!gameOver) {
+                            gameState = GameState::Paused;
+                            selectedPauseOption = PauseOption::Resume;
+                            std::cout << "Game paused" << std::endl;
+                        }
+                        break;
+                    }
+                    case sf::Keyboard::Key::Backspace: {
                         isFullscreen = !isFullscreen;
                         if (isFullscreen) {
                             auto desktopMode = sf::VideoMode::getDesktopMode();
@@ -2198,7 +2383,7 @@ int main() {
         
         if (gameState == GameState::MainMenu) {
             drawMainMenu(window, titleFont, menuFont, fontLoaded, selectedMenuOption);
-        } else if (gameState == GameState::Playing) {
+        } else if (gameState == GameState::Playing || gameState == GameState::Paused) {
         drawGridBackground(window);
         for (int i = 0; i < GRID_HEIGHT; ++i) {
             for (int j = 0; j < GRID_WIDTH; ++j) {
@@ -2241,6 +2426,10 @@ int main() {
         
         if (gameOver) {
             drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData);
+        }
+        
+        if (gameState == GameState::Paused) {
+            drawPauseMenu(window, menuFont, fontLoaded, selectedPauseOption);
         }
         
         }
