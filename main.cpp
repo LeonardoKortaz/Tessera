@@ -949,7 +949,7 @@ public:
             }
         }
     }
-    void ChangeToStatic(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, AbilityType ability = AbilityType::None, std::unique_ptr<sf::Sound>* bombSound = nullptr, std::vector<ExplosionEffect>* explosions = nullptr) {
+    void ChangeToStatic(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, AbilityType ability = AbilityType::None, std::unique_ptr<sf::Sound>* bombSound = nullptr, std::vector<ExplosionEffect>* explosions = nullptr, float* shakeIntensity = nullptr, float* shakeDuration = nullptr, float* shakeTimer = nullptr) {
         for (int i = 0; i < shape.height; ++i) {
             for (int j = 0; j < shape.width; ++j) {
                 if (shape.blocks[i][j]) {
@@ -963,10 +963,10 @@ public:
         }
         
         if (ability != AbilityType::None) {
-            AbilityEffect(grid, bombSound, explosions);
+            AbilityEffect(grid, bombSound, explosions, shakeIntensity, shakeDuration, shakeTimer);
         }
     }
-    void BombEffect(int centerX, int centerY, std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, std::unique_ptr<sf::Sound>& bombSound, std::vector<ExplosionEffect>& explosions) {
+    void BombEffect(int centerX, int centerY, std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, std::unique_ptr<sf::Sound>& bombSound, std::vector<ExplosionEffect>& explosions, float& shakeIntensity, float& shakeDuration, float& shakeTimer) {
         if (bombSound) {
             std::cout << "Playing bomb sound! Volume: " << bombSound->getVolume() << std::endl;
             bombSound->play();
@@ -974,6 +974,11 @@ public:
         } else {
             std::cout << "ERROR: bombSound is null!" << std::endl;
         }
+        
+
+        shakeIntensity = 15.0f;
+        shakeDuration = 0.4f;
+        shakeTimer = 0.0f;
         
         int minX = std::max(0, centerX - 2);
         int maxX = std::min(GRID_WIDTH - 1, centerX + 2);
@@ -1008,13 +1013,13 @@ public:
             }
         }
     }
-    void AbilityEffect(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, std::unique_ptr<sf::Sound>* bombSound = nullptr, std::vector<ExplosionEffect>* explosions = nullptr)
+    void AbilityEffect(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, std::unique_ptr<sf::Sound>* bombSound = nullptr, std::vector<ExplosionEffect>* explosions = nullptr, float* shakeIntensity = nullptr, float* shakeDuration = nullptr, float* shakeTimer = nullptr)
     {
         switch(ability)
         {
             case AbilityType::Bomb:
-                if (bombSound && explosions) {
-                    BombEffect(x, y, grid, *bombSound, *explosions);
+                if (bombSound && explosions && shakeIntensity && shakeDuration && shakeTimer) {
+                    BombEffect(x, y, grid, *bombSound, *explosions, *shakeIntensity, *shakeDuration, *shakeTimer);
                 } else {
                     std::cout << "Bomb ability activated (no sound/explosions)!" << std::endl;
                 }
@@ -1410,7 +1415,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawJigtrizTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigtriz 0.1.7");
+    sf::Text titleText(font, "Jigtriz 0.1.8");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -1586,7 +1591,7 @@ void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool font
     }
 }
 
-void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption) {
+void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption, bool debugMode) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 230));
     overlay.setSize(sf::Vector2f(1920, 1080));
@@ -1607,7 +1612,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 320));
         window.draw(titleText);
         
-        sf::Text versionText(menuFont, "v0.1.7");
+        sf::Text versionText(menuFont, "v0.1.8");
         versionText.setCharacterSize(24);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();
@@ -1679,6 +1684,15 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
             option.setPosition(sf::Vector2f(centerX - 150, optionY + i * 100));
             window.draw(option);
         }
+    }
+    
+    if (debugMode && fontLoaded) {
+        sf::Text debugText(menuFont);
+        debugText.setString("DEBUG MODE");
+        debugText.setCharacterSize(24);
+        debugText.setFillColor(sf::Color::Yellow);
+        debugText.setPosition(sf::Vector2f(1920.0f - 180.0f, 1080.0f - 40.0f));
+        window.draw(debugText);
     }
 }
 
@@ -1861,10 +1875,16 @@ int main() {
     PieceBag jigtrizBag;
     
     std::vector<ExplosionEffect> explosionEffects;
+    
+    float shakeIntensity = 0.0f;
+    float shakeDuration = 0.0f;
+    float shakeTimer = 0.0f;
 
     GameState gameState = GameState::MainMenu;
     MenuOption selectedMenuOption = MenuOption::Start;
     PauseOption selectedPauseOption = PauseOption::Resume;
+    
+    bool debugMode = false;
     
     int totalLinesCleared = 0;
     int currentLevel = 0;
@@ -1907,6 +1927,13 @@ int main() {
                         case sf::Keyboard::Key::Escape: 
                             window.close(); 
                             break;
+                        case sf::Keyboard::Key::D:
+                            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) || 
+                                sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl)) {
+                                debugMode = !debugMode;
+                                std::cout << "DEBUG MODE " << (debugMode ? "ENABLED" : "DISABLED") << std::endl;
+                            }
+                            break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
                             selectedMenuOption = MenuOption::Start;
@@ -1932,7 +1959,9 @@ int main() {
                                 hasHeldPiece = false;
                                 canUseHold = true;
                                 linesSinceLastAbility = 0;
-                                bombAbilityAvailable = false;
+                                
+                                bombAbilityAvailable = debugMode;
+                                
                                 explosionEffects.clear();
                                 leftHoldTime = 0.0f;
                                 rightHoldTime = 0.0f;
@@ -1945,7 +1974,7 @@ int main() {
                                 int startX = (GRID_WIDTH - startShape.width) / 2;
                                 activePiece = Piece(startX, 0, startType);
                                 
-                                std::cout << "Game started from menu!" << std::endl;
+                                std::cout << "Game started from menu!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
                             } else if (selectedMenuOption == MenuOption::Exit) {
                                 window.close();
                             }
@@ -2058,6 +2087,11 @@ int main() {
                                 int bombCenterX = activePiece.getX();
                                 int bombCenterY = activePiece.getY();
                                 
+                                shakeIntensity = 15.0f;
+                                shakeDuration = 0.4f;
+                                shakeTimer = 0.0f;
+                                std::cout << "SCREEN SHAKE ACTIVATED! Intensity: " << shakeIntensity << ", Duration: " << shakeDuration << std::endl;
+                                
                                 if (bombSound) {
                                     std::cout << "Playing bomb sound! Volume: " << bombSound->getVolume() << std::endl;
                                     bombSound->play();
@@ -2144,8 +2178,8 @@ int main() {
                         break;
                     }
                     case sf::Keyboard::Key::I: {
-                        if (bombAbilityAvailable && !gameOver) {
-                            std::cout << "BOMB ABILITY ACTIVATED - Spawning bomb!" << std::endl;
+                        if ((bombAbilityAvailable || debugMode) && !gameOver) {
+                            std::cout << "BOMB ABILITY ACTIVATED - Spawning bomb!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
                             
                             PieceType newType = PieceType::A_Bomb;
                             std::cout << "Spawning bomb piece!" << std::endl;
@@ -2153,9 +2187,11 @@ int main() {
                             int spawnX = (GRID_WIDTH - newShape.width) / 2;
                             activePiece = Piece(spawnX, 0, newType);
                             
-                            bombAbilityAvailable = false;
-                            linesSinceLastAbility = 0;
-                        } else if (!bombAbilityAvailable && !gameOver) {
+                            if (!debugMode) {
+                                bombAbilityAvailable = false;
+                                linesSinceLastAbility = 0;
+                            }
+                        } else if (!bombAbilityAvailable && !debugMode && !gameOver) {
                             int linesNeeded = LINES_FOR_ABILITY - linesSinceLastAbility;
                             std::cout << "Bomb ability not ready yet! Need " << linesNeeded << " more lines." << std::endl;
                         }
@@ -2297,6 +2333,10 @@ int main() {
             activePiece.update(deltaTime, fastFall, grid);
         }
         
+        if (shakeTimer < shakeDuration) {
+            shakeTimer += deltaTime;
+        }
+        
         for (auto it = explosionEffects.begin(); it != explosionEffects.end(); ) {
             it->timer -= deltaTime;
             if (it->timer <= 0.0f) {
@@ -2307,7 +2347,7 @@ int main() {
         }
         
         if (activePiece.hasStopped() && !gameOver) {
-            activePiece.ChangeToStatic(grid, activePiece.getAbility(), &bombSound, &explosionEffects);
+            activePiece.ChangeToStatic(grid, activePiece.getAbility(), &bombSound, &explosionEffects, &shakeIntensity, &shakeDuration, &shakeTimer);
             int clearedLines = clearFullLines(grid, laserSound, wowSounds);
             totalLinesCleared += clearedLines;
             
@@ -2345,26 +2385,30 @@ int main() {
                 std::cout << "GAME OVER! New piece overlaps with existing blocks at spawn position (" << spawnX << ", 0)" << std::endl;
                 std::cout << "Final Score: " << totalScore << " | Lines: " << totalLinesCleared << " | Level: " << currentLevel << std::endl;
                 
-                insertNewScore(saveData, totalScore, totalLinesCleared, currentLevel);
-                
-                bool recordsUpdated = false;
-                if (totalLinesCleared > saveData.bestLines) {
-                    saveData.bestLines = totalLinesCleared;
-                    recordsUpdated = true;
-                    std::cout << "NEW BEST LINES: " << totalLinesCleared << "!" << std::endl;
+                if (!debugMode) {
+                    insertNewScore(saveData, totalScore, totalLinesCleared, currentLevel);
+                    
+                    bool recordsUpdated = false;
+                    if (totalLinesCleared > saveData.bestLines) {
+                        saveData.bestLines = totalLinesCleared;
+                        recordsUpdated = true;
+                        std::cout << "NEW BEST LINES: " << totalLinesCleared << "!" << std::endl;
+                    }
+                    if (currentLevel > saveData.bestLevel) {
+                        saveData.bestLevel = currentLevel;
+                        recordsUpdated = true;
+                        std::cout << "NEW BEST LEVEL: " << currentLevel << "!" << std::endl;
+                    }
+                    
+                    saveData.masterVolume = masterVolume;
+                    saveData.isMuted = isMuted;
+                    
+                    saveGameData(saveData);
+                    
+                    std::cout << "Game data saved with new scores!" << std::endl;
+                } else {
+                    std::cout << "Score not saved (DEBUG MODE)" << std::endl;
                 }
-                if (currentLevel > saveData.bestLevel) {
-                    saveData.bestLevel = currentLevel;
-                    recordsUpdated = true;
-                    std::cout << "NEW BEST LEVEL: " << currentLevel << "!" << std::endl;
-                }
-                
-                saveData.masterVolume = masterVolume;
-                saveData.isMuted = isMuted;
-                
-                saveGameData(saveData);
-                
-                std::cout << "Game data saved with new scores!" << std::endl;
             }
             
             canUseHold = true;
@@ -2381,8 +2425,30 @@ int main() {
         
         window.clear(sf::Color::Black);
         
+        sf::View view = window.getDefaultView();
+        if (shakeTimer < shakeDuration && gameState == GameState::Playing) {
+            float progress = shakeTimer / shakeDuration;
+            float currentIntensity = shakeIntensity * (1.0f - progress);
+            
+            float offsetX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * currentIntensity * 2.0f;
+            float offsetY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * currentIntensity * 2.0f;
+            
+            static int debugCounter = 0;
+            if (debugCounter++ % 10 == 0) {
+                std::cout << "SHAKE ACTIVE! Timer: " << shakeTimer << "/" << shakeDuration 
+                          << " Intensity: " << currentIntensity 
+                          << " Offset: (" << offsetX << ", " << offsetY << ")" << std::endl;
+            }
+            
+            view.setCenter(sf::Vector2f(WINDOW_WIDTH / 2.0f + offsetX, WINDOW_HEIGHT / 2.0f + offsetY));
+            window.setView(view);
+        } else {
+            view.setCenter(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f));
+            window.setView(view);
+        }
+        
         if (gameState == GameState::MainMenu) {
-            drawMainMenu(window, titleFont, menuFont, fontLoaded, selectedMenuOption);
+            drawMainMenu(window, titleFont, menuFont, fontLoaded, selectedMenuOption, debugMode);
         } else if (gameState == GameState::Playing || gameState == GameState::Paused) {
         drawGridBackground(window);
         for (int i = 0; i < GRID_HEIGHT; ++i) {
@@ -2430,6 +2496,15 @@ int main() {
         
         if (gameState == GameState::Paused) {
             drawPauseMenu(window, menuFont, fontLoaded, selectedPauseOption);
+        }
+        
+        if (debugMode && fontLoaded) {
+            sf::Text debugText(menuFont);
+            debugText.setString("DEBUG MODE");
+            debugText.setCharacterSize(24);
+            debugText.setFillColor(sf::Color::Yellow);
+            debugText.setPosition(sf::Vector2f(1920.0f - 180.0f, 1080.0f - 40.0f));
+            window.draw(debugText);
         }
         
         }
