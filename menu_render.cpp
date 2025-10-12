@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <iostream>
 
-void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData) {
+void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData, int dropScore, int lineScore, int comboScore) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 180));
     overlay.setSize(sf::Vector2f(1920, 1080));
@@ -16,8 +16,8 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
     gameOverBg.setFillColor(sf::Color(40, 40, 50, 220));
     gameOverBg.setOutlineColor(sf::Color(255, 100, 100, 255));
     gameOverBg.setOutlineThickness(4);
-    gameOverBg.setSize(sf::Vector2f(500, 400));
-    gameOverBg.setPosition(sf::Vector2f(centerX - 250, centerY - 200));
+    gameOverBg.setSize(sf::Vector2f(700, 500));
+    gameOverBg.setPosition(sf::Vector2f(centerX - 350, centerY - 250));
     window.draw(gameOverBg);
     
     bool newHighScore = finalScore > saveData.highScore;
@@ -45,46 +45,82 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
         
 
         sf::Text scoreLabel(font, "SCORE");
-        scoreLabel.setCharacterSize(18);
+        scoreLabel.setCharacterSize(28);
         scoreLabel.setFillColor(newHighScore ? sf::Color(255, 215, 0) : sf::Color::Yellow);
         scoreLabel.setStyle(sf::Text::Bold);
-        scoreLabel.setPosition(sf::Vector2f(centerX - 100, centerY - 90));
+        sf::FloatRect scoreLabelBounds = scoreLabel.getLocalBounds();
+        scoreLabel.setPosition(sf::Vector2f(centerX - scoreLabelBounds.size.x/2, centerY - 90));
         window.draw(scoreLabel);
         
         sf::Text scoreValue(font, std::to_string(finalScore));
         scoreValue.setCharacterSize(28);
         scoreValue.setFillColor(sf::Color::White);
-        sf::FloatRect scoreBounds = scoreValue.getLocalBounds();
-        scoreValue.setPosition(sf::Vector2f(centerX - scoreBounds.size.x/2, centerY - 60));
+        sf::FloatRect scoreValueBounds = scoreValue.getLocalBounds();
+        scoreValue.setPosition(sf::Vector2f(centerX - scoreValueBounds.size.x/2, centerY - 60));
         window.draw(scoreValue);
         
         sf::Text linesLabel(font, "LINES");
-        linesLabel.setCharacterSize(18);
+        linesLabel.setCharacterSize(28);
         linesLabel.setFillColor(newBestLines ? sf::Color(255, 215, 0) : sf::Color::Green);
         linesLabel.setStyle(sf::Text::Bold);
-        linesLabel.setPosition(sf::Vector2f(centerX - 100, centerY + 10));
+        sf::FloatRect linesLabelBounds = linesLabel.getLocalBounds();
+        linesLabel.setPosition(sf::Vector2f(centerX - linesLabelBounds.size.x/2, centerY + 10));
         window.draw(linesLabel);
         
         sf::Text linesValue(font, std::to_string(finalLines));
         linesValue.setCharacterSize(28);
         linesValue.setFillColor(sf::Color::White);
-        sf::FloatRect linesBounds = linesValue.getLocalBounds();
-        linesValue.setPosition(sf::Vector2f(centerX - linesBounds.size.x/2, centerY + 40));
+        sf::FloatRect linesValueBounds = linesValue.getLocalBounds();
+        linesValue.setPosition(sf::Vector2f(centerX - linesValueBounds.size.x/2, centerY + 40));
         window.draw(linesValue);
         
         sf::Text levelLabel(font, "LEVEL");
-        levelLabel.setCharacterSize(18);
+        levelLabel.setCharacterSize(28);
         levelLabel.setFillColor(newBestLevel ? sf::Color(255, 215, 0) : sf::Color::Cyan);
         levelLabel.setStyle(sf::Text::Bold);
-        levelLabel.setPosition(sf::Vector2f(centerX - 100, centerY + 90));
+        sf::FloatRect levelLabelBounds = levelLabel.getLocalBounds();
+        levelLabel.setPosition(sf::Vector2f(centerX - levelLabelBounds.size.x/2, centerY + 90));
         window.draw(levelLabel);
         
         sf::Text levelValue(font, std::to_string(finalLevel));
         levelValue.setCharacterSize(28);
         levelValue.setFillColor(sf::Color::White);
-        sf::FloatRect levelBounds = levelValue.getLocalBounds();
-        levelValue.setPosition(sf::Vector2f(centerX - levelBounds.size.x/2, centerY + 120));
+        sf::FloatRect levelValueBounds = levelValue.getLocalBounds();
+        levelValue.setPosition(sf::Vector2f(centerX - levelValueBounds.size.x/2, centerY + 120));
         window.draw(levelValue);
+        
+        sf::RectangleShape statsBg;
+        statsBg.setFillColor(sf::Color(30, 30, 40, 180));
+        statsBg.setOutlineColor(sf::Color(100, 150, 255, 150));
+        statsBg.setOutlineThickness(2);
+        statsBg.setSize(sf::Vector2f(225, 200));
+        statsBg.setPosition(sf::Vector2f(centerX - 320, centerY - 70));
+        window.draw(statsBg);
+        
+        sf::Text statsTitle(font, "SCORE BREAKDOWN");
+        statsTitle.setCharacterSize(24);
+        statsTitle.setFillColor(sf::Color(150, 200, 255));
+        statsTitle.setStyle(sf::Text::Bold);
+        statsTitle.setPosition(sf::Vector2f(centerX - 310, centerY - 50));
+        window.draw(statsTitle);
+        
+        sf::Text lineText(font, "Lines: " + std::to_string(lineScore));
+        lineText.setCharacterSize(24);
+        lineText.setFillColor(sf::Color(100, 255, 150));
+        lineText.setPosition(sf::Vector2f(centerX - 310, centerY - 10));
+        window.draw(lineText);
+        
+        sf::Text comboText(font, "Combo Bonus: " + std::to_string(comboScore));
+        comboText.setCharacterSize(24);
+        comboText.setFillColor(sf::Color(255, 100, 255));
+        comboText.setPosition(sf::Vector2f(centerX - 310, centerY + 30));
+        window.draw(comboText);
+
+        sf::Text dropText(font, "Hard Drops: " + std::to_string(dropScore));
+        dropText.setCharacterSize(24);
+        dropText.setFillColor(sf::Color(255, 200, 100));
+        dropText.setPosition(sf::Vector2f(centerX - 310, centerY + 70));
+        window.draw(dropText);
         
         sf::Text restartText(font, "Press R to return to menu");
         restartText.setCharacterSize(14);
@@ -94,7 +130,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
         window.draw(restartText);
         
         sf::Text topScoresTitle(font, "TOP 3 SCORES");
-        topScoresTitle.setCharacterSize(16);
+        topScoresTitle.setCharacterSize(32);
         topScoresTitle.setFillColor(sf::Color(100, 255, 150));
         topScoresTitle.setStyle(sf::Text::Bold);
         topScoresTitle.setPosition(sf::Vector2f(centerX + 120, centerY - 100));
@@ -108,21 +144,21 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
                 else if (i == 2) scoreColor = sf::Color(205, 127, 50);
                 
                 sf::Text rankText(font, "#" + std::to_string(i + 1) + ": " + std::to_string(saveData.topScores[i].score));
-                rankText.setCharacterSize(14);
+                rankText.setCharacterSize(24);
                 rankText.setFillColor(scoreColor);
-                rankText.setPosition(sf::Vector2f(centerX + 120, centerY - 70 + i * 40));
+                rankText.setPosition(sf::Vector2f(centerX + 120, centerY - 70 + i * 60));
                 window.draw(rankText);
                 
                 sf::Text detailText(font, "L" + std::to_string(saveData.topScores[i].lines) + " Lv" + std::to_string(saveData.topScores[i].level));
-                detailText.setCharacterSize(11);
+                detailText.setCharacterSize(18);
                 detailText.setFillColor(sf::Color(180, 180, 180));
-                detailText.setPosition(sf::Vector2f(centerX + 130, centerY - 50 + i * 40));
+                detailText.setPosition(sf::Vector2f(centerX + 130, centerY - 50 + i * 60));
                 window.draw(detailText);
             } else {
                 sf::Text emptyText(font, "#" + std::to_string(i + 1) + ": ---");
-                emptyText.setCharacterSize(14);
+                emptyText.setCharacterSize(24);
                 emptyText.setFillColor(sf::Color(100, 100, 100));
-                emptyText.setPosition(sf::Vector2f(centerX + 120, centerY - 70 + i * 40));
+                emptyText.setPosition(sf::Vector2f(centerX + 120, centerY - 70 + i * 60));
                 window.draw(emptyText);
             }
         }
@@ -144,7 +180,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawJigtrizTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigtriz 0.2.1");
+    sf::Text titleText(font, "Jigtriz 0.2.2");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -385,7 +421,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 320));
         window.draw(titleText);
         
-        sf::Text versionText(menuFont, "v0.2.1");
+        sf::Text versionText(menuFont, "v0.2.2");
         versionText.setCharacterSize(24);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();
@@ -667,8 +703,8 @@ void drawRebindingScreen(sf::RenderWindow& window, const sf::Font& menuFont, boo
             {"Move Right", getKeyName(bindings.moveRight)},
             {"Rotate Left", getKeyName(bindings.rotateLeft)},
             {"Rotate Right", getKeyName(bindings.rotateRight)},
-            {"Soft Drop (hold)", getKeyName(bindings.quickFall)},
-            {"Hard Drop (instant)", getKeyName(bindings.drop)},
+            {"Fall", getKeyName(bindings.quickFall)},
+            {"Drop", getKeyName(bindings.drop)},
             {"Hold", getKeyName(bindings.hold)},
             {"Bomb", getKeyName(bindings.bomb)},
             {"Mute", getKeyName(bindings.mute)},

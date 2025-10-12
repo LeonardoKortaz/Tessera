@@ -512,6 +512,61 @@ void drawHeldPiece(sf::RenderWindow& window, PieceType heldType, bool hasHeld, c
     }
 }
 
+void drawCombo(sf::RenderWindow& window, int currentCombo, int lastMoveScore, const sf::Font& font, bool fontLoaded) {
+    float panelX = 250;
+    float panelY = GRID_OFFSET_Y + 200;
+    
+    sf::RectangleShape comboBg;
+    comboBg.setFillColor(sf::Color(40, 20, 60, 220));
+    comboBg.setOutlineColor(currentCombo > 0 ? sf::Color(255, 100, 255, 255) : sf::Color(120, 60, 140, 200));
+    comboBg.setOutlineThickness(3);
+    comboBg.setPosition(sf::Vector2f(panelX - 10, panelY - 10));
+    comboBg.setSize(sf::Vector2f(140, 90));
+    window.draw(comboBg);
+    
+    if (fontLoaded) {
+        sf::Text comboLabel(font, "COMBO");
+        comboLabel.setCharacterSize(20);
+        comboLabel.setFillColor(sf::Color(255, 200, 255));
+        comboLabel.setStyle(sf::Text::Bold);
+        comboLabel.setPosition(sf::Vector2f(panelX + 20, panelY));
+        window.draw(comboLabel);
+        
+        sf::Text comboValue(font, "x" + std::to_string(currentCombo));
+        comboValue.setCharacterSize(32);
+        comboValue.setFillColor(currentCombo > 0 ? sf::Color(255, 100, 255) : sf::Color(150, 100, 150));
+        comboValue.setStyle(sf::Text::Bold);
+        comboValue.setPosition(sf::Vector2f(panelX + 25, panelY + 35));
+        window.draw(comboValue);
+    }
+    
+    float scorePanelY = panelY + 105;
+    
+    sf::RectangleShape scoreBg;
+    scoreBg.setFillColor(sf::Color(20, 40, 60, 220));
+    scoreBg.setOutlineColor(sf::Color(100, 200, 255, 255));
+    scoreBg.setOutlineThickness(3);
+    scoreBg.setPosition(sf::Vector2f(panelX - 10, scorePanelY - 10));
+    scoreBg.setSize(sf::Vector2f(140, 75));
+    window.draw(scoreBg);
+    
+    if (fontLoaded) {
+        sf::Text lastScoreLabel(font, "LAST MOVE");
+        lastScoreLabel.setCharacterSize(14);
+        lastScoreLabel.setFillColor(sf::Color(150, 220, 255));
+        lastScoreLabel.setStyle(sf::Text::Bold);
+        lastScoreLabel.setPosition(sf::Vector2f(panelX + 10, scorePanelY));
+        window.draw(lastScoreLabel);
+        
+        sf::Text lastScoreValue(font, "+" + std::to_string(lastMoveScore));
+        lastScoreValue.setCharacterSize(26);
+        lastScoreValue.setFillColor(lastMoveScore > 0 ? sf::Color(100, 255, 150) : sf::Color(150, 150, 150));
+        lastScoreValue.setStyle(sf::Text::Bold);
+        lastScoreValue.setPosition(sf::Vector2f(panelX + 20, scorePanelY + 30));
+        window.draw(lastScoreValue);
+    }
+}
+
 void drawLevelInfo(sf::RenderWindow& window, int totalLinesCleared, int currentLevel, int totalScore, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded) {
     float panelX = 50;
     float panelY = GRID_OFFSET_Y + 50;
@@ -926,13 +981,15 @@ public:
             if (touchingGround) lockDelayTimer = 0.0f;
         }
     }
-    void moveGround(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid) {
-        if (isStatic) return;
+    int moveGround(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid) {
+        if (isStatic) return 0;
+        int startY = y;
         while (!collidesAt(grid, x, y + 1)) {
             ++y;
         }
         isStatic = true;
         ChangeToStatic(grid, ability);
+        return y - startY;
     }
     
 
@@ -1317,6 +1374,15 @@ int main() {
     bool bombAbilityAvailable = false;
     const int LINES_FOR_ABILITY = 10;
     
+    int currentCombo = 0;
+    const int COMBO_BONUS_PER_LINE = 250;
+    int lastMoveScore = 0;
+    
+    int totalHardDropScore = 0;
+    int totalLineScore = 0;
+    int totalComboScore = 0;
+    const int HARD_DROP_POINTS_PER_CELL = 5;
+    
 
     PieceType heldPiece = PieceType::I_Basic;
     bool hasHeldPiece = false;
@@ -1439,6 +1505,11 @@ int main() {
                                 totalLinesCleared = 0;
                                 currentLevel = 0;
                                 totalScore = 0;
+                                currentCombo = 0;
+                                lastMoveScore = 0;
+                                totalHardDropScore = 0;
+                                totalLineScore = 0;
+                                totalComboScore = 0;
                                 jigtrizBag.reset();
                                 hasHeldPiece = false;
                                 canUseHold = true;
@@ -1500,6 +1571,11 @@ int main() {
                                 totalLinesCleared = 0;
                                 currentLevel = 0;
                                 totalScore = 0;
+                                currentCombo = 0;
+                                lastMoveScore = 0;
+                                totalHardDropScore = 0;
+                                totalLineScore = 0;
+                                totalComboScore = 0;
                                 jigtrizBag.reset();
                                 hasHeldPiece = false;
                                 canUseHold = true;
@@ -1792,6 +1868,31 @@ int main() {
                                 }
                             }
                             
+                            int clearedLines = clearFullLines(grid, laserSound, wowSounds, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer);
+                            if (clearedLines > 0) {
+                                totalLinesCleared += clearedLines;
+                                
+                                int baseScore = calculateScore(clearedLines);
+                                int comboBonus = currentCombo * COMBO_BONUS_PER_LINE * clearedLines;
+                                int bombLineScore = baseScore + comboBonus;
+                                totalScore += bombLineScore;
+                                totalLineScore += baseScore;
+                                totalComboScore += comboBonus;
+                                lastMoveScore = bombLineScore;
+                                
+                                currentCombo += clearedLines;
+                                
+                                std::cout << "Bomb cleared " << clearedLines << " lines! Base: " << baseScore << " | Combo: x" << (currentCombo - clearedLines) << " (+" << comboBonus << ") | Total: +" << bombLineScore << std::endl;
+                                
+                                linesSinceLastAbility += clearedLines;
+                                if (linesSinceLastAbility >= LINES_FOR_ABILITY) {
+                                    bombAbilityAvailable = true;
+                                    std::cout << "BOMB ABILITY READY AGAIN!" << std::endl;
+                                }
+                            } else {
+                                lastMoveScore = 0;
+                            }
+                            
 
                             PieceType newType = jigtrizBag.getNextPiece();
                             std::cout << "Spawning new piece after explosion: " << pieceTypeToString(newType) << std::endl;
@@ -1801,7 +1902,11 @@ int main() {
                             canUseHold = true;
                         } else {
 
-                            activePiece.moveGround(grid);
+                            int dropDistance = activePiece.moveGround(grid);
+                            int dropPoints = dropDistance * HARD_DROP_POINTS_PER_CELL;
+                            totalScore += dropPoints;
+                            totalHardDropScore += dropPoints;
+                            std::cout << "Hard drop: " << dropDistance << " cells = +" << dropPoints << " points" << std::endl;
                             if (spaceSound) {
                                 spaceSound->play();
                             }
@@ -1852,6 +1957,11 @@ int main() {
                         totalLinesCleared = 0;
                         currentLevel = 0;
                         totalScore = 0;
+                        currentCombo = 0;
+                        lastMoveScore = 0;
+                        totalHardDropScore = 0;
+                        totalLineScore = 0;
+                        totalComboScore = 0;
                         
                         jigtrizBag.reset();
                         
@@ -1998,19 +2108,27 @@ int main() {
             totalLinesCleared += clearedLines;
             
             if (clearedLines > 0) {
+                int baseScore = calculateScore(clearedLines);
+                int comboBonus = currentCombo * COMBO_BONUS_PER_LINE * clearedLines;
+                lastMoveScore = baseScore + comboBonus;
+                totalScore += lastMoveScore;
+                totalLineScore += baseScore;
+                totalComboScore += comboBonus;
+                
+                currentCombo += clearedLines;
+                
+                std::cout << "Lines cleared: " << clearedLines << " | Base: " << baseScore << " | Combo before: x" << (currentCombo - clearedLines) << " (+" << comboBonus << ") | Total: +" << lastMoveScore << " | New combo: x" << currentCombo << " | Score: " << totalScore << std::endl;
+                
                 linesSinceLastAbility += clearedLines;
                 
                 if (linesSinceLastAbility >= LINES_FOR_ABILITY) {
                     bombAbilityAvailable = true;
                     std::cout << "BOMB ABILITY READY! Press 'I' to activate!" << std::endl;
                 }
-            }
-            
-
-            if (clearedLines > 0) {
-                int earnedScore = calculateScore(clearedLines);
-                totalScore += earnedScore;
-                std::cout << "Lines cleared: " << clearedLines << " | Score earned: " << earnedScore << " | Total score: " << totalScore << std::endl;
+            } else {
+                lastMoveScore = 0;
+                currentCombo = std::max(0, currentCombo - 2);
+                std::cout << "No lines cleared | Combo decreased to: " << currentCombo << std::endl;
             }
             
             int newLevel = calculateLevel(totalLinesCleared);
@@ -2327,11 +2445,12 @@ int main() {
         drawHeldPiece(window, heldPiece, hasHeldPiece, textures, useTextures, menuFont, fontLoaded);
         drawBombAbility(window, bombAbilityAvailable, linesSinceLastAbility, textures, useTextures, menuFont, fontLoaded);
         drawLevelInfo(window, totalLinesCleared, currentLevel, totalScore, textures, useTextures, menuFont, fontLoaded);
+        drawCombo(window, currentCombo, lastMoveScore, menuFont, fontLoaded);
         drawGridBorder(window);
         drawJigtrizTitle(window, titleFont, fontLoaded);
         
         if (gameOver) {
-            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData);
+            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData, totalHardDropScore, totalLineScore, totalComboScore);
         }
         
         if (gameState == GameState::Paused) {
