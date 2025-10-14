@@ -9,6 +9,12 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+#include <thread>
+#include <chrono>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 std::string getSaveFilePath() {
     
@@ -361,20 +367,20 @@ void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceL
     }
     panelBg.setOutlineThickness(2);
     panelBg.setPosition(sf::Vector2f(panelX - 10, panelY - 10));
-    panelBg.setSize(sf::Vector2f(120, 100));
+    panelBg.setSize(sf::Vector2f(120, 180));
     window.draw(panelBg);
     
     if (fontLoaded) {
         sf::Text titleText(font, "BOMB");
-        titleText.setCharacterSize(12);
+        titleText.setCharacterSize(24);
         titleText.setFillColor(isAvailable ? sf::Color(255, 100, 100) : sf::Color(100, 100, 100));
-        titleText.setPosition(sf::Vector2f(panelX + 35, panelY + 5));
+        titleText.setPosition(sf::Vector2f(panelX + 25, panelY));
         window.draw(titleText);
     } else {
         sf::RectangleShape titleLabel;
         titleLabel.setFillColor(isAvailable ? sf::Color(255, 100, 100) : sf::Color(100, 100, 100));
         titleLabel.setSize(sf::Vector2f(60, 8));
-        titleLabel.setPosition(sf::Vector2f(panelX + 20, panelY + 5));
+        titleLabel.setPosition(sf::Vector2f(panelX + 20, panelY));
         window.draw(titleLabel);
     }
     
@@ -383,8 +389,8 @@ void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceL
         TextureType texType = TextureType::A_Bomb;
         
         float centerX = panelX + 50;
-        float centerY = panelY + 40;
-        float miniCellSize = 20.0f;
+        float centerY = panelY + 70;
+        float miniCellSize = 64.0f;
         
         if (useTextures && textures.find(texType) != textures.end()) {
             sf::Sprite miniSprite(textures.at(texType));
@@ -402,15 +408,15 @@ void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceL
         
         if (fontLoaded) {
             sf::Text readyText(font, "READY!");
-            readyText.setCharacterSize(10);
+            readyText.setCharacterSize(25);
             readyText.setFillColor(sf::Color(100, 255, 100));
-            readyText.setPosition(sf::Vector2f(panelX + 25, panelY + 65));
+            readyText.setPosition(sf::Vector2f(panelX + 22, panelY + 100));
             window.draw(readyText);
             
             sf::Text keyText(font, "Press 'I'");
-            keyText.setCharacterSize(8);
+            keyText.setCharacterSize(16);
             keyText.setFillColor(sf::Color(200, 200, 200));
-            keyText.setPosition(sf::Vector2f(panelX + 20, panelY + 78));
+            keyText.setPosition(sf::Vector2f(panelX + 22, panelY + 135));
             window.draw(keyText);
         }
     } else {
@@ -418,15 +424,15 @@ void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceL
         
         if (fontLoaded) {
             sf::Text progressText(font, std::to_string(linesSinceLastAbility) + " / 10");
-            progressText.setCharacterSize(14);
+            progressText.setCharacterSize(25);
             progressText.setFillColor(sf::Color(200, 200, 200));
-            progressText.setPosition(sf::Vector2f(panelX + 25, panelY + 35));
+            progressText.setPosition(sf::Vector2f(panelX + 22, panelY + 100));
             window.draw(progressText);
             
             sf::Text needText(font, std::to_string(linesNeeded) + " more");
-            needText.setCharacterSize(10);
+            needText.setCharacterSize(16);
             needText.setFillColor(sf::Color(150, 150, 150));
-            needText.setPosition(sf::Vector2f(panelX + 22, panelY + 55));
+            needText.setPosition(sf::Vector2f(panelX + 22, panelY + 135));
             window.draw(needText);
         } else {
             sf::RectangleShape progressBar;
@@ -869,23 +875,28 @@ public:
                     float worldX = GRID_OFFSET_X + (x + j) * CELL_SIZE;
                     float worldY = GRID_OFFSET_Y + (y + i) * CELL_SIZE;
                     
+                    TextureType pieceTexType = getTextureType(type);
+                    
 
-                    if (useTextures && textures.find(TextureType::GenericBlock) != textures.end()) {
+                    if (useTextures && pieceTexType != TextureType::GenericBlock && 
+                        textures.find(pieceTexType) != textures.end()) {
+                        sf::Sprite cellSprite(textures.at(pieceTexType));
+                        cellSprite.setPosition(sf::Vector2f(worldX, worldY));
+                        sf::Vector2u textureSize = textures.at(pieceTexType).getSize();
+                        cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
+                        window.draw(cellSprite);
+                    }
+
+                    else if (useTextures && textures.find(TextureType::GenericBlock) != textures.end()) {
                         sf::Sprite cellSprite(textures.at(TextureType::GenericBlock));
                         cellSprite.setPosition(sf::Vector2f(worldX, worldY));
                         cellSprite.setColor(shape.color);
                         sf::Vector2u textureSize = textures.at(TextureType::GenericBlock).getSize();
                         cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
                         window.draw(cellSprite);
-                    } else if (useTextures && textures.find(getTextureType(type)) != textures.end()) {
+                    }
 
-                        sf::Sprite cellSprite(textures.at(getTextureType(type)));
-                        cellSprite.setPosition(sf::Vector2f(worldX, worldY));
-                        sf::Vector2u textureSize = textures.at(getTextureType(type)).getSize();
-                        cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
-                        window.draw(cellSprite);
-                    } else {
-
+                    else {
                         sf::RectangleShape cellShape;
                         cellShape.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
                         cellShape.setPosition(sf::Vector2f(worldX, worldY));
@@ -1018,8 +1029,20 @@ public:
                     float worldX = GRID_OFFSET_X + (x + j) * CELL_SIZE;
                     float worldY = GRID_OFFSET_Y + (ghostY + i) * CELL_SIZE;
                     
+                    TextureType pieceTexType = getTextureType(type);
+                    
 
-                    if (useTextures && textures.find(TextureType::GenericBlock) != textures.end()) {
+                    if (useTextures && pieceTexType != TextureType::GenericBlock && 
+                        textures.find(pieceTexType) != textures.end()) {
+                        sf::Sprite cellSprite(textures.at(pieceTexType));
+                        cellSprite.setPosition(sf::Vector2f(worldX, worldY));
+                        sf::Vector2u textureSize = textures.at(pieceTexType).getSize();
+                        cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
+                        cellSprite.setColor(sf::Color(255, 255, 255, 80));
+                        window.draw(cellSprite);
+                    }
+
+                    else if (useTextures && textures.find(TextureType::GenericBlock) != textures.end()) {
                         sf::Sprite cellSprite(textures.at(TextureType::GenericBlock));
                         cellSprite.setPosition(sf::Vector2f(worldX, worldY));
                         sf::Vector2u textureSize = textures.at(TextureType::GenericBlock).getSize();
@@ -1029,16 +1052,9 @@ public:
                         ghostColor.a = 80;
                         cellSprite.setColor(ghostColor);
                         window.draw(cellSprite);
-                    } else if (useTextures && textures.find(getTextureType(type)) != textures.end()) {
+                    }
 
-                        sf::Sprite cellSprite(textures.at(getTextureType(type)));
-                        cellSprite.setPosition(sf::Vector2f(worldX, worldY));
-                        sf::Vector2u textureSize = textures.at(getTextureType(type)).getSize();
-                        cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
-                        cellSprite.setColor(sf::Color(255, 255, 255, 80));
-                        window.draw(cellSprite);
-                    } else {
-
+                    else {
                         sf::RectangleShape cellShape;
                         cellShape.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
                         cellShape.setPosition(sf::Vector2f(worldX, worldY));
@@ -1203,7 +1219,35 @@ void insertNewScore(SaveData& saveData, int score, int lines, int level) {
     }
 }
 
-int main() {
+#ifdef _WIN32
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    int argc = __argc;
+    char** argv = __argv;
+#else
+int main(int argc, char* argv[]) {
+#endif
+    bool consoleMode = false;
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "-debugMode" || arg == "--debug" || arg == "-d") {
+            consoleMode = true;
+            break;
+        }
+    }
+    
+#ifdef _WIN32
+    if (consoleMode) {
+        AllocConsole();
+        FILE* dummy;
+        freopen_s(&dummy, "CONOUT$", "w", stdout);
+        freopen_s(&dummy, "CONOUT$", "w", stderr);
+        freopen_s(&dummy, "CONIN$", "r", stdin);
+        std::cout.clear();
+        std::cerr.clear();
+        std::cin.clear();
+    }
+#endif
+    
     srand(static_cast<unsigned int>(time(nullptr)));
     
     SaveData saveData = loadGameData();
@@ -1226,7 +1270,7 @@ int main() {
         {TextureType::GenericBlock, "Assets/Texture/Cells/cell_normal_block.png", sf::Color::White},
         {TextureType::MediumBlock, "Assets/Texture/Cells/cell_medium_block.png", sf::Color::White},
         {TextureType::HardBlock, "Assets/Texture/Cells/cell_hard_block.png", sf::Color::White},
-        {TextureType::A_Bomb, "Assets/Texture/Cells/bomb.png", sf::Color(255, 100, 100)},
+        {TextureType::A_Bomb, "Assets/Texture/Cells/cell_bomb_block.png", sf::Color(255, 100, 100)},
         {TextureType::MuteIcon, "Assets/Texture/Icon/Mute.png", sf::Color::White}
     };
     bool useTextures = false;
@@ -1243,20 +1287,30 @@ int main() {
     
     sf::Font titleFont;
     bool titleFontLoaded = false;
-    if (titleFont.openFromFile("Assets/Fonts/Jersey25-Regular.ttf")) {
-        titleFontLoaded = true;
-        std::cout << "Font loaded successfully: Jersey25-Regular.ttf" << std::endl;
-    } else {
-        std::cout << "Unable to load font: Assets/Fonts/Jersey25-Regular.ttf" << std::endl;
+    for (int attempt = 0; attempt < 3 && !titleFontLoaded; ++attempt) {
+        if (titleFont.openFromFile("Assets/Fonts/Jersey25-Regular.ttf")) {
+            titleFontLoaded = true;
+            std::cout << "Font loaded successfully: Jersey25-Regular.ttf" << std::endl;
+        } else {
+            std::cout << "Unable to load font: Assets/Fonts/Jersey25-Regular.ttf (attempt " << (attempt + 1) << "/3)" << std::endl;
+            if (attempt < 2) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+        }
     }
     
     sf::Font menuFont;
     bool menuFontLoaded = false;
-    if (menuFont.openFromFile("Assets/Fonts/Jersey15-Regular.ttf")) {
-        menuFontLoaded = true;
-        std::cout << "Font loaded successfully: Jersey15-Regular.ttf" << std::endl;
-    } else {
-        std::cout << "Unable to load font: Assets/Fonts/Jersey15-Regular.ttf" << std::endl;
+    for (int attempt = 0; attempt < 3 && !menuFontLoaded; ++attempt) {
+        if (menuFont.openFromFile("Assets/Fonts/Jersey15-Regular.ttf")) {
+            menuFontLoaded = true;
+            std::cout << "Font loaded successfully: Jersey15-Regular.ttf" << std::endl;
+        } else {
+            std::cout << "Unable to load font: Assets/Fonts/Jersey15-Regular.ttf (attempt " << (attempt + 1) << "/3)" << std::endl;
+            if (attempt < 2) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+        }
     }
     
     bool fontLoaded = titleFontLoaded && menuFontLoaded;
@@ -1274,6 +1328,12 @@ int main() {
     float masterVolume = saveData.masterVolume;
     bool isMuted = saveData.isMuted;
     float lastMasterVolume = saveData.masterVolume;
+    
+    if (isMuted) {
+        lastMasterVolume = masterVolume;
+        masterVolume = 0.0f;
+        std::cout << "Game started in MUTED mode" << std::endl;
+    }
     
     const float baseMusicVolume = 60.0f;
     const float baseSpaceVolume = 8.0f;
@@ -1336,9 +1396,11 @@ int main() {
 
     GameState gameState = GameState::MainMenu;
     MenuOption selectedMenuOption = MenuOption::Start;
+    JigtrizopediaOption selectedJigtrizopediaOption = JigtrizopediaOption::JigtrizPieces;
     OptionsMenuOption selectedOptionsOption = OptionsMenuOption::ClearScores;
     PauseOption selectedPauseOption = PauseOption::Resume;
     ConfirmOption selectedConfirmOption = ConfirmOption::No;
+    int hoveredAchievement = -1;
     
     KeyBindings keyBindings;
 
@@ -1409,6 +1471,117 @@ int main() {
         if (firstFrame) { window.requestFocus(); firstFrame = false; }
         while (auto event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) { window.close(); }
+            
+            if (const auto* mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+                if (mouseButtonPressed->button == sf::Mouse::Button::Left) {
+                    if (gameState == GameState::MainMenu) {
+                        if (selectedMenuOption == MenuOption::Start) {
+                            gameState = GameState::Playing;
+                            gameOver = false;
+                            
+                            for (int i = 0; i < GRID_HEIGHT; ++i) {
+                                for (int j = 0; j < GRID_WIDTH; ++j) {
+                                    grid[i][j] = Cell();
+                                }
+                            }
+                            totalLinesCleared = 0;
+                            currentLevel = 0;
+                            totalScore = 0;
+                            currentCombo = 0;
+                            lastMoveScore = 0;
+                            totalHardDropScore = 0;
+                            totalLineScore = 0;
+                            totalComboScore = 0;
+                            jigtrizBag.reset();
+                            hasHeldPiece = false;
+                            canUseHold = true;
+                            linesSinceLastAbility = 0;
+                            bombAbilityAvailable = debugMode;
+                            explosionEffects.clear();
+                            glowEffects.clear();
+                            leftHoldTime = 0.0f;
+                            rightHoldTime = 0.0f;
+                            dasTimer = 0.0f;
+                            leftPressed = false;
+                            rightPressed = false;
+                            
+                            PieceType startType = jigtrizBag.getNextPiece();
+                            PieceShape startShape = getPieceShape(startType);
+                            int startX = (GRID_WIDTH - startShape.width) / 2;
+                            activePiece = Piece(startX, 0, startType);
+                            
+                            std::cout << "Game started from menu (mouse)!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
+                        } else if (selectedMenuOption == MenuOption::Jigtrizopedia) {
+                            gameState = GameState::Jigtrizopedia;
+                            selectedJigtrizopediaOption = JigtrizopediaOption::JigtrizPieces;
+                            std::cout << "Entered JIGTRIZOPEDIA menu (mouse)" << std::endl;
+                        } else if (selectedMenuOption == MenuOption::Options) {
+                            gameState = GameState::Options;
+                            std::cout << "Entered OPTIONS menu (mouse)" << std::endl;
+                        } else if (selectedMenuOption == MenuOption::Exit) {
+                            window.close();
+                        }
+                    } else if (gameState == GameState::Jigtrizopedia) {
+
+                        std::cout << "Jigtrizopedia buttons are currently disabled" << std::endl;
+                    } else if (gameState == GameState::Options) {
+                        if (selectedOptionsOption == OptionsMenuOption::ClearScores) {
+                            gameState = GameState::ConfirmClearScores;
+                            selectedConfirmOption = ConfirmOption::No;
+                            std::cout << "Opening confirmation dialog (mouse)" << std::endl;
+                        } else if (selectedOptionsOption == OptionsMenuOption::RebindKeys) {
+                            gameState = GameState::Rebinding;
+                            std::cout << "Entering REBIND KEYS menu (mouse)" << std::endl;
+                        }
+                    } else if (gameState == GameState::Paused) {
+                        if (selectedPauseOption == PauseOption::Resume) {
+                            gameState = GameState::Playing;
+                            std::cout << "Game resumed (mouse)" << std::endl;
+                        } else if (selectedPauseOption == PauseOption::Restart) {
+                            gameState = GameState::Playing;
+                            gameOver = false;
+                            
+                            for (int i = 0; i < GRID_HEIGHT; ++i) {
+                                for (int j = 0; j < GRID_WIDTH; ++j) {
+                                    grid[i][j] = Cell();
+                                }
+                            }
+                            totalLinesCleared = 0;
+                            currentLevel = 0;
+                            totalScore = 0;
+                            currentCombo = 0;
+                            lastMoveScore = 0;
+                            totalHardDropScore = 0;
+                            totalLineScore = 0;
+                            totalComboScore = 0;
+                            jigtrizBag.reset();
+                            hasHeldPiece = false;
+                            canUseHold = true;
+                            linesSinceLastAbility = 0;
+                            bombAbilityAvailable = false;
+                            explosionEffects.clear();
+                            glowEffects.clear();
+                            leftHoldTime = 0.0f;
+                            rightHoldTime = 0.0f;
+                            dasTimer = 0.0f;
+                            leftPressed = false;
+                            rightPressed = false;
+                            
+                            PieceType startType = jigtrizBag.getNextPiece();
+                            PieceShape startShape = getPieceShape(startType);
+                            int startX = (GRID_WIDTH - startShape.width) / 2;
+                            activePiece = Piece(startX, 0, startType);
+                            
+                            std::cout << "Game restarted (mouse)" << std::endl;
+                        } else if (selectedPauseOption == PauseOption::QuitToMenu) {
+                            gameState = GameState::MainMenu;
+                            selectedMenuOption = MenuOption::Start;
+                            std::cout << "Returned to main menu (mouse)" << std::endl;
+                        }
+                    }
+                }
+            }
+            
             if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
                 
                 if (keyPressed->code == keyBindings.mute) {
@@ -1473,23 +1646,11 @@ int main() {
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
-                            if (selectedMenuOption == MenuOption::Start) {
-                                selectedMenuOption = MenuOption::Exit;
-                            } else if (selectedMenuOption == MenuOption::Options) {
-                                selectedMenuOption = MenuOption::Start;
-                            } else if (selectedMenuOption == MenuOption::Exit) {
-                                selectedMenuOption = MenuOption::Options;
-                            }
+                            selectedMenuOption = static_cast<MenuOption>((static_cast<int>(selectedMenuOption) - 1 + 4) % 4);
                             break;
                         case sf::Keyboard::Key::Down:
                         case sf::Keyboard::Key::S:
-                            if (selectedMenuOption == MenuOption::Start) {
-                                selectedMenuOption = MenuOption::Options;
-                            } else if (selectedMenuOption == MenuOption::Options) {
-                                selectedMenuOption = MenuOption::Exit;
-                            } else if (selectedMenuOption == MenuOption::Exit) {
-                                selectedMenuOption = MenuOption::Start;
-                            }
+                            selectedMenuOption = static_cast<MenuOption>((static_cast<int>(selectedMenuOption) + 1) % 4);
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
@@ -1531,6 +1692,10 @@ int main() {
                                 activePiece = Piece(startX, 0, startType);
                                 
                                 std::cout << "Game started from menu!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
+                            } else if (selectedMenuOption == MenuOption::Jigtrizopedia) {
+                                gameState = GameState::Jigtrizopedia;
+                                selectedJigtrizopediaOption = JigtrizopediaOption::JigtrizPieces;
+                                std::cout << "Entered JIGTRIZOPEDIA menu" << std::endl;
                             } else if (selectedMenuOption == MenuOption::Options) {
                                 gameState = GameState::Options;
                                 std::cout << "Entered OPTIONS menu" << std::endl;
@@ -1600,6 +1765,38 @@ int main() {
                                 selectedMenuOption = MenuOption::Start;
                                 std::cout << "Returned to main menu" << std::endl;
                             }
+                            break;
+                        default: 
+                            break;
+                    }
+                } else if (gameState == GameState::Jigtrizopedia) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            gameState = GameState::MainMenu;
+                            selectedMenuOption = MenuOption::Jigtrizopedia;
+                            std::cout << "Returned to main menu from JIGTRIZOPEDIA" << std::endl;
+                            break;
+                        case sf::Keyboard::Key::Up:
+                        case sf::Keyboard::Key::W:
+                            selectedJigtrizopediaOption = static_cast<JigtrizopediaOption>((static_cast<int>(selectedJigtrizopediaOption) + 2) % 3);
+                            break;
+                        case sf::Keyboard::Key::Down:
+                        case sf::Keyboard::Key::S:
+                            selectedJigtrizopediaOption = static_cast<JigtrizopediaOption>((static_cast<int>(selectedJigtrizopediaOption) + 1) % 3);
+                            break;
+                        case sf::Keyboard::Key::Enter:
+                        case sf::Keyboard::Key::Space:
+
+                            std::cout << "Jigtrizopedia buttons are currently disabled" << std::endl;
+                            break;
+                        default: 
+                            break;
+                    }
+                } else if (gameState == GameState::AchievementsView) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            gameState = GameState::Jigtrizopedia;
+                            std::cout << "Returned to JIGTRIZOPEDIA from ACHIEVEMENTS" << std::endl;
                             break;
                         default: 
                             break;
@@ -2016,6 +2213,35 @@ int main() {
             }
         }
         
+        if (gameState == GameState::AchievementsView) {
+            auto mousePos = sf::Mouse::getPosition(window);
+            
+            const int COLS = 5;
+            const int ROWS = 4;
+            const float CELL_SIZE = 120.0f;
+            const float SPACING = 20.0f;
+            const float GRID_WIDTH = COLS * CELL_SIZE + (COLS - 1) * SPACING;
+            const float START_X = 1920 / 2.0f - GRID_WIDTH / 2.0f;
+            const float START_Y = 250;
+            
+            hoveredAchievement = -1;
+            
+            for (int row = 0; row < ROWS; ++row) {
+                for (int col = 0; col < COLS; ++col) {
+                    int achievementId = row * COLS + col;
+                    float x = START_X + col * (CELL_SIZE + SPACING);
+                    float y = START_Y + row * (CELL_SIZE + SPACING);
+                    
+                    if (mousePos.x >= x && mousePos.x <= x + CELL_SIZE &&
+                        mousePos.y >= y && mousePos.y <= y + CELL_SIZE) {
+                        hoveredAchievement = achievementId;
+                        break;
+                    }
+                }
+                if (hoveredAchievement != -1) break;
+            }
+        }
+        
         if (gameState == GameState::Playing) {
 
         bool currentLeftPressed = sf::Keyboard::isKeyPressed(keyBindings.moveLeft);
@@ -2189,6 +2415,91 @@ int main() {
         
         window.clear(sf::Color::Black);
         
+
+        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+        float mouseX = static_cast<float>(mousePos.x);
+        float mouseY = static_cast<float>(mousePos.y);
+        float centerX = WINDOW_WIDTH / 2.0f;
+        float centerY = WINDOW_HEIGHT / 2.0f;
+        
+        if (gameState == GameState::MainMenu) {
+
+
+
+
+
+            
+
+            if (mouseX >= centerX - 150 && mouseX <= centerX + 150 &&
+                mouseY >= centerY - 90 && mouseY <= centerY - 30) {
+                selectedMenuOption = MenuOption::Start;
+            }
+
+            else if (mouseX >= centerX - 200 && mouseX <= centerX + 200 &&
+                     mouseY >= centerY + 10 && mouseY <= centerY + 70) {
+                selectedMenuOption = MenuOption::Jigtrizopedia;
+            }
+
+            else if (mouseX >= centerX - 150 && mouseX <= centerX + 150 &&
+                     mouseY >= centerY + 110 && mouseY <= centerY + 170) {
+                selectedMenuOption = MenuOption::Options;
+            }
+
+            else if (mouseX >= centerX - 150 && mouseX <= centerX + 150 &&
+                     mouseY >= centerY + 210 && mouseY <= centerY + 270) {
+                selectedMenuOption = MenuOption::Exit;
+            }
+        } else if (gameState == GameState::Jigtrizopedia) {
+
+            float startY = centerY - 200.0f;
+            float spacing = 70.0f;
+            
+            for (int i = 0; i < 3; i++) {
+                float selectorY = startY + i * spacing - 5;
+                if (mouseX >= centerX - 225 && mouseX <= centerX + 225 &&
+                    mouseY >= selectorY && mouseY <= selectorY + 55) {
+                    selectedJigtrizopediaOption = static_cast<JigtrizopediaOption>(i);
+                    break;
+                }
+            }
+        } else if (gameState == GameState::Options) {
+
+
+
+            
+
+            if (mouseX >= centerX - 200 && mouseX <= centerX + 200 &&
+                mouseY >= centerY - 85 && mouseY <= centerY - 25) {
+                selectedOptionsOption = OptionsMenuOption::ClearScores;
+            }
+
+            else if (mouseX >= centerX - 200 && mouseX <= centerX + 200 &&
+                     mouseY >= centerY + 15 && mouseY <= centerY + 75) {
+                selectedOptionsOption = OptionsMenuOption::RebindKeys;
+            }
+        } else if (gameState == GameState::Paused) {
+
+
+
+
+            
+
+            if (mouseX >= centerX - 150 && mouseX <= centerX + 150 &&
+                mouseY >= centerY - 50 && mouseY <= centerY) {
+                selectedPauseOption = PauseOption::Resume;
+            }
+
+            else if (mouseX >= centerX - 150 && mouseX <= centerX + 150 &&
+                     mouseY >= centerY + 20 && mouseY <= centerY + 70) {
+                selectedPauseOption = PauseOption::Restart;
+            }
+
+            else if (mouseX >= centerX - 150 && mouseX <= centerX + 150 &&
+                     mouseY >= centerY + 90 && mouseY <= centerY + 140) {
+                selectedPauseOption = PauseOption::QuitToMenu;
+            }
+        }
+        
         sf::View view = window.getDefaultView();
         if (shakeTimer < shakeDuration && gameState == GameState::Playing) {
             float progress = shakeTimer / shakeDuration;
@@ -2300,6 +2611,10 @@ int main() {
                 volumeBarFill.setFillColor(barColor);
                 window.draw(volumeBarFill);
             }
+        } else if (gameState == GameState::Jigtrizopedia) {
+            drawJigtrizopediaMenu(window, titleFont, menuFont, fontLoaded, selectedJigtrizopediaOption);
+        } else if (gameState == GameState::AchievementsView) {
+            drawAchievementsScreen(window, titleFont, menuFont, fontLoaded, hoveredAchievement);
         } else if (gameState == GameState::Options) {
             drawOptionsMenu(window, menuFont, fontLoaded, debugMode, selectedOptionsOption);
             

@@ -4,15 +4,15 @@ PieceShape getPieceShape(PieceType type) {
     PieceShape shape;
     switch(type){
         case PieceType::I_Basic:
-            shape.blocks = {{true, true, true, true},{false, false, false, false}};
+            shape.blocks = {{false, false, false, false},{true, true, true, true},{false, false, false, false},{false, false, false, false}};
             shape.color = sf::Color::Cyan;
             break;
         case PieceType::I_Medium:
-            shape.blocks = {{false, false, false, false, false},{true, true, true, true, true},{false, false, false, false, false},{false, false, false, false, false}};
+            shape.blocks = {{false, false, false, false, false},{false, false, false, false, false},{true, true, true, true, true},{false, false, false, false, false},{false, false, false, false, false}};
             shape.color = sf::Color(0, 200, 255);
             break;
         case PieceType::I_Hard:
-            shape.blocks = {{false, false, false, false, false},{true, true, true, true, true},{false, false, true, false, false},{false, false, false, false, false}};
+            shape.blocks = {{false, false, false, false, false},{false, false, false, false, false},{true, true, true, true, true},{false, false, true, false, false},{false, false, false, false, false}};
             shape.color = sf::Color(0, 150, 255);
             break;
         case PieceType::T_Basic:
@@ -68,7 +68,7 @@ PieceShape getPieceShape(PieceType type) {
             break;
 
         case PieceType::S_Basic:
-            shape.blocks = {{false, true, true},{true, true, false}};
+            shape.blocks = {{false, true, true},{true, true, false},{false, false, false}};
             shape.color = sf::Color::Green;
             break;
         case PieceType::S_Medium:
@@ -81,7 +81,7 @@ PieceShape getPieceShape(PieceType type) {
             break;
 
         case PieceType::Z_Basic:
-            shape.blocks = {{true, true, false},{false, true, true}};
+            shape.blocks = {{true, true, false},{false, true, true},{false, false, false}};
             shape.color = sf::Color::Red;
             break;
         case PieceType::Z_Medium:

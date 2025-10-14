@@ -26,7 +26,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
     
     if (fontLoaded) {
         sf::Text gameOverText(font, "GAME OVER");
-        gameOverText.setCharacterSize(32);
+        gameOverText.setCharacterSize(40);
         gameOverText.setFillColor(sf::Color(255, 100, 100));
         gameOverText.setStyle(sf::Text::Bold);
         sf::FloatRect textBounds = gameOverText.getLocalBounds();
@@ -130,10 +130,10 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
         window.draw(restartText);
         
         sf::Text topScoresTitle(font, "TOP 3 SCORES");
-        topScoresTitle.setCharacterSize(32);
+        topScoresTitle.setCharacterSize(36);
         topScoresTitle.setFillColor(sf::Color(100, 255, 150));
         topScoresTitle.setStyle(sf::Text::Bold);
-        topScoresTitle.setPosition(sf::Vector2f(centerX + 120, centerY - 100));
+        topScoresTitle.setPosition(sf::Vector2f(centerX + 120, centerY - 120));
         window.draw(topScoresTitle);
         
         for (int i = 0; i < 3; i++) {
@@ -180,7 +180,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawJigtrizTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigtriz 0.2.2");
+    sf::Text titleText(font, "Jigtriz 0.2.3");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -418,14 +418,14 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         titleText.setOutlineColor(sf::Color::Black);
         titleText.setOutlineThickness(4);
         sf::FloatRect titleBounds = titleText.getLocalBounds();
-        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 320));
+        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 350));
         window.draw(titleText);
         
-        sf::Text versionText(menuFont, "v0.2.2");
+        sf::Text versionText(menuFont, "v0.2.3");
         versionText.setCharacterSize(24);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();
-        versionText.setPosition(sf::Vector2f(centerX - versionBounds.size.x/2, centerY - 170));
+        versionText.setPosition(sf::Vector2f(centerX - versionBounds.size.x/2, centerY - 200));
         window.draw(versionText);
         
         sf::Text startText(menuFont, "START");
@@ -439,7 +439,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
             selector.setFillColor(sf::Color(255, 255, 0, 50));
             selector.setOutlineColor(sf::Color::Yellow);
             selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 150, centerY - 85));
+            selector.setPosition(sf::Vector2f(centerX - 150, centerY - 90));
             window.draw(selector);
         } else {
             startText.setFillColor(sf::Color::White);
@@ -447,6 +447,26 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         sf::FloatRect startBounds = startText.getLocalBounds();
         startText.setPosition(sf::Vector2f(centerX - startBounds.size.x/2, centerY - 90));
         window.draw(startText);
+        
+        sf::Text jigtrizopediaText(menuFont, "JIGTRIZOPEDIA");
+        jigtrizopediaText.setCharacterSize(48);
+        if (selectedOption == MenuOption::Jigtrizopedia) {
+            jigtrizopediaText.setFillColor(sf::Color::Yellow);
+            jigtrizopediaText.setStyle(sf::Text::Bold);
+            
+            sf::RectangleShape selector;
+            selector.setSize(sf::Vector2f(400, 60));
+            selector.setFillColor(sf::Color(255, 255, 0, 50));
+            selector.setOutlineColor(sf::Color::Yellow);
+            selector.setOutlineThickness(3);
+            selector.setPosition(sf::Vector2f(centerX - 200, centerY + 10));
+            window.draw(selector);
+        } else {
+            jigtrizopediaText.setFillColor(sf::Color::White);
+        }
+        sf::FloatRect jigtrizopediaBounds = jigtrizopediaText.getLocalBounds();
+        jigtrizopediaText.setPosition(sf::Vector2f(centerX - jigtrizopediaBounds.size.x/2, centerY+10));
+        window.draw(jigtrizopediaText);
         
         sf::Text optionsText(menuFont, "OPTIONS");
         optionsText.setCharacterSize(48);
@@ -459,13 +479,13 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
             selector.setFillColor(sf::Color(255, 255, 0, 50));
             selector.setOutlineColor(sf::Color::Yellow);
             selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 150, centerY + 15));
+            selector.setPosition(sf::Vector2f(centerX - 150, centerY + 110));
             window.draw(selector);
         } else {
             optionsText.setFillColor(sf::Color::White);
         }
         sf::FloatRect optionsBounds = optionsText.getLocalBounds();
-        optionsText.setPosition(sf::Vector2f(centerX - optionsBounds.size.x/2, centerY + 10));
+        optionsText.setPosition(sf::Vector2f(centerX - optionsBounds.size.x/2, centerY + 110));
         window.draw(optionsText);
         
         sf::Text exitText(menuFont, "EXIT");
@@ -479,20 +499,20 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
             selector.setFillColor(sf::Color(255, 255, 0, 50));
             selector.setOutlineColor(sf::Color::Yellow);
             selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 150, centerY + 115));
+            selector.setPosition(sf::Vector2f(centerX - 150, centerY + 210));
             window.draw(selector);
         } else {
             exitText.setFillColor(sf::Color::White);
         }
         sf::FloatRect exitBounds = exitText.getLocalBounds();
-        exitText.setPosition(sf::Vector2f(centerX - exitBounds.size.x/2, centerY + 110));
+        exitText.setPosition(sf::Vector2f(centerX - exitBounds.size.x/2, centerY + 210));
         window.draw(exitText);
         
         sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE/ENTER to confirm | ESC to go back");
         controlsText.setCharacterSize(20);
         controlsText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect controlsBounds = controlsText.getLocalBounds();
-        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 230));
+        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 300));
         window.draw(controlsText);
     } else {
         sf::RectangleShape titleBar;
@@ -829,5 +849,160 @@ void drawGlowEffects(sf::RenderWindow& window, const std::vector<GlowEffect>& gl
             
             window.draw(glowBox);
         }
+    }
+}
+
+void drawJigtrizopediaMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, JigtrizopediaOption selectedOption) {
+    sf::RectangleShape overlay;
+    overlay.setFillColor(sf::Color(0, 0, 0, 230));
+    overlay.setSize(sf::Vector2f(1920, 1080));
+    overlay.setPosition(sf::Vector2f(0, 0));
+    window.draw(overlay);
+    
+    float centerX = 1920 / 2.0f;
+    float centerY = 1080 / 2.0f;
+    
+    if (fontLoaded) {
+        sf::Text titleText(titleFont, "JIGTRIZOPEDIA");
+        titleText.setCharacterSize(96);
+        titleText.setFillColor(sf::Color(150, 200, 255));
+        titleText.setStyle(sf::Text::Bold);
+        titleText.setOutlineColor(sf::Color::Black);
+        titleText.setOutlineThickness(4);
+        sf::FloatRect titleBounds = titleText.getLocalBounds();
+        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 380));
+        window.draw(titleText);
+        
+        std::vector<std::pair<std::string, JigtrizopediaOption>> options = {
+            {"JIGTRIZ PIECES", JigtrizopediaOption::JigtrizPieces},
+            {"ACHIEVEMENTS", JigtrizopediaOption::Achievements},
+            {"STATISTICS", JigtrizopediaOption::Statistics}
+        };
+        
+        float startY = centerY - 200;
+        float spacing = 70;
+        
+        for (size_t i = 0; i < options.size(); ++i) {
+            sf::Text optionText(menuFont, options[i].first);
+            optionText.setCharacterSize(40);
+            
+
+            optionText.setFillColor(sf::Color(100, 100, 100));
+            
+            sf::FloatRect optionBounds = optionText.getLocalBounds();
+            optionText.setPosition(sf::Vector2f(centerX - optionBounds.size.x/2, startY + i * spacing));
+            window.draw(optionText);
+        }
+        
+        sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE/ENTER to confirm | ESC to go back");
+        controlsText.setCharacterSize(20);
+        controlsText.setFillColor(sf::Color(150, 150, 150));
+        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
+        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 380));
+        window.draw(controlsText);
+    }
+}
+
+void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, int hoveredAchievement) {
+    sf::RectangleShape overlay;
+    overlay.setFillColor(sf::Color(0, 0, 0, 230));
+    overlay.setSize(sf::Vector2f(1920, 1080));
+    overlay.setPosition(sf::Vector2f(0, 0));
+    window.draw(overlay);
+    
+    float centerX = 1920 / 2.0f;
+    float centerY = 1080 / 2.0f;
+    
+    if (fontLoaded) {
+        sf::Text titleText(titleFont, "ACHIEVEMENTS");
+        titleText.setCharacterSize(80);
+        titleText.setFillColor(sf::Color(255, 215, 0));
+        titleText.setStyle(sf::Text::Bold);
+        titleText.setOutlineColor(sf::Color::Black);
+        titleText.setOutlineThickness(4);
+        sf::FloatRect titleBounds = titleText.getLocalBounds();
+        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, 80));
+        window.draw(titleText);
+        
+        const int COLS = 5;
+        const int ROWS = 4;
+        const float CELL_SIZE = 120.0f;
+        const float SPACING = 20.0f;
+        const float GRID_WIDTH = COLS * CELL_SIZE + (COLS - 1) * SPACING;
+        const float GRID_HEIGHT = ROWS * CELL_SIZE + (ROWS - 1) * SPACING;
+        const float START_X = centerX - GRID_WIDTH / 2.0f;
+        const float START_Y = 250;
+        
+        for (int row = 0; row < ROWS; ++row) {
+            for (int col = 0; col < COLS; ++col) {
+                int achievementId = row * COLS + col;
+                float x = START_X + col * (CELL_SIZE + SPACING);
+                float y = START_Y + row * (CELL_SIZE + SPACING);
+                
+                sf::RectangleShape achievementBox;
+                achievementBox.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
+                achievementBox.setPosition(sf::Vector2f(x, y));
+                
+                if (achievementId == hoveredAchievement) {
+                    achievementBox.setFillColor(sf::Color(80, 80, 120, 220));
+                    achievementBox.setOutlineColor(sf::Color(255, 215, 0));
+                    achievementBox.setOutlineThickness(4);
+                } else {
+                    achievementBox.setFillColor(sf::Color(40, 40, 60, 200));
+                    achievementBox.setOutlineColor(sf::Color(100, 100, 140));
+                    achievementBox.setOutlineThickness(2);
+                }
+                
+                window.draw(achievementBox);
+                
+                sf::Text lockText(menuFont, "?");
+                lockText.setCharacterSize(60);
+                lockText.setFillColor(sf::Color(120, 120, 120));
+                lockText.setStyle(sf::Text::Bold);
+                sf::FloatRect lockBounds = lockText.getLocalBounds();
+                lockText.setPosition(sf::Vector2f(x + CELL_SIZE/2 - lockBounds.size.x/2, y + CELL_SIZE/2 - lockBounds.size.y/2 - 10));
+                window.draw(lockText);
+            }
+        }
+        
+        if (hoveredAchievement >= 0 && hoveredAchievement < 20) {
+            sf::RectangleShape infoBg;
+            infoBg.setSize(sf::Vector2f(700, 150));
+            infoBg.setFillColor(sf::Color(20, 20, 40, 240));
+            infoBg.setOutlineColor(sf::Color(255, 215, 0));
+            infoBg.setOutlineThickness(3);
+            infoBg.setPosition(sf::Vector2f(centerX - 350, 850));
+            window.draw(infoBg);
+            
+            std::string achievementName = "Achievement_";
+            if (hoveredAchievement < 9) achievementName += "0";
+            achievementName += std::to_string(hoveredAchievement + 1);
+            
+            std::string achievementDesc = "Description_";
+            if (hoveredAchievement < 9) achievementDesc += "0";
+            achievementDesc += std::to_string(hoveredAchievement + 1);
+            
+            sf::Text nameText(menuFont, achievementName);
+            nameText.setCharacterSize(32);
+            nameText.setFillColor(sf::Color(255, 215, 0));
+            nameText.setStyle(sf::Text::Bold);
+            sf::FloatRect nameBounds = nameText.getLocalBounds();
+            nameText.setPosition(sf::Vector2f(centerX - nameBounds.size.x/2, 870));
+            window.draw(nameText);
+            
+            sf::Text descText(menuFont, achievementDesc);
+            descText.setCharacterSize(24);
+            descText.setFillColor(sf::Color(200, 200, 200));
+            sf::FloatRect descBounds = descText.getLocalBounds();
+            descText.setPosition(sf::Vector2f(centerX - descBounds.size.x/2, 920));
+            window.draw(descText);
+        }
+        
+        sf::Text controlsText(menuFont, "Hover over achievements to see details | ESC to go back");
+        controlsText.setCharacterSize(20);
+        controlsText.setFillColor(sf::Color(150, 150, 150));
+        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
+        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, 1020));
+        window.draw(controlsText);
     }
 }

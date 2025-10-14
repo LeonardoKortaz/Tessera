@@ -30,6 +30,8 @@ TextureType getTextureType(PieceType type);
 
 enum class GameState {
     MainMenu,
+    Jigtrizopedia,
+    AchievementsView,
     Options,
     Rebinding,
     ConfirmClearScores,
@@ -40,8 +42,16 @@ enum class GameState {
 
 enum class MenuOption {
     Start = 0,
-    Options = 1,
-    Exit = 2
+    Jigtrizopedia = 1,
+    Options = 2,
+    Exit = 3
+};
+
+enum class JigtrizopediaOption {
+    JigtrizPieces = 0,
+    Achievements = 1,
+    Statistics = 2,
+    Back = 3
 };
 
 enum class OptionsMenuOption {
