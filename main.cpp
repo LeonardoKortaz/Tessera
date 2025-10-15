@@ -2,6 +2,7 @@
 #include "menu_render.h"
 #include "piece_utils.h"
 #include "texture_utils.h"
+#include "difficulty_config.h"
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
@@ -53,15 +54,40 @@ void saveGameData(const SaveData& data) {
     
     if (file.is_open()) {
         file << "HIGH_SCORE=" << data.highScore << std::endl;
+        file << "HIGH_SCORE_CLASSIC_EASY=" << data.highScoreClassicEasy << std::endl;
+        file << "HIGH_SCORE_CLASSIC_MEDIUM=" << data.highScoreClassicMedium << std::endl;
+        file << "HIGH_SCORE_CLASSIC_HARD=" << data.highScoreClassicHard << std::endl;
         file << "BEST_LINES=" << data.bestLines << std::endl;
         file << "BEST_LEVEL=" << data.bestLevel << std::endl;
         file << "MASTER_VOLUME=" << data.masterVolume << std::endl;
         file << "IS_MUTED=" << (data.isMuted ? 1 : 0) << std::endl;
         
+
         for (int i = 0; i < 3; i++) {
             file << "TOP" << (i+1) << "_SCORE=" << data.topScores[i].score << std::endl;
             file << "TOP" << (i+1) << "_LINES=" << data.topScores[i].lines << std::endl;
             file << "TOP" << (i+1) << "_LEVEL=" << data.topScores[i].level << std::endl;
+        }
+        
+
+        for (int i = 0; i < 3; i++) {
+            file << "TOP_EASY_" << (i+1) << "_SCORE=" << data.topScoresEasy[i].score << std::endl;
+            file << "TOP_EASY_" << (i+1) << "_LINES=" << data.topScoresEasy[i].lines << std::endl;
+            file << "TOP_EASY_" << (i+1) << "_LEVEL=" << data.topScoresEasy[i].level << std::endl;
+        }
+        
+
+        for (int i = 0; i < 3; i++) {
+            file << "TOP_MEDIUM_" << (i+1) << "_SCORE=" << data.topScoresMedium[i].score << std::endl;
+            file << "TOP_MEDIUM_" << (i+1) << "_LINES=" << data.topScoresMedium[i].lines << std::endl;
+            file << "TOP_MEDIUM_" << (i+1) << "_LEVEL=" << data.topScoresMedium[i].level << std::endl;
+        }
+        
+
+        for (int i = 0; i < 3; i++) {
+            file << "TOP_HARD_" << (i+1) << "_SCORE=" << data.topScoresHard[i].score << std::endl;
+            file << "TOP_HARD_" << (i+1) << "_LINES=" << data.topScoresHard[i].lines << std::endl;
+            file << "TOP_HARD_" << (i+1) << "_LEVEL=" << data.topScoresHard[i].level << std::endl;
         }
         
 
@@ -100,6 +126,12 @@ SaveData loadGameData() {
                 
                 if (key == "HIGH_SCORE") {
                     data.highScore = std::stoi(value);
+                } else if (key == "HIGH_SCORE_CLASSIC_EASY") {
+                    data.highScoreClassicEasy = std::stoi(value);
+                } else if (key == "HIGH_SCORE_CLASSIC_MEDIUM") {
+                    data.highScoreClassicMedium = std::stoi(value);
+                } else if (key == "HIGH_SCORE_CLASSIC_HARD") {
+                    data.highScoreClassicHard = std::stoi(value);
                 } else if (key == "BEST_LINES") {
                     data.bestLines = std::stoi(value);
                 } else if (key == "BEST_LEVEL") {
@@ -133,16 +165,55 @@ SaveData loadGameData() {
                 } else if (key == "KEY_MENU") {
                     data.menu = std::stoi(value);
                 } else if (key.find("TOP") == 0) {
-                    char topNum = key[3];
-                    int index = topNum - '1';
-                    
-                    if (index >= 0 && index < 3) {
-                        if (key.find("_SCORE") != std::string::npos) {
-                            data.topScores[index].score = std::stoi(value);
-                        } else if (key.find("_LINES") != std::string::npos) {
-                            data.topScores[index].lines = std::stoi(value);
-                        } else if (key.find("_LEVEL") != std::string::npos) {
-                            data.topScores[index].level = std::stoi(value);
+
+                    if (key.find("TOP_EASY_") == 0) {
+                        char topNum = key[9];
+                        int index = topNum - '1';
+                        if (index >= 0 && index < 3) {
+                            if (key.find("_SCORE") != std::string::npos) {
+                                data.topScoresEasy[index].score = std::stoi(value);
+                            } else if (key.find("_LINES") != std::string::npos) {
+                                data.topScoresEasy[index].lines = std::stoi(value);
+                            } else if (key.find("_LEVEL") != std::string::npos) {
+                                data.topScoresEasy[index].level = std::stoi(value);
+                            }
+                        }
+                    } else if (key.find("TOP_MEDIUM_") == 0) {
+                        char topNum = key[11];
+                        int index = topNum - '1';
+                        if (index >= 0 && index < 3) {
+                            if (key.find("_SCORE") != std::string::npos) {
+                                data.topScoresMedium[index].score = std::stoi(value);
+                            } else if (key.find("_LINES") != std::string::npos) {
+                                data.topScoresMedium[index].lines = std::stoi(value);
+                            } else if (key.find("_LEVEL") != std::string::npos) {
+                                data.topScoresMedium[index].level = std::stoi(value);
+                            }
+                        }
+                    } else if (key.find("TOP_HARD_") == 0) {
+                        char topNum = key[9];
+                        int index = topNum - '1';
+                        if (index >= 0 && index < 3) {
+                            if (key.find("_SCORE") != std::string::npos) {
+                                data.topScoresHard[index].score = std::stoi(value);
+                            } else if (key.find("_LINES") != std::string::npos) {
+                                data.topScoresHard[index].lines = std::stoi(value);
+                            } else if (key.find("_LEVEL") != std::string::npos) {
+                                data.topScoresHard[index].level = std::stoi(value);
+                            }
+                        }
+                    } else {
+
+                        char topNum = key[3];
+                        int index = topNum - '1';
+                        if (index >= 0 && index < 3) {
+                            if (key.find("_SCORE") != std::string::npos) {
+                                data.topScores[index].score = std::stoi(value);
+                            } else if (key.find("_LINES") != std::string::npos) {
+                                data.topScores[index].lines = std::stoi(value);
+                            } else if (key.find("_LEVEL") != std::string::npos) {
+                                data.topScores[index].level = std::stoi(value);
+                            }
                         }
                     }
                 }
@@ -197,45 +268,72 @@ std::vector<PieceType> PieceBag::createNewBag(int level) {
     std::cout << "Creating bag for level: " << level << std::endl;
     std::vector<PieceType> newBag;
     
+
     std::vector<PieceType> basicTypes = {
         PieceType::I_Basic, PieceType::T_Basic, PieceType::L_Basic, 
         PieceType::J_Basic, PieceType::O_Basic, PieceType::S_Basic, PieceType::Z_Basic,
     };
     
-    if (level < 1) {
-        newBag = basicTypes;
-    } else if (level == 1) {
-        newBag = basicTypes;
+
+    if (!difficultyConfig) {
+        std::cout << "WARNING: No difficulty config set, using fallback" << std::endl;
+
+        if (level < 1) {
+            newBag = basicTypes;
+        } else if (level <= 5) {
+            newBag = basicTypes;
+            for (int i = 0; i < std::min(level, 2); i++) {
+                if (mediumBagIndex >= mediumBag.size()) refillMediumBag();
+                newBag.push_back(mediumBag[mediumBagIndex++]);
+            }
+            if (level >= 2) {
+                for (int i = 0; i < std::min(level - 2, 2); i++) {
+                    if (hardBagIndex >= hardBag.size()) refillHardBag();
+                    newBag.push_back(hardBag[hardBagIndex++]);
+                }
+            }
+        }
+        std::shuffle(newBag.begin(), newBag.end(), rng);
+        return newBag;
+    }
+    
+
+    BagLevelConfig bagConfig = {7, 0, 0};
+    
+    for (const auto& threshold : difficultyConfig->levelThresholds) {
+        if (level >= threshold.lines / 10) {
+            bagConfig = threshold.bagConfig;
+        }
+    }
+    
+
+    int bestThreshold = 0;
+    for (size_t i = 0; i < difficultyConfig->levelThresholds.size(); i++) {
+        if (level >= static_cast<int>(i)) {
+            bagConfig = difficultyConfig->levelThresholds[i].bagConfig;
+        }
+    }
+    
+    std::cout << "Bag config for level " << level << ": " 
+              << bagConfig.basicPieces << " basic, " 
+              << bagConfig.mediumPieces << " medium, " 
+              << bagConfig.hardPieces << " hard" << std::endl;
+    
+
+    for (int i = 0; i < bagConfig.basicPieces; i++) {
+        newBag.push_back(basicTypes[i % basicTypes.size()]);
+    }
+    
+
+    for (int i = 0; i < bagConfig.mediumPieces; i++) {
         if (mediumBagIndex >= mediumBag.size()) refillMediumBag();
         newBag.push_back(mediumBag[mediumBagIndex++]);
-    } else if (level == 2) {
-        newBag = basicTypes;
+    }
+    
+
+    for (int i = 0; i < bagConfig.hardPieces; i++) {
         if (hardBagIndex >= hardBag.size()) refillHardBag();
         newBag.push_back(hardBag[hardBagIndex++]);
-    } else if (level == 3) {
-        newBag = basicTypes;
-        if (mediumBagIndex >= mediumBag.size()) refillMediumBag();
-        newBag.push_back(mediumBag[mediumBagIndex++]);
-        if (hardBagIndex >= hardBag.size()) refillHardBag();
-        newBag.push_back(hardBag[hardBagIndex++]);
-    } else if (level == 4) {
-        newBag = basicTypes;
-        for (int i = 0; i < 2; i++) {
-            if (mediumBagIndex >= mediumBag.size()) refillMediumBag();
-            newBag.push_back(mediumBag[mediumBagIndex++]);
-        }
-        if (hardBagIndex >= hardBag.size()) refillHardBag();
-        newBag.push_back(hardBag[hardBagIndex++]);
-    } else {
-        newBag = basicTypes;
-        for (int i = 0; i < 2; i++) {
-            if (mediumBagIndex >= mediumBag.size()) refillMediumBag();
-            newBag.push_back(mediumBag[mediumBagIndex++]);
-        }
-        for (int i = 0; i < 2; i++) {
-            if (hardBagIndex >= hardBag.size()) refillHardBag();
-            newBag.push_back(hardBag[hardBagIndex++]);
-        }
     }
     
     std::shuffle(newBag.begin(), newBag.end(), rng);
@@ -345,6 +443,17 @@ void PieceBag::reset() {
     nextQueue.clear();
     fillNextQueue();
     std::cout << "Bag system reset to level 0!" << std::endl;
+}
+
+void PieceBag::setDifficultyConfig(const DifficultyConfig* config) {
+    difficultyConfig = config;
+    std::cout << "Difficulty config set to: " << (config ? config->modeName : "nullptr") << std::endl;
+    if (config) {
+        std::cout << "  Max Levels: " << config->maxLevels << std::endl;
+        std::cout << "  Line Goal: " << (config->hasLineGoal ? std::to_string(config->lineGoal) : "None") << std::endl;
+        std::cout << "  Bomb: " << (config->bombEnabled ? "Yes" : "No") << std::endl;
+        std::cout << "  Hold: " << (config->holdEnabled ? "Yes" : "No") << std::endl;
+    }
 }
 
 void PieceBag::returnPieceToBag(PieceType piece) {
@@ -1188,30 +1297,82 @@ void updateAllVolumes(sf::Music& backgroundMusic, std::unique_ptr<sf::Sound>& sp
     }
 }
 
-void insertNewScore(SaveData& saveData, int score, int lines, int level) {
+void insertNewScore(SaveData& saveData, int score, int lines, int level, ClassicDifficulty difficulty) {
     SaveData::ScoreEntry newEntry = {score, lines, level};
     
+
+    SaveData::ScoreEntry* topScoresArray = nullptr;
+    switch (difficulty) {
+        case ClassicDifficulty::Easy:
+            topScoresArray = saveData.topScoresEasy;
+            break;
+        case ClassicDifficulty::Medium:
+            topScoresArray = saveData.topScoresMedium;
+            break;
+        case ClassicDifficulty::Hard:
+            topScoresArray = saveData.topScoresHard;
+            break;
+    }
+    
+
     int insertPos = -1;
     for (int i = 0; i < 3; i++) {
-        if (score > saveData.topScores[i].score) {
+        if (score > topScoresArray[i].score) {
             insertPos = i;
             break;
         }
     }
     
     if (insertPos >= 0) {
+
         for (int i = 2; i > insertPos; i--) {
+            topScoresArray[i] = topScoresArray[i-1];
+        }
+        topScoresArray[insertPos] = newEntry;
+        
+        std::cout << "NEW TOP SCORE #" << (insertPos + 1) << " for difficulty " << static_cast<int>(difficulty) << ": " << score << " points!" << std::endl;
+    }
+    
+
+    int legacyInsertPos = -1;
+    for (int i = 0; i < 3; i++) {
+        if (score > saveData.topScores[i].score) {
+            legacyInsertPos = i;
+            break;
+        }
+    }
+    
+    if (legacyInsertPos >= 0) {
+        for (int i = 2; i > legacyInsertPos; i--) {
             saveData.topScores[i] = saveData.topScores[i-1];
         }
-        saveData.topScores[insertPos] = newEntry;
+        saveData.topScores[legacyInsertPos] = newEntry;
         
-        std::cout << "NEW TOP SCORE #" << (insertPos + 1) << ": " << score << " points!" << std::endl;
-        
-        if (insertPos == 0) {
+        if (legacyInsertPos == 0) {
             saveData.highScore = score;
         }
-        
-        return;
+    }
+    
+
+    switch (difficulty) {
+        case ClassicDifficulty::Easy:
+            if (score > saveData.highScoreClassicEasy) {
+                saveData.highScoreClassicEasy = score;
+                std::cout << "New Classic Easy high score: " << score << std::endl;
+            }
+            break;
+        case ClassicDifficulty::Medium:
+            if (score > saveData.highScoreClassicMedium) {
+                saveData.highScoreClassicMedium = score;
+                std::cout << "New Classic Medium high score: " << score << std::endl;
+            }
+            break;
+        case ClassicDifficulty::Hard:
+            if (score > saveData.highScoreClassicHard) {
+                saveData.highScoreClassicHard = score;
+                std::cout << "New Classic Hard high score: " << score << std::endl;
+            }
+            break;
     }
     
     if (score > saveData.highScore) {
@@ -1396,6 +1557,10 @@ int main(int argc, char* argv[]) {
 
     GameState gameState = GameState::MainMenu;
     MenuOption selectedMenuOption = MenuOption::Start;
+    GameModeOption selectedGameModeOption = GameModeOption::Classic;
+    ClassicDifficulty selectedClassicDifficulty = ClassicDifficulty::Easy;
+    SprintLines selectedSprintLines = SprintLines::Lines12;
+    ChallengeMode selectedChallengeMode = ChallengeMode::TheForest;
     JigtrizopediaOption selectedJigtrizopediaOption = JigtrizopediaOption::JigtrizPieces;
     OptionsMenuOption selectedOptionsOption = OptionsMenuOption::ClearScores;
     PauseOption selectedPauseOption = PauseOption::Resume;
@@ -1476,41 +1641,9 @@ int main(int argc, char* argv[]) {
                 if (mouseButtonPressed->button == sf::Mouse::Button::Left) {
                     if (gameState == GameState::MainMenu) {
                         if (selectedMenuOption == MenuOption::Start) {
-                            gameState = GameState::Playing;
-                            gameOver = false;
-                            
-                            for (int i = 0; i < GRID_HEIGHT; ++i) {
-                                for (int j = 0; j < GRID_WIDTH; ++j) {
-                                    grid[i][j] = Cell();
-                                }
-                            }
-                            totalLinesCleared = 0;
-                            currentLevel = 0;
-                            totalScore = 0;
-                            currentCombo = 0;
-                            lastMoveScore = 0;
-                            totalHardDropScore = 0;
-                            totalLineScore = 0;
-                            totalComboScore = 0;
-                            jigtrizBag.reset();
-                            hasHeldPiece = false;
-                            canUseHold = true;
-                            linesSinceLastAbility = 0;
-                            bombAbilityAvailable = debugMode;
-                            explosionEffects.clear();
-                            glowEffects.clear();
-                            leftHoldTime = 0.0f;
-                            rightHoldTime = 0.0f;
-                            dasTimer = 0.0f;
-                            leftPressed = false;
-                            rightPressed = false;
-                            
-                            PieceType startType = jigtrizBag.getNextPiece();
-                            PieceShape startShape = getPieceShape(startType);
-                            int startX = (GRID_WIDTH - startShape.width) / 2;
-                            activePiece = Piece(startX, 0, startType);
-                            
-                            std::cout << "Game started from menu (mouse)!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
+                            gameState = GameState::GameModeSelect;
+                            selectedGameModeOption = GameModeOption::Classic;
+                            std::cout << "Entered GAME MODE selection (mouse)" << std::endl;
                         } else if (selectedMenuOption == MenuOption::Jigtrizopedia) {
                             gameState = GameState::Jigtrizopedia;
                             selectedJigtrizopediaOption = JigtrizopediaOption::JigtrizPieces;
@@ -1521,6 +1654,66 @@ int main(int argc, char* argv[]) {
                         } else if (selectedMenuOption == MenuOption::Exit) {
                             window.close();
                         }
+                    } else if (gameState == GameState::GameModeSelect) {
+                        if (selectedGameModeOption == GameModeOption::Classic) {
+                            gameState = GameState::ClassicDifficultySelect;
+                            selectedClassicDifficulty = ClassicDifficulty::Easy;
+                            std::cout << "Entered CLASSIC difficulty selection (mouse)" << std::endl;
+                        } else if (selectedGameModeOption == GameModeOption::Sprint) {
+
+                            std::cout << "Sprint mode is currently disabled" << std::endl;
+                        } else if (selectedGameModeOption == GameModeOption::Challenge) {
+
+                            std::cout << "Challenge mode is currently disabled" << std::endl;
+                        }
+                    } else if (gameState == GameState::ClassicDifficultySelect || 
+                               gameState == GameState::SprintLinesSelect || 
+                               gameState == GameState::ChallengeSelect) {
+
+                        gameState = GameState::Playing;
+                        gameOver = false;
+                        
+
+                        const DifficultyConfig* config = getDifficultyConfig(
+                            selectedGameModeOption,
+                            selectedClassicDifficulty,
+                            selectedSprintLines,
+                            selectedChallengeMode
+                        );
+                        jigtrizBag.setDifficultyConfig(config);
+                        
+                        for (int i = 0; i < GRID_HEIGHT; ++i) {
+                            for (int j = 0; j < GRID_WIDTH; ++j) {
+                                grid[i][j] = Cell();
+                            }
+                        }
+                        totalLinesCleared = 0;
+                        currentLevel = 0;
+                        totalScore = 0;
+                        currentCombo = 0;
+                        lastMoveScore = 0;
+                        totalHardDropScore = 0;
+                        totalLineScore = 0;
+                        totalComboScore = 0;
+                        jigtrizBag.reset();
+                        hasHeldPiece = false;
+                        canUseHold = true;
+                        linesSinceLastAbility = 0;
+                        bombAbilityAvailable = debugMode;
+                        explosionEffects.clear();
+                        glowEffects.clear();
+                        leftHoldTime = 0.0f;
+                        rightHoldTime = 0.0f;
+                        dasTimer = 0.0f;
+                        leftPressed = false;
+                        rightPressed = false;
+                        
+                        PieceType startType = jigtrizBag.getNextPiece();
+                        PieceShape startShape = getPieceShape(startType);
+                        int startX = (GRID_WIDTH - startShape.width) / 2;
+                        activePiece = Piece(startX, 0, startType);
+                        
+                        std::cout << "Game started (mouse) with mode: " << config->modeName << std::endl;
                     } else if (gameState == GameState::Jigtrizopedia) {
 
                         std::cout << "Jigtrizopedia buttons are currently disabled" << std::endl;
@@ -1655,43 +1848,9 @@ int main(int argc, char* argv[]) {
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
                             if (selectedMenuOption == MenuOption::Start) {
-                                gameState = GameState::Playing;
-                                gameOver = false;
-                                
-                                for (int i = 0; i < GRID_HEIGHT; ++i) {
-                                    for (int j = 0; j < GRID_WIDTH; ++j) {
-                                        grid[i][j] = Cell();
-                                    }
-                                }
-                                totalLinesCleared = 0;
-                                currentLevel = 0;
-                                totalScore = 0;
-                                currentCombo = 0;
-                                lastMoveScore = 0;
-                                totalHardDropScore = 0;
-                                totalLineScore = 0;
-                                totalComboScore = 0;
-                                jigtrizBag.reset();
-                                hasHeldPiece = false;
-                                canUseHold = true;
-                                linesSinceLastAbility = 0;
-                                
-                                bombAbilityAvailable = debugMode;
-                                
-                                explosionEffects.clear();
-                                glowEffects.clear();
-                                leftHoldTime = 0.0f;
-                                rightHoldTime = 0.0f;
-                                dasTimer = 0.0f;
-                                leftPressed = false;
-                                rightPressed = false;
-                                
-                                PieceType startType = jigtrizBag.getNextPiece();
-                                PieceShape startShape = getPieceShape(startType);
-                                int startX = (GRID_WIDTH - startShape.width) / 2;
-                                activePiece = Piece(startX, 0, startType);
-                                
-                                std::cout << "Game started from menu!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
+                                gameState = GameState::GameModeSelect;
+                                selectedGameModeOption = GameModeOption::Classic;
+                                std::cout << "Entered GAME MODE selection" << std::endl;
                             } else if (selectedMenuOption == MenuOption::Jigtrizopedia) {
                                 gameState = GameState::Jigtrizopedia;
                                 selectedJigtrizopediaOption = JigtrizopediaOption::JigtrizPieces;
@@ -1789,6 +1948,226 @@ int main(int argc, char* argv[]) {
 
                             std::cout << "Jigtrizopedia buttons are currently disabled" << std::endl;
                             break;
+                        default: 
+                            break;
+                    }
+                } else if (gameState == GameState::GameModeSelect) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            gameState = GameState::MainMenu;
+                            std::cout << "Returned to main menu from GAME MODE selection" << std::endl;
+                            break;
+                        case sf::Keyboard::Key::Up:
+                        case sf::Keyboard::Key::W:
+                            selectedGameModeOption = static_cast<GameModeOption>((static_cast<int>(selectedGameModeOption) + 2) % 3);
+                            break;
+                        case sf::Keyboard::Key::Down:
+                        case sf::Keyboard::Key::S:
+                            selectedGameModeOption = static_cast<GameModeOption>((static_cast<int>(selectedGameModeOption) + 1) % 3);
+                            break;
+                        case sf::Keyboard::Key::Enter:
+                        case sf::Keyboard::Key::Space:
+                            if (selectedGameModeOption == GameModeOption::Classic) {
+                                gameState = GameState::ClassicDifficultySelect;
+                                selectedClassicDifficulty = ClassicDifficulty::Easy;
+                                std::cout << "Entered CLASSIC difficulty selection" << std::endl;
+                            } else if (selectedGameModeOption == GameModeOption::Sprint) {
+
+                                std::cout << "Sprint mode is currently disabled" << std::endl;
+                            } else if (selectedGameModeOption == GameModeOption::Challenge) {
+
+                                std::cout << "Challenge mode is currently disabled" << std::endl;
+                            }
+                            break;
+                        default: 
+                            break;
+                    }
+                } else if (gameState == GameState::ClassicDifficultySelect) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            gameState = GameState::GameModeSelect;
+                            std::cout << "Returned to GAME MODE selection" << std::endl;
+                            break;
+                        case sf::Keyboard::Key::Up:
+                        case sf::Keyboard::Key::W:
+                            selectedClassicDifficulty = static_cast<ClassicDifficulty>((static_cast<int>(selectedClassicDifficulty) + 2) % 3);
+                            break;
+                        case sf::Keyboard::Key::Down:
+                        case sf::Keyboard::Key::S:
+                            selectedClassicDifficulty = static_cast<ClassicDifficulty>((static_cast<int>(selectedClassicDifficulty) + 1) % 3);
+                            break;
+                        case sf::Keyboard::Key::Enter:
+                        case sf::Keyboard::Key::Space:
+                        {
+
+                            const DifficultyConfig* config = getDifficultyConfig(
+                                selectedGameModeOption,
+                                selectedClassicDifficulty,
+                                selectedSprintLines,
+                                selectedChallengeMode
+                            );
+                            jigtrizBag.setDifficultyConfig(config);
+                            
+                            gameState = GameState::Playing;
+                            gameOver = false;
+                            for (int i = 0; i < GRID_HEIGHT; ++i) {
+                                for (int j = 0; j < GRID_WIDTH; ++j) {
+                                    grid[i][j] = Cell();
+                                }
+                            }
+                            totalLinesCleared = 0;
+                            currentLevel = 0;
+                            totalScore = 0;
+                            currentCombo = 0;
+                            lastMoveScore = 0;
+                            totalHardDropScore = 0;
+                            totalLineScore = 0;
+                            totalComboScore = 0;
+                            jigtrizBag.reset();
+                            hasHeldPiece = false;
+                            canUseHold = true;
+                            linesSinceLastAbility = 0;
+                            bombAbilityAvailable = debugMode;
+                            explosionEffects.clear();
+                            glowEffects.clear();
+                            leftHoldTime = 0.0f;
+                            rightHoldTime = 0.0f;
+                            dasTimer = 0.0f;
+                            leftPressed = false;
+                            rightPressed = false;
+                            PieceType startType = jigtrizBag.getNextPiece();
+                            PieceShape startShape = getPieceShape(startType);
+                            int startX = (GRID_WIDTH - startShape.width) / 2;
+                            activePiece = Piece(startX, 0, startType);
+                            std::cout << "Game started (Classic) - Difficulty: " << config->modeName << std::endl;
+                            break;
+                        }
+                        default: 
+                            break;
+                    }
+                } else if (gameState == GameState::SprintLinesSelect) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            gameState = GameState::GameModeSelect;
+                            std::cout << "Returned to GAME MODE selection" << std::endl;
+                            break;
+                        case sf::Keyboard::Key::Up:
+                        case sf::Keyboard::Key::W:
+                            selectedSprintLines = static_cast<SprintLines>((static_cast<int>(selectedSprintLines) + 2) % 3);
+                            break;
+                        case sf::Keyboard::Key::Down:
+                        case sf::Keyboard::Key::S:
+                            selectedSprintLines = static_cast<SprintLines>((static_cast<int>(selectedSprintLines) + 1) % 3);
+                            break;
+                        case sf::Keyboard::Key::Enter:
+                        case sf::Keyboard::Key::Space:
+                        {
+
+                            const DifficultyConfig* config = getDifficultyConfig(
+                                selectedGameModeOption,
+                                selectedClassicDifficulty,
+                                selectedSprintLines,
+                                selectedChallengeMode
+                            );
+                            jigtrizBag.setDifficultyConfig(config);
+                            
+                            gameState = GameState::Playing;
+                            gameOver = false;
+                            for (int i = 0; i < GRID_HEIGHT; ++i) {
+                                for (int j = 0; j < GRID_WIDTH; ++j) {
+                                    grid[i][j] = Cell();
+                                }
+                            }
+                            totalLinesCleared = 0;
+                            currentLevel = 0;
+                            totalScore = 0;
+                            currentCombo = 0;
+                            lastMoveScore = 0;
+                            totalHardDropScore = 0;
+                            totalLineScore = 0;
+                            totalComboScore = 0;
+                            jigtrizBag.reset();
+                            hasHeldPiece = false;
+                            canUseHold = true;
+                            linesSinceLastAbility = 0;
+                            bombAbilityAvailable = debugMode;
+                            explosionEffects.clear();
+                            glowEffects.clear();
+                            leftHoldTime = 0.0f;
+                            rightHoldTime = 0.0f;
+                            dasTimer = 0.0f;
+                            leftPressed = false;
+                            rightPressed = false;
+                            PieceType startType = jigtrizBag.getNextPiece();
+                            PieceShape startShape = getPieceShape(startType);
+                            int startX = (GRID_WIDTH - startShape.width) / 2;
+                            activePiece = Piece(startX, 0, startType);
+                            std::cout << "Game started (Sprint) - Lines: " << config->modeName << std::endl;
+                            break;
+                        }
+                        default: 
+                            break;
+                    }
+                } else if (gameState == GameState::ChallengeSelect) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            gameState = GameState::GameModeSelect;
+                            std::cout << "Returned to GAME MODE selection" << std::endl;
+                            break;
+                        case sf::Keyboard::Key::Up:
+                        case sf::Keyboard::Key::W:
+                            selectedChallengeMode = static_cast<ChallengeMode>((static_cast<int>(selectedChallengeMode) + 2) % 3);
+                            break;
+                        case sf::Keyboard::Key::Down:
+                        case sf::Keyboard::Key::S:
+                            selectedChallengeMode = static_cast<ChallengeMode>((static_cast<int>(selectedChallengeMode) + 1) % 3);
+                            break;
+                        case sf::Keyboard::Key::Enter:
+                        case sf::Keyboard::Key::Space:
+                        {
+
+                            const DifficultyConfig* config = getDifficultyConfig(
+                                selectedGameModeOption,
+                                selectedClassicDifficulty,
+                                selectedSprintLines,
+                                selectedChallengeMode
+                            );
+                            jigtrizBag.setDifficultyConfig(config);
+                            
+                            gameState = GameState::Playing;
+                            gameOver = false;
+                            for (int i = 0; i < GRID_HEIGHT; ++i) {
+                                for (int j = 0; j < GRID_WIDTH; ++j) {
+                                    grid[i][j] = Cell();
+                                }
+                            }
+                            totalLinesCleared = 0;
+                            currentLevel = 0;
+                            totalScore = 0;
+                            currentCombo = 0;
+                            lastMoveScore = 0;
+                            totalHardDropScore = 0;
+                            totalLineScore = 0;
+                            totalComboScore = 0;
+                            jigtrizBag.reset();
+                            hasHeldPiece = false;
+                            canUseHold = true;
+                            linesSinceLastAbility = 0;
+                            bombAbilityAvailable = debugMode;
+                            explosionEffects.clear();
+                            glowEffects.clear();
+                            leftHoldTime = 0.0f;
+                            rightHoldTime = 0.0f;
+                            dasTimer = 0.0f;
+                            leftPressed = false;
+                            rightPressed = false;
+                            PieceType startType = jigtrizBag.getNextPiece();
+                            PieceShape startShape = getPieceShape(startType);
+                            int startX = (GRID_WIDTH - startShape.width) / 2;
+                            activePiece = Piece(startX, 0, startType);
+                            std::cout << "Game started (Challenge) - Mode: " << config->modeName << std::endl;
+                            break;
+                        }
                         default: 
                             break;
                     }
@@ -1951,12 +2330,29 @@ int main(int argc, char* argv[]) {
                             if (selectedConfirmOption == ConfirmOption::Yes) {
 
                                 saveData.highScore = 0;
+                                saveData.highScoreClassicEasy = 0;
+                                saveData.highScoreClassicMedium = 0;
+                                saveData.highScoreClassicHard = 0;
                                 saveData.bestLines = 0;
                                 saveData.bestLevel = 0;
+                                
+
                                 for (int i = 0; i < 3; i++) {
                                     saveData.topScores[i].score = 0;
                                     saveData.topScores[i].lines = 0;
                                     saveData.topScores[i].level = 0;
+                                    
+                                    saveData.topScoresEasy[i].score = 0;
+                                    saveData.topScoresEasy[i].lines = 0;
+                                    saveData.topScoresEasy[i].level = 0;
+                                    
+                                    saveData.topScoresMedium[i].score = 0;
+                                    saveData.topScoresMedium[i].lines = 0;
+                                    saveData.topScoresMedium[i].level = 0;
+                                    
+                                    saveData.topScoresHard[i].score = 0;
+                                    saveData.topScoresHard[i].lines = 0;
+                                    saveData.topScoresHard[i].level = 0;
                                 }
                                 saveGameData(saveData);
                                 std::cout << "All scores cleared!" << std::endl;
@@ -2069,12 +2465,14 @@ int main(int argc, char* argv[]) {
                             if (clearedLines > 0) {
                                 totalLinesCleared += clearedLines;
                                 
-                                int baseScore = calculateScore(clearedLines);
+                                int fullScore = calculateScore(clearedLines);
+                                int baseScore = clearedLines * 1000;
+                                int lineBonus = fullScore - baseScore;
                                 int comboBonus = currentCombo * COMBO_BONUS_PER_LINE * clearedLines;
-                                int bombLineScore = baseScore + comboBonus;
+                                int bombLineScore = fullScore + comboBonus;
                                 totalScore += bombLineScore;
                                 totalLineScore += baseScore;
-                                totalComboScore += comboBonus;
+                                totalComboScore += lineBonus + comboBonus;
                                 lastMoveScore = bombLineScore;
                                 
                                 currentCombo += clearedLines;
@@ -2334,12 +2732,14 @@ int main(int argc, char* argv[]) {
             totalLinesCleared += clearedLines;
             
             if (clearedLines > 0) {
-                int baseScore = calculateScore(clearedLines);
+                int fullScore = calculateScore(clearedLines);
+                int baseScore = clearedLines * 1000;
+                int lineBonus = fullScore - baseScore;
                 int comboBonus = currentCombo * COMBO_BONUS_PER_LINE * clearedLines;
-                lastMoveScore = baseScore + comboBonus;
+                lastMoveScore = fullScore + comboBonus;
                 totalScore += lastMoveScore;
                 totalLineScore += baseScore;
-                totalComboScore += comboBonus;
+                totalComboScore += lineBonus + comboBonus;
                 
                 currentCombo += clearedLines;
                 
@@ -2376,7 +2776,7 @@ int main(int argc, char* argv[]) {
                 std::cout << "Final Score: " << totalScore << " | Lines: " << totalLinesCleared << " | Level: " << currentLevel << std::endl;
                 
                 if (!debugMode) {
-                    insertNewScore(saveData, totalScore, totalLinesCleared, currentLevel);
+                    insertNewScore(saveData, totalScore, totalLinesCleared, currentLevel, selectedClassicDifficulty);
                     
                     bool recordsUpdated = false;
                     if (totalLinesCleared > saveData.bestLines) {
@@ -2448,6 +2848,58 @@ int main(int argc, char* argv[]) {
             else if (mouseX >= centerX - 150 && mouseX <= centerX + 150 &&
                      mouseY >= centerY + 210 && mouseY <= centerY + 270) {
                 selectedMenuOption = MenuOption::Exit;
+            }
+        } else if (gameState == GameState::GameModeSelect) {
+
+            float startY = centerY - 80.0f;
+            float spacing = 90.0f;
+            
+            for (int i = 0; i < 3; i++) {
+                float selectorY = startY + i * spacing - 5;
+                if (mouseX >= centerX - 200 && mouseX <= centerX + 200 &&
+                    mouseY >= selectorY && mouseY <= selectorY + 60) {
+                    selectedGameModeOption = static_cast<GameModeOption>(i);
+                    break;
+                }
+            }
+        } else if (gameState == GameState::ClassicDifficultySelect) {
+
+            float startY = centerY - 80.0f;
+            float spacing = 90.0f;
+            
+            for (int i = 0; i < 3; i++) {
+                float selectorY = startY + i * spacing - 5;
+                if (mouseX >= centerX - 175 && mouseX <= centerX + 175 &&
+                    mouseY >= selectorY && mouseY <= selectorY + 60) {
+                    selectedClassicDifficulty = static_cast<ClassicDifficulty>(i);
+                    break;
+                }
+            }
+        } else if (gameState == GameState::SprintLinesSelect) {
+
+            float startY = centerY - 80.0f;
+            float spacing = 90.0f;
+            
+            for (int i = 0; i < 3; i++) {
+                float selectorY = startY + i * spacing - 5;
+                if (mouseX >= centerX - 200 && mouseX <= centerX + 200 &&
+                    mouseY >= selectorY && mouseY <= selectorY + 60) {
+                    selectedSprintLines = static_cast<SprintLines>(i);
+                    break;
+                }
+            }
+        } else if (gameState == GameState::ChallengeSelect) {
+
+            float startY = centerY - 80.0f;
+            float spacing = 90.0f;
+            
+            for (int i = 0; i < 3; i++) {
+                float selectorY = startY + i * spacing - 5;
+                if (mouseX >= centerX - 250 && mouseX <= centerX + 250 &&
+                    mouseY >= selectorY && mouseY <= selectorY + 60) {
+                    selectedChallengeMode = static_cast<ChallengeMode>(i);
+                    break;
+                }
             }
         } else if (gameState == GameState::Jigtrizopedia) {
 
@@ -2611,6 +3063,14 @@ int main(int argc, char* argv[]) {
                 volumeBarFill.setFillColor(barColor);
                 window.draw(volumeBarFill);
             }
+        } else if (gameState == GameState::GameModeSelect) {
+            drawGameModeMenu(window, titleFont, menuFont, fontLoaded, selectedGameModeOption);
+        } else if (gameState == GameState::ClassicDifficultySelect) {
+            drawClassicDifficultyMenu(window, titleFont, menuFont, fontLoaded, selectedClassicDifficulty, saveData);
+        } else if (gameState == GameState::SprintLinesSelect) {
+            drawSprintLinesMenu(window, titleFont, menuFont, fontLoaded, selectedSprintLines);
+        } else if (gameState == GameState::ChallengeSelect) {
+            drawChallengeMenu(window, titleFont, menuFont, fontLoaded, selectedChallengeMode);
         } else if (gameState == GameState::Jigtrizopedia) {
             drawJigtrizopediaMenu(window, titleFont, menuFont, fontLoaded, selectedJigtrizopediaOption);
         } else if (gameState == GameState::AchievementsView) {
@@ -2765,7 +3225,7 @@ int main(int argc, char* argv[]) {
         drawJigtrizTitle(window, titleFont, fontLoaded);
         
         if (gameOver) {
-            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData, totalHardDropScore, totalLineScore, totalComboScore);
+            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData, totalHardDropScore, totalLineScore, totalComboScore, selectedClassicDifficulty);
         }
         
         if (gameState == GameState::Paused) {

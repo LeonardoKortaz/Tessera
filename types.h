@@ -11,6 +11,10 @@
 #include <map>
 
 
+struct DifficultyConfig;
+struct BagLevelConfig;
+
+
 constexpr int GRID_WIDTH = 11;
 constexpr int GRID_HEIGHT = 22;
 constexpr float CELL_SIZE = 32.0f;
@@ -30,6 +34,10 @@ TextureType getTextureType(PieceType type);
 
 enum class GameState {
     MainMenu,
+    GameModeSelect,
+    ClassicDifficultySelect,
+    SprintLinesSelect,
+    ChallengeSelect,
     Jigtrizopedia,
     AchievementsView,
     Options,
@@ -45,6 +53,30 @@ enum class MenuOption {
     Jigtrizopedia = 1,
     Options = 2,
     Exit = 3
+};
+
+enum class GameModeOption {
+    Classic = 0,
+    Sprint = 1,
+    Challenge = 2
+};
+
+enum class ClassicDifficulty {
+    Easy = 0,
+    Medium = 1,
+    Hard = 2
+};
+
+enum class SprintLines {
+    Lines12 = 0,
+    Lines24 = 1,
+    Lines48 = 2
+};
+
+enum class ChallengeMode {
+    TheForest = 0,
+    Randomness = 1,
+    NonStraight = 2
 };
 
 enum class JigtrizopediaOption {
@@ -88,7 +120,14 @@ struct KeyBindings {
 
 
 struct SaveData {
+
+    int highScoreClassicEasy = 0;
+    int highScoreClassicMedium = 0;
+    int highScoreClassicHard = 0;
+    
+
     int highScore = 0;
+    
     int bestLines = 0;
     int bestLevel = 0;
     float masterVolume = 80.0f;
@@ -99,6 +138,13 @@ struct SaveData {
         int lines = 0;
         int level = 0;
     };
+    
+
+    ScoreEntry topScoresEasy[3];
+    ScoreEntry topScoresMedium[3];
+    ScoreEntry topScoresHard[3];
+    
+
     ScoreEntry topScores[3];
     
     int moveLeft = static_cast<int>(sf::Keyboard::Key::A);
@@ -234,6 +280,8 @@ private:
     int mediumBagIndex = 0;
     int hardBagIndex = 0;
     
+    const DifficultyConfig* difficultyConfig = nullptr;
+    
     std::vector<PieceType> createNewBag(int level);
     void ensureNextBagReady();
     void fillNextQueue();
@@ -244,6 +292,7 @@ public:
     PieceBag();
     PieceType getNextPiece();
     void updateLevel(int newLevel);
+    void setDifficultyConfig(const DifficultyConfig* config);
     const std::vector<PieceType>& getNextQueue() const;
     const std::vector<PieceType>& getCurrentBag() const;
     const std::vector<PieceType>& getNextBag() const;
