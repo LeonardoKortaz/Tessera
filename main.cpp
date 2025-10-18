@@ -57,6 +57,10 @@ void saveGameData(const SaveData& data) {
         file << "HIGH_SCORE_CLASSIC_EASY=" << data.highScoreClassicEasy << std::endl;
         file << "HIGH_SCORE_CLASSIC_MEDIUM=" << data.highScoreClassicMedium << std::endl;
         file << "HIGH_SCORE_CLASSIC_HARD=" << data.highScoreClassicHard << std::endl;
+        file << "BEST_TIME_SPRINT_1=" << data.bestTimeSprint1 << std::endl;
+        file << "BEST_TIME_SPRINT_24=" << data.bestTimeSprint24 << std::endl;
+        file << "BEST_TIME_SPRINT_48=" << data.bestTimeSprint48 << std::endl;
+        file << "BEST_TIME_SPRINT_96=" << data.bestTimeSprint96 << std::endl;
         file << "BEST_LINES=" << data.bestLines << std::endl;
         file << "BEST_LEVEL=" << data.bestLevel << std::endl;
         file << "MASTER_VOLUME=" << data.masterVolume << std::endl;
@@ -132,6 +136,14 @@ SaveData loadGameData() {
                     data.highScoreClassicMedium = std::stoi(value);
                 } else if (key == "HIGH_SCORE_CLASSIC_HARD") {
                     data.highScoreClassicHard = std::stoi(value);
+                } else if (key == "BEST_TIME_SPRINT_1") {
+                    data.bestTimeSprint1 = std::stof(value);
+                } else if (key == "BEST_TIME_SPRINT_24") {
+                    data.bestTimeSprint24 = std::stof(value);
+                } else if (key == "BEST_TIME_SPRINT_48") {
+                    data.bestTimeSprint48 = std::stof(value);
+                } else if (key == "BEST_TIME_SPRINT_96") {
+                    data.bestTimeSprint96 = std::stof(value);
                 } else if (key == "BEST_LINES") {
                     data.bestLines = std::stoi(value);
                 } else if (key == "BEST_LEVEL") {
@@ -238,6 +250,20 @@ int calculateLevel(int linesCleared) {
             return level;
         }
     }
+    return 0;
+}
+
+
+int findFirstFilledRow(const PieceShape& shape) {
+    for (int y = 0; y < shape.height; y++) {
+        for (int x = 0; x < shape.width; x++) {
+            if (shape.blocks[y][x]) {
+                std::cout << "[DEBUG] First filled row found at y=" << y << " (shape height=" << shape.height << ")" << std::endl;
+                return y;
+            }
+        }
+    }
+    std::cout << "[WARNING] No filled cells found in shape!" << std::endl;
     return 0;
 }
 
@@ -682,57 +708,148 @@ void drawCombo(sf::RenderWindow& window, int currentCombo, int lastMoveScore, co
     }
 }
 
-void drawLevelInfo(sf::RenderWindow& window, int totalLinesCleared, int currentLevel, int totalScore, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded) {
+void drawLevelInfo(sf::RenderWindow& window, int totalLinesCleared, int currentLevel, int totalScore, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, bool sprintMode = false, float sprintTime = 0.0f, int sprintTarget = 0) {
     float panelX = 50;
     float panelY = GRID_OFFSET_Y + 50;
     
-    sf::RectangleShape bg;
-    bg.setFillColor(sf::Color(30, 30, 40, 200));
-    bg.setOutlineColor(sf::Color(255, 200, 100, 255));
-    bg.setOutlineThickness(2);
-    bg.setPosition(sf::Vector2f(panelX - 10, panelY - 10));
-    bg.setSize(sf::Vector2f(140, 130));
-    window.draw(bg);
-    
-    if (fontLoaded) {
-        sf::Text scoreLabel(font, "SCORE");
-        scoreLabel.setCharacterSize(14);
-        scoreLabel.setFillColor(sf::Color::Yellow);
-        scoreLabel.setStyle(sf::Text::Bold);
-        scoreLabel.setPosition(sf::Vector2f(panelX + 5, panelY));
-        window.draw(scoreLabel);
+    if (sprintMode) {
+
+
+        sf::RectangleShape timerBg;
+        timerBg.setFillColor(sf::Color(30, 30, 40, 200));
+        timerBg.setOutlineColor(sf::Color(255, 200, 100, 255));
+        timerBg.setOutlineThickness(2);
+        timerBg.setPosition(sf::Vector2f(panelX - 10, panelY - 10));
+        timerBg.setSize(sf::Vector2f(160, 90));
+        window.draw(timerBg);
         
-        sf::Text scoreValue(font, std::to_string(totalScore));
-        scoreValue.setCharacterSize(18);
-        scoreValue.setFillColor(sf::Color::White);
-        scoreValue.setPosition(sf::Vector2f(panelX + 45, panelY));
-        window.draw(scoreValue);
+        if (fontLoaded) {
+            sf::Text timerLabel(font, "TIME");
+            timerLabel.setCharacterSize(14);
+            timerLabel.setFillColor(sf::Color::Yellow);
+            timerLabel.setStyle(sf::Text::Bold);
+            timerLabel.setPosition(sf::Vector2f(panelX + 5, panelY));
+            window.draw(timerLabel);
+            
+
+            int minutes = static_cast<int>(sprintTime) / 60;
+            int seconds = static_cast<int>(sprintTime) % 60;
+            int milliseconds = static_cast<int>((sprintTime - static_cast<int>(sprintTime)) * 100);
+            std::string timeStr = std::to_string(minutes) + ":" + 
+                                 (seconds < 10 ? "0" : "") + std::to_string(seconds) + "." +
+                                 (milliseconds < 10 ? "0" : "") + std::to_string(milliseconds);
+            
+            sf::Text timeValue(font, timeStr);
+            timeValue.setCharacterSize(24);
+            timeValue.setFillColor(sf::Color::White);
+            timeValue.setPosition(sf::Vector2f(panelX + 10, panelY + 25));
+            window.draw(timeValue);
+            
+
+            sf::Text linesLabel(font, "LINES");
+            linesLabel.setCharacterSize(14);
+            linesLabel.setFillColor(sf::Color::Green);
+            linesLabel.setStyle(sf::Text::Bold);
+            linesLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 60));
+            window.draw(linesLabel);
+            
+            sf::Text linesValue(font, std::to_string(totalLinesCleared) + " / " + std::to_string(sprintTarget));
+            linesValue.setCharacterSize(18);
+            linesValue.setFillColor(sf::Color::White);
+            linesValue.setPosition(sf::Vector2f(panelX + 60, panelY + 58));
+            window.draw(linesValue);
+        }
         
-        sf::Text linesLabel(font, "LINES");
-        linesLabel.setCharacterSize(14);
-        linesLabel.setFillColor(sf::Color::Green);
-        linesLabel.setStyle(sf::Text::Bold);
-        linesLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 40));
-        window.draw(linesLabel);
+
+        float barX = GRID_OFFSET_X - GRID_WIDTH * CELL_SIZE + 200;
+        float barY = panelY - 75;
+        float barWidth = 75;
+        float barHeight = 750;
         
-        sf::Text linesValue(font, std::to_string(totalLinesCleared));
-        linesValue.setCharacterSize(18);
-        linesValue.setFillColor(sf::Color::White);
-        linesValue.setPosition(sf::Vector2f(panelX + 45, panelY + 40));
-        window.draw(linesValue);
+
+        sf::RectangleShape progressBg;
+        progressBg.setFillColor(sf::Color(20, 20, 30, 200));
+        progressBg.setOutlineColor(sf::Color(100, 150, 255, 255));
+        progressBg.setOutlineThickness(2);
+        progressBg.setPosition(sf::Vector2f(barX, barY));
+        progressBg.setSize(sf::Vector2f(barWidth, barHeight));
+        window.draw(progressBg);
         
-        sf::Text levelLabel(font, "LEVEL");
-        levelLabel.setCharacterSize(14);
-        levelLabel.setFillColor(sf::Color::Cyan);
-        levelLabel.setStyle(sf::Text::Bold);
-        levelLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 80));
-        window.draw(levelLabel);
+
+        float progressPercent = std::min(1.0f, static_cast<float>(totalLinesCleared) / static_cast<float>(sprintTarget));
+        float fillHeight = barHeight * progressPercent;
         
-        sf::Text levelValue(font, std::to_string(currentLevel));
-        levelValue.setCharacterSize(18);
-        levelValue.setFillColor(sf::Color::White);
-        levelValue.setPosition(sf::Vector2f(panelX + 45, panelY + 80));
-        window.draw(levelValue);
+        sf::RectangleShape progressFill;
+        sf::Color fillColor;
+        if (progressPercent < 0.33f) fillColor = sf::Color(255, 100, 100);
+        else if (progressPercent < 0.66f) fillColor = sf::Color(255, 200, 100);
+        else fillColor = sf::Color(100, 255, 100);
+        
+        progressFill.setFillColor(fillColor);
+        progressFill.setPosition(sf::Vector2f(barX + 2, barY + barHeight - fillHeight - 2));
+        progressFill.setSize(sf::Vector2f(barWidth - 4, fillHeight));
+        window.draw(progressFill);
+        
+
+        if (fontLoaded) {
+            sf::Text percentText(font, std::to_string(static_cast<int>(progressPercent * 100)) + "%");
+            percentText.setCharacterSize(20);
+            percentText.setFillColor(sf::Color::White);
+            percentText.setStyle(sf::Text::Bold);
+            sf::FloatRect percentBounds = percentText.getLocalBounds();
+            percentText.setPosition(sf::Vector2f(barX + barWidth/2 - percentBounds.size.x/2, barY + barHeight/2 - 15));
+            window.draw(percentText);
+        }
+    } else {
+
+        sf::RectangleShape bg;
+        bg.setFillColor(sf::Color(30, 30, 40, 200));
+        bg.setOutlineColor(sf::Color(255, 200, 100, 255));
+        bg.setOutlineThickness(2);
+        bg.setPosition(sf::Vector2f(panelX - 10, panelY - 10));
+        bg.setSize(sf::Vector2f(140, 130));
+        window.draw(bg);
+        
+        if (fontLoaded) {
+            sf::Text scoreLabel(font, "SCORE");
+            scoreLabel.setCharacterSize(14);
+            scoreLabel.setFillColor(sf::Color::Yellow);
+            scoreLabel.setStyle(sf::Text::Bold);
+            scoreLabel.setPosition(sf::Vector2f(panelX + 5, panelY));
+            window.draw(scoreLabel);
+            
+            sf::Text scoreValue(font, std::to_string(totalScore));
+            scoreValue.setCharacterSize(18);
+            scoreValue.setFillColor(sf::Color::White);
+            scoreValue.setPosition(sf::Vector2f(panelX + 45, panelY));
+            window.draw(scoreValue);
+            
+            sf::Text linesLabel(font, "LINES");
+            linesLabel.setCharacterSize(14);
+            linesLabel.setFillColor(sf::Color::Green);
+            linesLabel.setStyle(sf::Text::Bold);
+            linesLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 40));
+            window.draw(linesLabel);
+            
+            sf::Text linesValue(font, std::to_string(totalLinesCleared));
+            linesValue.setCharacterSize(18);
+            linesValue.setFillColor(sf::Color::White);
+            linesValue.setPosition(sf::Vector2f(panelX + 45, panelY + 40));
+            window.draw(linesValue);
+            
+            sf::Text levelLabel(font, "LEVEL");
+            levelLabel.setCharacterSize(14);
+            levelLabel.setFillColor(sf::Color::Cyan);
+            levelLabel.setStyle(sf::Text::Bold);
+            levelLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 80));
+            window.draw(levelLabel);
+            
+            sf::Text levelValue(font, std::to_string(currentLevel));
+            levelValue.setCharacterSize(18);
+            levelValue.setFillColor(sf::Color::White);
+            levelValue.setPosition(sf::Vector2f(panelX + 45, panelY + 80));
+            window.draw(levelValue);
+        }
     }
 }
 
@@ -1559,7 +1676,7 @@ int main(int argc, char* argv[]) {
     MenuOption selectedMenuOption = MenuOption::Start;
     GameModeOption selectedGameModeOption = GameModeOption::Classic;
     ClassicDifficulty selectedClassicDifficulty = ClassicDifficulty::Easy;
-    SprintLines selectedSprintLines = SprintLines::Lines12;
+    SprintLines selectedSprintLines = SprintLines::Lines24;
     ChallengeMode selectedChallengeMode = ChallengeMode::TheForest;
     JigtrizopediaOption selectedJigtrizopediaOption = JigtrizopediaOption::JigtrizPieces;
     OptionsMenuOption selectedOptionsOption = OptionsMenuOption::ClearScores;
@@ -1597,6 +1714,12 @@ int main(int argc, char* argv[]) {
     int totalScore = 0;
     bool gameOver = false;
     
+
+    float sprintTimer = 0.0f;
+    int sprintTargetLines = 0;
+    bool sprintModeActive = false;
+    bool sprintCompleted = false;
+    
     int linesSinceLastAbility = 0;
     bool bombAbilityAvailable = false;
     const int LINES_FOR_ABILITY = 10;
@@ -1628,7 +1751,9 @@ int main(int argc, char* argv[]) {
     std::cout << "Initial spawn: " << pieceTypeToString(initType) << " (Bag System)" << std::endl;
     PieceShape initShape = getPieceShape(initType);
     int startX = (GRID_WIDTH - initShape.width) / 2;
-    Piece activePiece(startX, 0, initType);
+    int firstFilledRow = findFirstFilledRow(initShape);
+    int startY = -firstFilledRow;
+    Piece activePiece(startX, startY, initType);
     sf::Clock clock;
     bool firstFrame = true;
     while (window.isOpen()) {
@@ -1660,8 +1785,9 @@ int main(int argc, char* argv[]) {
                             selectedClassicDifficulty = ClassicDifficulty::Easy;
                             std::cout << "Entered CLASSIC difficulty selection (mouse)" << std::endl;
                         } else if (selectedGameModeOption == GameModeOption::Sprint) {
-
-                            std::cout << "Sprint mode is currently disabled" << std::endl;
+                            gameState = GameState::SprintLinesSelect;
+                            selectedSprintLines = SprintLines::Lines24;
+                            std::cout << "Entered BLITZ lines selection (mouse)" << std::endl;
                         } else if (selectedGameModeOption == GameModeOption::Challenge) {
 
                             std::cout << "Challenge mode is currently disabled" << std::endl;
@@ -1672,6 +1798,30 @@ int main(int argc, char* argv[]) {
 
                         gameState = GameState::Playing;
                         gameOver = false;
+                        
+
+                        if (selectedGameModeOption == GameModeOption::Sprint) {
+                            sprintModeActive = true;
+                            sprintCompleted = false;
+                            sprintTimer = 0.0f;
+                            switch (selectedSprintLines) {
+                                case SprintLines::Lines1:
+                                    sprintTargetLines = 1;
+                                    break;
+                                case SprintLines::Lines24:
+                                    sprintTargetLines = 24;
+                                    break;
+                                case SprintLines::Lines48:
+                                    sprintTargetLines = 48;
+                                    break;
+                                case SprintLines::Lines96:
+                                    sprintTargetLines = 96;
+                                    break;
+                            }
+                        } else {
+                            sprintModeActive = false;
+                            sprintCompleted = false;
+                        }
                         
 
                         const DifficultyConfig* config = getDifficultyConfig(
@@ -1711,7 +1861,9 @@ int main(int argc, char* argv[]) {
                         PieceType startType = jigtrizBag.getNextPiece();
                         PieceShape startShape = getPieceShape(startType);
                         int startX = (GRID_WIDTH - startShape.width) / 2;
-                        activePiece = Piece(startX, 0, startType);
+                        int firstFilledRow = findFirstFilledRow(startShape);
+                        int startY = -firstFilledRow;
+                        activePiece = Piece(startX, startY, startType);
                         
                         std::cout << "Game started (mouse) with mode: " << config->modeName << std::endl;
                     } else if (gameState == GameState::Jigtrizopedia) {
@@ -1733,6 +1885,12 @@ int main(int argc, char* argv[]) {
                         } else if (selectedPauseOption == PauseOption::Restart) {
                             gameState = GameState::Playing;
                             gameOver = false;
+                            
+
+                            if (sprintModeActive) {
+                                sprintTimer = 0.0f;
+                                sprintCompleted = false;
+                            }
                             
                             for (int i = 0; i < GRID_HEIGHT; ++i) {
                                 for (int j = 0; j < GRID_WIDTH; ++j) {
@@ -1887,6 +2045,12 @@ int main(int argc, char* argv[]) {
                                 gameState = GameState::Playing;
                                 gameOver = false;
                                 
+
+                                if (sprintModeActive) {
+                                    sprintTimer = 0.0f;
+                                    sprintCompleted = false;
+                                }
+                                
                                 for (int i = 0; i < GRID_HEIGHT; ++i) {
                                     for (int j = 0; j < GRID_WIDTH; ++j) {
                                         grid[i][j] = Cell();
@@ -1972,8 +2136,9 @@ int main(int argc, char* argv[]) {
                                 selectedClassicDifficulty = ClassicDifficulty::Easy;
                                 std::cout << "Entered CLASSIC difficulty selection" << std::endl;
                             } else if (selectedGameModeOption == GameModeOption::Sprint) {
-
-                                std::cout << "Sprint mode is currently disabled" << std::endl;
+                                gameState = GameState::SprintLinesSelect;
+                                selectedSprintLines = SprintLines::Lines24;
+                                std::cout << "Entered BLITZ lines selection" << std::endl;
                             } else if (selectedGameModeOption == GameModeOption::Challenge) {
 
                                 std::cout << "Challenge mode is currently disabled" << std::endl;
@@ -2010,6 +2175,8 @@ int main(int argc, char* argv[]) {
                             
                             gameState = GameState::Playing;
                             gameOver = false;
+                            sprintModeActive = false;
+                            sprintCompleted = false;
                             for (int i = 0; i < GRID_HEIGHT; ++i) {
                                 for (int j = 0; j < GRID_WIDTH; ++j) {
                                     grid[i][j] = Cell();
@@ -2038,7 +2205,9 @@ int main(int argc, char* argv[]) {
                             PieceType startType = jigtrizBag.getNextPiece();
                             PieceShape startShape = getPieceShape(startType);
                             int startX = (GRID_WIDTH - startShape.width) / 2;
-                            activePiece = Piece(startX, 0, startType);
+                            int firstFilledRow = findFirstFilledRow(startShape);
+                            int startY = -firstFilledRow;
+                            activePiece = Piece(startX, startY, startType);
                             std::cout << "Game started (Classic) - Difficulty: " << config->modeName << std::endl;
                             break;
                         }
@@ -2052,13 +2221,35 @@ int main(int argc, char* argv[]) {
                             std::cout << "Returned to GAME MODE selection" << std::endl;
                             break;
                         case sf::Keyboard::Key::Up:
-                        case sf::Keyboard::Key::W:
-                            selectedSprintLines = static_cast<SprintLines>((static_cast<int>(selectedSprintLines) + 2) % 3);
+                        case sf::Keyboard::Key::W: {
+                            if (debugMode) {
+
+                                int current = static_cast<int>(selectedSprintLines);
+                                selectedSprintLines = static_cast<SprintLines>((current + 3) % 4);
+                            } else {
+
+                                int current = static_cast<int>(selectedSprintLines);
+                                if (current == 1) current = 3;
+                                else current--;
+                                selectedSprintLines = static_cast<SprintLines>(current);
+                            }
                             break;
+                        }
                         case sf::Keyboard::Key::Down:
-                        case sf::Keyboard::Key::S:
-                            selectedSprintLines = static_cast<SprintLines>((static_cast<int>(selectedSprintLines) + 1) % 3);
+                        case sf::Keyboard::Key::S: {
+                            if (debugMode) {
+
+                                int current = static_cast<int>(selectedSprintLines);
+                                selectedSprintLines = static_cast<SprintLines>((current + 1) % 4);
+                            } else {
+
+                                int current = static_cast<int>(selectedSprintLines);
+                                if (current == 3) current = 1;
+                                else current++;
+                                selectedSprintLines = static_cast<SprintLines>(current);
+                            }
                             break;
+                        }
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
                         {
@@ -2073,6 +2264,26 @@ int main(int argc, char* argv[]) {
                             
                             gameState = GameState::Playing;
                             gameOver = false;
+                            
+
+                            sprintModeActive = true;
+                            sprintCompleted = false;
+                            sprintTimer = 0.0f;
+                            switch (selectedSprintLines) {
+                                case SprintLines::Lines1:
+                                    sprintTargetLines = 1;
+                                    break;
+                                case SprintLines::Lines24:
+                                    sprintTargetLines = 24;
+                                    break;
+                                case SprintLines::Lines48:
+                                    sprintTargetLines = 48;
+                                    break;
+                                case SprintLines::Lines96:
+                                    sprintTargetLines = 96;
+                                    break;
+                            }
+                            
                             for (int i = 0; i < GRID_HEIGHT; ++i) {
                                 for (int j = 0; j < GRID_WIDTH; ++j) {
                                     grid[i][j] = Cell();
@@ -2101,7 +2312,9 @@ int main(int argc, char* argv[]) {
                             PieceType startType = jigtrizBag.getNextPiece();
                             PieceShape startShape = getPieceShape(startType);
                             int startX = (GRID_WIDTH - startShape.width) / 2;
-                            activePiece = Piece(startX, 0, startType);
+                            int firstFilledRow = findFirstFilledRow(startShape);
+                            int startY = -firstFilledRow;
+                            activePiece = Piece(startX, startY, startType);
                             std::cout << "Game started (Sprint) - Lines: " << config->modeName << std::endl;
                             break;
                         }
@@ -2164,7 +2377,9 @@ int main(int argc, char* argv[]) {
                             PieceType startType = jigtrizBag.getNextPiece();
                             PieceShape startShape = getPieceShape(startType);
                             int startX = (GRID_WIDTH - startShape.width) / 2;
-                            activePiece = Piece(startX, 0, startType);
+                            int firstFilledRow = findFirstFilledRow(startShape);
+                            int startY = -firstFilledRow;
+                            activePiece = Piece(startX, startY, startType);
                             std::cout << "Game started (Challenge) - Mode: " << config->modeName << std::endl;
                             break;
                         }
@@ -2337,6 +2552,12 @@ int main(int argc, char* argv[]) {
                                 saveData.bestLevel = 0;
                                 
 
+                                saveData.bestTimeSprint1 = 0.0f;
+                                saveData.bestTimeSprint24 = 0.0f;
+                                saveData.bestTimeSprint48 = 0.0f;
+                                saveData.bestTimeSprint96 = 0.0f;
+                                
+
                                 for (int i = 0; i < 3; i++) {
                                     saveData.topScores[i].score = 0;
                                     saveData.topScores[i].lines = 0;
@@ -2385,7 +2606,9 @@ int main(int argc, char* argv[]) {
                             std::cout << "HOLD: Stored " << pieceTypeToString(heldPiece) << ", spawning " << pieceTypeToString(newType) << std::endl;
                             PieceShape newShape = getPieceShape(newType);
                             int spawnX = (GRID_WIDTH - newShape.width) / 2;
-                            activePiece = Piece(spawnX, 0, newType);
+                            int firstFilledRow = findFirstFilledRow(newShape);
+                            int spawnY = -firstFilledRow;
+                            activePiece = Piece(spawnX, spawnY, newType);
                         } else {
 
                             PieceType currentType = activePiece.getType();
@@ -2395,7 +2618,9 @@ int main(int argc, char* argv[]) {
                             std::cout << "SWAP: " << pieceTypeToString(currentType) << " <-> " << pieceTypeToString(swapType) << std::endl;
                             PieceShape swapShape = getPieceShape(swapType);
                             int spawnX = (GRID_WIDTH - swapShape.width) / 2;
-                            activePiece = Piece(spawnX, 0, swapType);
+                            int firstFilledRow = findFirstFilledRow(swapShape);
+                            int spawnY = -firstFilledRow;
+                            activePiece = Piece(spawnX, spawnY, swapType);
                         }
                         
                         canUseHold = false;
@@ -2493,7 +2718,9 @@ int main(int argc, char* argv[]) {
                             std::cout << "Spawning new piece after explosion: " << pieceTypeToString(newType) << std::endl;
                             PieceShape newShape = getPieceShape(newType);
                             int spawnX = (GRID_WIDTH - newShape.width) / 2;
-                            activePiece = Piece(spawnX, 0, newType);
+                            int firstFilledRow = findFirstFilledRow(newShape);
+                            int spawnY = -firstFilledRow;
+                            activePiece = Piece(spawnX, spawnY, newType);
                             canUseHold = true;
                         } else {
 
@@ -2526,7 +2753,9 @@ int main(int argc, char* argv[]) {
                         std::cout << "Spawning bomb piece!" << std::endl;
                         PieceShape newShape = getPieceShape(newType);
                         int spawnX = (GRID_WIDTH - newShape.width) / 2;
-                        activePiece = Piece(spawnX, 0, newType);
+                        int firstFilledRow = findFirstFilledRow(newShape);
+                        int spawnY = -firstFilledRow;
+                        activePiece = Piece(spawnX, spawnY, newType);
                         
                         if (!debugMode) {
                             bombAbilityAvailable = false;
@@ -2539,10 +2768,23 @@ int main(int argc, char* argv[]) {
                 }
                 
                 switch (keyPressed->code) {
+                    case sf::Keyboard::Key::Escape: {
+                        std::cout << "ESC pressed! Returning to main menu..." << std::endl;
+                        gameState = GameState::MainMenu;
+                        gameOver = false;
+                        selectedMenuOption = MenuOption::Start;
+                        break;
+                    }
                     case sf::Keyboard::Key::R: {
                         std::cout << "R key pressed! Restarting game..." << std::endl;
                         gameState = GameState::Playing;
                         gameOver = false;
+                        
+
+                        if (sprintModeActive) {
+                            sprintTimer = 0.0f;
+                            sprintCompleted = false;
+                        }
                         
                         for (int i = 0; i < GRID_HEIGHT; ++i) {
                             for (int j = 0; j < GRID_WIDTH; ++j) {
@@ -2578,7 +2820,9 @@ int main(int argc, char* argv[]) {
                         PieceType startType = jigtrizBag.getNextPiece();
                         PieceShape startShape = getPieceShape(startType);
                         int startX = (GRID_WIDTH - startShape.width) / 2;
-                        activePiece = Piece(startX, 0, startType);
+                        int firstFilledRow = findFirstFilledRow(startShape);
+                        int startY = -firstFilledRow;
+                        activePiece = Piece(startX, startY, startType);
                         
                         std::cout << "Game restarted!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
                         
@@ -2701,6 +2945,11 @@ int main(int argc, char* argv[]) {
         bool fastFall = sf::Keyboard::isKeyPressed(keyBindings.quickFall);
         if (!gameOver) {
             activePiece.update(deltaTime, fastFall, grid);
+            
+
+            if (sprintModeActive) {
+                sprintTimer += deltaTime;
+            }
         }
         
         if (shakeTimer < shakeDuration) {
@@ -2730,6 +2979,26 @@ int main(int argc, char* argv[]) {
             activePiece.ChangeToStatic(grid, activePiece.getAbility(), &bombSound, &explosionEffects, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer);
             int clearedLines = clearFullLines(grid, laserSound, wowSounds, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer);
             totalLinesCleared += clearedLines;
+            
+
+            if (sprintModeActive && totalLinesCleared >= sprintTargetLines) {
+                gameOver = true;
+                sprintCompleted = true;
+                std::cout << "BLITZ COMPLETED! Time: " << sprintTimer << " seconds | Lines: " << totalLinesCleared << "/" << sprintTargetLines << std::endl;
+                
+
+                float* bestTimePtr = nullptr;
+                if (sprintTargetLines == 1) bestTimePtr = &saveData.bestTimeSprint1;
+                else if (sprintTargetLines == 24) bestTimePtr = &saveData.bestTimeSprint24;
+                else if (sprintTargetLines == 48) bestTimePtr = &saveData.bestTimeSprint48;
+                else if (sprintTargetLines == 96) bestTimePtr = &saveData.bestTimeSprint96;
+                
+                if (bestTimePtr && (*bestTimePtr == 0.0f || sprintTimer < *bestTimePtr)) {
+                    *bestTimePtr = sprintTimer;
+                    std::cout << "NEW BEST TIME for " << sprintTargetLines << " lines: " << sprintTimer << " seconds!" << std::endl;
+                    saveGameData(saveData);
+                }
+            }
             
             if (clearedLines > 0) {
                 int fullScore = calculateScore(clearedLines);
@@ -2768,14 +3037,21 @@ int main(int argc, char* argv[]) {
             std::cout << "Respawn: " << pieceTypeToString(randomType) << " (Bag System)" << std::endl;
             PieceShape newShape = getPieceShape(randomType);
             int spawnX = (GRID_WIDTH - newShape.width) / 2;
-            activePiece = Piece(spawnX, 0, randomType);
             
-            if (activePiece.collidesAt(grid, spawnX, 0)) {
+
+            int firstFilledRow = findFirstFilledRow(newShape);
+            int spawnY = -firstFilledRow;
+            
+            activePiece = Piece(spawnX, spawnY, randomType);
+            
+            if (activePiece.collidesAt(grid, spawnX, spawnY)) {
                 gameOver = true;
-                std::cout << "GAME OVER! New piece overlaps with existing blocks at spawn position (" << spawnX << ", 0)" << std::endl;
+
+                std::cout << "GAME OVER! New piece overlaps with existing blocks at spawn position (" << spawnX << ", " << spawnY << ")" << std::endl;
                 std::cout << "Final Score: " << totalScore << " | Lines: " << totalLinesCleared << " | Level: " << currentLevel << std::endl;
                 
-                if (!debugMode) {
+
+                if (!debugMode && !sprintModeActive) {
                     insertNewScore(saveData, totalScore, totalLinesCleared, currentLevel, selectedClassicDifficulty);
                     
                     bool recordsUpdated = false;
@@ -2879,12 +3155,14 @@ int main(int argc, char* argv[]) {
 
             float startY = centerY - 80.0f;
             float spacing = 90.0f;
+            int numOptions = debugMode ? 4 : 3;
+            int startEnumValue = debugMode ? 0 : 1;
             
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < numOptions; i++) {
                 float selectorY = startY + i * spacing - 5;
-                if (mouseX >= centerX - 200 && mouseX <= centerX + 200 &&
+                if (mouseX >= centerX - 275 && mouseX <= centerX + 275 &&
                     mouseY >= selectorY && mouseY <= selectorY + 60) {
-                    selectedSprintLines = static_cast<SprintLines>(i);
+                    selectedSprintLines = static_cast<SprintLines>(i + startEnumValue);
                     break;
                 }
             }
@@ -3068,7 +3346,7 @@ int main(int argc, char* argv[]) {
         } else if (gameState == GameState::ClassicDifficultySelect) {
             drawClassicDifficultyMenu(window, titleFont, menuFont, fontLoaded, selectedClassicDifficulty, saveData);
         } else if (gameState == GameState::SprintLinesSelect) {
-            drawSprintLinesMenu(window, titleFont, menuFont, fontLoaded, selectedSprintLines);
+            drawSprintLinesMenu(window, titleFont, menuFont, fontLoaded, selectedSprintLines, saveData, debugMode);
         } else if (gameState == GameState::ChallengeSelect) {
             drawChallengeMenu(window, titleFont, menuFont, fontLoaded, selectedChallengeMode);
         } else if (gameState == GameState::Jigtrizopedia) {
@@ -3219,13 +3497,15 @@ int main(int argc, char* argv[]) {
         drawNextPieces(window, jigtrizBag.getNextQueue(), textures, useTextures);
         drawHeldPiece(window, heldPiece, hasHeldPiece, textures, useTextures, menuFont, fontLoaded);
         drawBombAbility(window, bombAbilityAvailable, linesSinceLastAbility, textures, useTextures, menuFont, fontLoaded);
-        drawLevelInfo(window, totalLinesCleared, currentLevel, totalScore, textures, useTextures, menuFont, fontLoaded);
-        drawCombo(window, currentCombo, lastMoveScore, menuFont, fontLoaded);
+        drawLevelInfo(window, totalLinesCleared, currentLevel, totalScore, textures, useTextures, menuFont, fontLoaded, sprintModeActive, sprintTimer, sprintTargetLines);
+        if (!sprintModeActive) {
+            drawCombo(window, currentCombo, lastMoveScore, menuFont, fontLoaded);
+        }
         drawGridBorder(window);
         drawJigtrizTitle(window, titleFont, fontLoaded);
         
         if (gameOver) {
-            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData, totalHardDropScore, totalLineScore, totalComboScore, selectedClassicDifficulty);
+            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData, totalHardDropScore, totalLineScore, totalComboScore, selectedClassicDifficulty, sprintModeActive, sprintTimer, sprintTargetLines, sprintCompleted);
         }
         
         if (gameState == GameState::Paused) {

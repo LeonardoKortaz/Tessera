@@ -100,7 +100,7 @@ inline DifficultyConfig getClassicHardConfig() {
         {25,  {7, 1, 1}},
         {49,  {7, 2, 1}},
         {81,  {7, 2, 2}},
-        {121, {7, 3, 2}}
+        {121, {7, 3, 3}}
     };
     
     return config;
@@ -108,12 +108,12 @@ inline DifficultyConfig getClassicHardConfig() {
 
 
 
-inline DifficultyConfig getSprint12Config() {
+inline DifficultyConfig getSprint1Config() {
     DifficultyConfig config;
-    config.modeName = "Sprint 12 Lines";
+    config.modeName = "Sprint 1 Line (DEBUG)";
     config.maxLevels = 0;
     config.hasLineGoal = true;
-    config.lineGoal = 12;
+    config.lineGoal = 1;
     config.bombEnabled = false;
     config.bombInterval = 0;
     config.holdEnabled = true;
@@ -126,6 +126,24 @@ inline DifficultyConfig getSprint12Config() {
 }
 
 inline DifficultyConfig getSprint24Config() {
+    DifficultyConfig config;
+    config.modeName = "Sprint 24 Lines";
+    config.maxLevels = 1;
+    config.hasLineGoal = true;
+    config.lineGoal = 24;
+    config.bombEnabled = false;
+    config.bombInterval = 0;
+    config.holdEnabled = true;
+    
+    config.levelThresholds = {
+        {0,  {7, 0, 0}},
+        {12, {7, 1, 0}}
+    };
+    
+    return config;
+}
+
+inline DifficultyConfig getSprint24ConfigOld() {
     DifficultyConfig config;
     config.modeName = "Sprint 24 Lines";
     config.maxLevels = 1;
@@ -157,6 +175,26 @@ inline DifficultyConfig getSprint48Config() {
         {0,  {7, 0, 0}},
         {16, {7, 1, 0}},
         {32, {7, 1, 1}}
+    };
+    
+    return config;
+}
+
+inline DifficultyConfig getSprint96Config() {
+    DifficultyConfig config;
+    config.modeName = "Sprint 96 Lines";
+    config.maxLevels = 3;
+    config.hasLineGoal = true;
+    config.lineGoal = 96;
+    config.bombEnabled = false;
+    config.bombInterval = 0;
+    config.holdEnabled = true;
+    
+    config.levelThresholds = {
+        {0,  {7, 0, 0}},
+        {24, {7, 1, 0}},
+        {48, {7, 1, 1}},
+        {72, {7, 2, 1}}
     };
     
     return config;
@@ -263,8 +301,8 @@ inline const DifficultyConfig* getDifficultyConfig(GameModeOption mode, ClassicD
         
         case GameModeOption::Sprint:
             switch (sprint) {
-                case SprintLines::Lines12: {
-                    static const DifficultyConfig config = getSprint12Config();
+                case SprintLines::Lines1: {
+                    static const DifficultyConfig config = getSprint1Config();
                     return &config;
                 }
                 case SprintLines::Lines24: {
@@ -275,8 +313,12 @@ inline const DifficultyConfig* getDifficultyConfig(GameModeOption mode, ClassicD
                     static const DifficultyConfig config = getSprint48Config();
                     return &config;
                 }
+                case SprintLines::Lines96: {
+                    static const DifficultyConfig config = getSprint96Config();
+                    return &config;
+                }
                 default: {
-                    static const DifficultyConfig config = getSprint12Config();
+                    static const DifficultyConfig config = getSprint24Config();
                     return &config;
                 }
             }

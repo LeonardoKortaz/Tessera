@@ -68,9 +68,10 @@ enum class ClassicDifficulty {
 };
 
 enum class SprintLines {
-    Lines12 = 0,
+    Lines1 = 0,
     Lines24 = 1,
-    Lines48 = 2
+    Lines48 = 2,
+    Lines96 = 3
 };
 
 enum class ChallengeMode {
@@ -124,6 +125,12 @@ struct SaveData {
     int highScoreClassicEasy = 0;
     int highScoreClassicMedium = 0;
     int highScoreClassicHard = 0;
+    
+
+    float bestTimeSprint1 = 0.0f;
+    float bestTimeSprint24 = 0.0f;
+    float bestTimeSprint48 = 0.0f;
+    float bestTimeSprint96 = 0.0f;
     
 
     int highScore = 0;

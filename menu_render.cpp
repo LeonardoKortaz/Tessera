@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <iostream>
 
-void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData, int dropScore, int lineScore, int comboScore, ClassicDifficulty difficulty) {
+void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData, int dropScore, int lineScore, int comboScore, ClassicDifficulty difficulty, bool isSprintMode, float sprintTime, int sprintTarget, bool sprintCompleted) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 180));
     overlay.setSize(sf::Vector2f(1920, 1080));
@@ -12,7 +12,126 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
     float centerX = 1920 / 2.0f;
     float centerY = 1080 / 2.0f;
     
-    sf::RectangleShape gameOverBg;
+    if (isSprintMode) {
+
+        sf::RectangleShape gameOverBg;
+        gameOverBg.setFillColor(sf::Color(40, 40, 50, 220));
+        
+        if (sprintCompleted) {
+
+            gameOverBg.setOutlineColor(sf::Color(100, 255, 100, 255));
+        } else {
+
+            gameOverBg.setOutlineColor(sf::Color(255, 100, 100, 255));
+        }
+        
+        gameOverBg.setOutlineThickness(4);
+        gameOverBg.setSize(sf::Vector2f(700, 450));
+        gameOverBg.setPosition(sf::Vector2f(centerX - 350, centerY - 225));
+        window.draw(gameOverBg);
+        
+        if (fontLoaded) {
+            sf::Text gameOverText(font, sprintCompleted ? "BLITZ COMPLETE!" : "GAME OVER");
+            gameOverText.setCharacterSize(40);
+            gameOverText.setFillColor(sprintCompleted ? sf::Color(100, 255, 100) : sf::Color(255, 100, 100));
+            gameOverText.setStyle(sf::Text::Bold);
+            sf::FloatRect textBounds = gameOverText.getLocalBounds();
+            gameOverText.setPosition(sf::Vector2f(centerX - textBounds.size.x/2, centerY - 180));
+            window.draw(gameOverText);
+            
+            sf::Text targetText(font, std::to_string(sprintTarget) + " Lines");
+            targetText.setCharacterSize(24);
+            targetText.setFillColor(sf::Color(150, 200, 255));
+            sf::FloatRect targetBounds = targetText.getLocalBounds();
+            targetText.setPosition(sf::Vector2f(centerX - targetBounds.size.x/2, centerY - 135));
+            window.draw(targetText);
+            
+
+            int minutes = static_cast<int>(sprintTime) / 60;
+            int seconds = static_cast<int>(sprintTime) % 60;
+            int milliseconds = static_cast<int>((sprintTime - static_cast<int>(sprintTime)) * 100);
+            std::string timeStr = std::to_string(minutes) + ":" + 
+                                 (seconds < 10 ? "0" : "") + std::to_string(seconds) + "." +
+                                 (milliseconds < 10 ? "0" : "") + std::to_string(milliseconds);
+            
+
+            float bestTime = 0.0f;
+            if (sprintTarget == 1) bestTime = saveData.bestTimeSprint1;
+            else if (sprintTarget == 24) bestTime = saveData.bestTimeSprint24;
+            else if (sprintTarget == 48) bestTime = saveData.bestTimeSprint48;
+            else if (sprintTarget == 96) bestTime = saveData.bestTimeSprint96;
+            
+            bool newBestTime = sprintCompleted && (bestTime == 0.0f || sprintTime < bestTime);
+            
+
+            if (sprintCompleted) {
+                if (newBestTime) {
+                    sf::Text newRecordText(font, "NEW BEST TIME!");
+                    newRecordText.setCharacterSize(18);
+                    newRecordText.setFillColor(sf::Color(255, 215, 0));
+                    newRecordText.setStyle(sf::Text::Bold);
+                    sf::FloatRect recordBounds = newRecordText.getLocalBounds();
+                    newRecordText.setPosition(sf::Vector2f(centerX - recordBounds.size.x/2, centerY - 105));
+                    window.draw(newRecordText);
+                } else if (bestTime > 0.0f) {
+                    int bMin = static_cast<int>(bestTime) / 60;
+                    int bSec = static_cast<int>(bestTime) % 60;
+                    int bMs = static_cast<int>((bestTime - static_cast<int>(bestTime)) * 100);
+                    std::string bestTimeStr = std::to_string(bMin) + ":" + 
+                                             (bSec < 10 ? "0" : "") + std::to_string(bSec) + "." +
+                                             (bMs < 10 ? "0" : "") + std::to_string(bMs);
+                    
+                    sf::Text prevBestText(font, "Best: " + bestTimeStr);
+                    prevBestText.setCharacterSize(18);
+                    prevBestText.setFillColor(sf::Color(180, 180, 180));
+                    sf::FloatRect prevBounds = prevBestText.getLocalBounds();
+                    prevBestText.setPosition(sf::Vector2f(centerX - prevBounds.size.x/2, centerY - 105));
+                    window.draw(prevBestText);
+                }
+            }
+            
+
+            sf::Text timeLabel(font, "TIME");
+            timeLabel.setCharacterSize(32);
+            timeLabel.setFillColor(newBestTime ? sf::Color(255, 215, 0) : sf::Color::Yellow);
+            timeLabel.setStyle(sf::Text::Bold);
+            sf::FloatRect timeLabelBounds = timeLabel.getLocalBounds();
+            timeLabel.setPosition(sf::Vector2f(centerX - timeLabelBounds.size.x/2, centerY - 65));
+            window.draw(timeLabel);
+            
+            sf::Text timeValue(font, timeStr);
+            timeValue.setCharacterSize(36);
+            timeValue.setFillColor(sf::Color::White);
+            sf::FloatRect timeValueBounds = timeValue.getLocalBounds();
+            timeValue.setPosition(sf::Vector2f(centerX - timeValueBounds.size.x/2, centerY - 25));
+            window.draw(timeValue);
+            
+
+            sf::Text linesLabel(font, "LINES");
+            linesLabel.setCharacterSize(28);
+            linesLabel.setFillColor(sf::Color::Green);
+            linesLabel.setStyle(sf::Text::Bold);
+            sf::FloatRect linesLabelBounds = linesLabel.getLocalBounds();
+            linesLabel.setPosition(sf::Vector2f(centerX - linesLabelBounds.size.x/2, centerY + 40));
+            window.draw(linesLabel);
+            
+            sf::Text linesValue(font, std::to_string(finalLines) + " / " + std::to_string(sprintTarget));
+            linesValue.setCharacterSize(28);
+            linesValue.setFillColor(sf::Color::White);
+            sf::FloatRect linesValueBounds = linesValue.getLocalBounds();
+            linesValue.setPosition(sf::Vector2f(centerX - linesValueBounds.size.x/2, centerY + 70));
+            window.draw(linesValue);
+            
+            sf::Text restartText(font, "Press R to restart | ESC to return to menu");
+            restartText.setCharacterSize(14);
+            restartText.setFillColor(sf::Color(150, 150, 255));
+            sf::FloatRect restartBounds = restartText.getLocalBounds();
+            restartText.setPosition(sf::Vector2f(centerX - restartBounds.size.x/2, centerY + 140));
+            window.draw(restartText);
+        }
+    } else {
+
+        sf::RectangleShape gameOverBg;
     gameOverBg.setFillColor(sf::Color(40, 40, 50, 220));
     gameOverBg.setOutlineColor(sf::Color(255, 100, 100, 255));
     gameOverBg.setOutlineThickness(4);
@@ -156,7 +275,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
         dropText.setPosition(sf::Vector2f(centerX - 310, centerY + 70));
         window.draw(dropText);
         
-        sf::Text restartText(font, "Press R to return to menu");
+        sf::Text restartText(font, "Press R to restart | ESC to return to menu");
         restartText.setCharacterSize(14);
         restartText.setFillColor(sf::Color(150, 150, 255));
         sf::FloatRect restartBounds = restartText.getLocalBounds();
@@ -210,25 +329,26 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
                 window.draw(emptyText);
             }
         }
-    } else {
-        sf::RectangleShape titleBar;
-        titleBar.setFillColor(sf::Color(255, 100, 100));
-        titleBar.setSize(sf::Vector2f(300, 40));
-        titleBar.setPosition(sf::Vector2f(centerX - 150, centerY - 170));
-        window.draw(titleBar);
-        
-        sf::RectangleShape restartHint;
-        restartHint.setFillColor(sf::Color(150, 150, 255));
-        restartHint.setSize(sf::Vector2f(200, 20));
-        restartHint.setPosition(sf::Vector2f(centerX - 100, centerY + 160));
-        window.draw(restartHint);
+        } else {
+            sf::RectangleShape titleBar;
+            titleBar.setFillColor(sf::Color(255, 100, 100));
+            titleBar.setSize(sf::Vector2f(300, 40));
+            titleBar.setPosition(sf::Vector2f(centerX - 150, centerY - 170));
+            window.draw(titleBar);
+            
+            sf::RectangleShape restartHint;
+            restartHint.setFillColor(sf::Color(150, 150, 255));
+            restartHint.setSize(sf::Vector2f(200, 20));
+            restartHint.setPosition(sf::Vector2f(centerX - 100, centerY + 160));
+            window.draw(restartHint);
+        }
     }
 }
 
 void drawJigtrizTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigtriz 0.2.4");
+    sf::Text titleText(font, "Jigtriz 0.2.5");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -469,7 +589,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 350));
         window.draw(titleText);
         
-        sf::Text versionText(menuFont, "v0.2.4");
+        sf::Text versionText(menuFont, "v0.2.5");
         versionText.setCharacterSize(24);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();
@@ -618,7 +738,7 @@ void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
         
         std::vector<std::pair<std::string, GameModeOption>> options = {
             {"CLASSIC", GameModeOption::Classic},
-            {"SPRINT", GameModeOption::Sprint},
+            {"BLITZ", GameModeOption::Sprint},
             {"CHALLENGE", GameModeOption::Challenge}
         };
         
@@ -630,8 +750,7 @@ void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
             optionText.setCharacterSize(48);
             
 
-            bool isDisabled = (options[i].second == GameModeOption::Sprint || 
-                             options[i].second == GameModeOption::Challenge);
+            bool isDisabled = (options[i].second == GameModeOption::Challenge);
             
             if (selectedOption == options[i].second) {
                 if (isDisabled) {
@@ -751,7 +870,7 @@ void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFo
     }
 }
 
-void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, SprintLines selectedOption) {
+void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, SprintLines selectedOption, const SaveData& saveData, bool debugMode) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 230));
     overlay.setSize(sf::Vector2f(1920, 1080));
@@ -762,7 +881,7 @@ void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, co
     float centerY = 1080 / 2.0f;
     
     if (fontLoaded) {
-        sf::Text titleText(titleFont, "SPRINT MODE");
+        sf::Text titleText(titleFont, "BLITZ MODE");
         titleText.setCharacterSize(80);
         titleText.setFillColor(sf::Color(255, 200, 100));
         titleText.setStyle(sf::Text::Bold);
@@ -772,37 +891,60 @@ void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, co
         titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 300));
         window.draw(titleText);
         
-        std::vector<std::pair<std::string, SprintLines>> options = {
-            {"12 LINES", SprintLines::Lines12},
-            {"24 LINES", SprintLines::Lines24},
-            {"48 LINES", SprintLines::Lines48}
-        };
+        std::vector<std::tuple<std::string, SprintLines, float>> options;
+        
+        options.push_back({"24 LINES", SprintLines::Lines24, saveData.bestTimeSprint24});
+        options.push_back({"48 LINES", SprintLines::Lines48, saveData.bestTimeSprint48});
+        options.push_back({"96 LINES", SprintLines::Lines96, saveData.bestTimeSprint96});
+        if (debugMode) {
+            options.push_back({"1 LINE (DEBUG)", SprintLines::Lines1, saveData.bestTimeSprint1});
+        }
         
         float startY = centerY - 80;
         float spacing = 90;
         
         for (size_t i = 0; i < options.size(); ++i) {
-            sf::Text optionText(menuFont, options[i].first);
+            sf::Text optionText(menuFont, std::get<0>(options[i]));
             optionText.setCharacterSize(48);
             
-            if (selectedOption == options[i].second) {
+            if (selectedOption == std::get<1>(options[i])) {
                 optionText.setFillColor(sf::Color::Yellow);
                 optionText.setStyle(sf::Text::Bold);
                 
                 sf::RectangleShape selector;
-                selector.setSize(sf::Vector2f(400, 60));
+                selector.setSize(sf::Vector2f(550, 60));
                 selector.setFillColor(sf::Color(255, 255, 0, 50));
                 selector.setOutlineColor(sf::Color::Yellow);
                 selector.setOutlineThickness(3);
-                selector.setPosition(sf::Vector2f(centerX - 200, startY + i * spacing - 5));
+                selector.setPosition(sf::Vector2f(centerX - 275, startY + i * spacing - 5));
                 window.draw(selector);
             } else {
                 optionText.setFillColor(sf::Color::White);
             }
             
             sf::FloatRect optionBounds = optionText.getLocalBounds();
-            optionText.setPosition(sf::Vector2f(centerX - optionBounds.size.x/2, startY + i * spacing));
+            optionText.setPosition(sf::Vector2f(centerX - 180, startY + i * spacing));
             window.draw(optionText);
+            
+
+            float bestTime = std::get<2>(options[i]);
+            std::string timeStr;
+            if (bestTime > 0.0f) {
+                int minutes = static_cast<int>(bestTime) / 60;
+                int seconds = static_cast<int>(bestTime) % 60;
+                int milliseconds = static_cast<int>((bestTime - static_cast<int>(bestTime)) * 100);
+                timeStr = std::to_string(minutes) + ":" + 
+                         (seconds < 10 ? "0" : "") + std::to_string(seconds) + "." +
+                         (milliseconds < 10 ? "0" : "") + std::to_string(milliseconds);
+            } else {
+                timeStr = "--:--";
+            }
+            
+            sf::Text timeText(menuFont, "Best: " + timeStr);
+            timeText.setCharacterSize(32);
+            timeText.setFillColor(sf::Color(180, 180, 180));
+            timeText.setPosition(sf::Vector2f(centerX + 80, startY + i * spacing + 8));
+            window.draw(timeText);
         }
         
         sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE/ENTER to confirm | ESC to go back");
