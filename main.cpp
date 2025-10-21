@@ -1789,8 +1789,9 @@ int main(int argc, char* argv[]) {
                             selectedSprintLines = SprintLines::Lines24;
                             std::cout << "Entered BLITZ lines selection (mouse)" << std::endl;
                         } else if (selectedGameModeOption == GameModeOption::Challenge) {
-
-                            std::cout << "Challenge mode is currently disabled" << std::endl;
+                            gameState = GameState::ChallengeSelect;
+                            selectedChallengeMode = ChallengeMode::TheForest;
+                            std::cout << "Entered CHALLENGE selection (mouse)" << std::endl;
                         }
                     } else if (gameState == GameState::ClassicDifficultySelect || 
                                gameState == GameState::SprintLinesSelect || 
@@ -2140,8 +2141,9 @@ int main(int argc, char* argv[]) {
                                 selectedSprintLines = SprintLines::Lines24;
                                 std::cout << "Entered BLITZ lines selection" << std::endl;
                             } else if (selectedGameModeOption == GameModeOption::Challenge) {
-
-                                std::cout << "Challenge mode is currently disabled" << std::endl;
+                                gameState = GameState::ChallengeSelect;
+                                selectedChallengeMode = ChallengeMode::TheForest;
+                                std::cout << "Entered CHALLENGE selection" << std::endl;
                             }
                             break;
                         default: 
@@ -2735,7 +2737,10 @@ int main(int argc, char* argv[]) {
                         }
                     }
                 } else if (keyPressed->code == keyBindings.menu) {
-                    if (!gameOver) {
+                    if (gameOver) {
+
+                    } else {
+
                         gameState = GameState::Paused;
                         selectedPauseOption = PauseOption::Resume;
                         std::cout << "Game paused" << std::endl;
@@ -2767,67 +2772,75 @@ int main(int argc, char* argv[]) {
                     }
                 }
                 
-                switch (keyPressed->code) {
-                    case sf::Keyboard::Key::Escape: {
-                        std::cout << "ESC pressed! Returning to main menu..." << std::endl;
-                        gameState = GameState::MainMenu;
-                        gameOver = false;
-                        selectedMenuOption = MenuOption::Start;
-                        break;
-                    }
-                    case sf::Keyboard::Key::R: {
-                        std::cout << "R key pressed! Restarting game..." << std::endl;
-                        gameState = GameState::Playing;
-                        gameOver = false;
-                        
 
-                        if (sprintModeActive) {
-                            sprintTimer = 0.0f;
-                            sprintCompleted = false;
+                if (gameOver) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape: {
+                            std::cout << "ESC pressed! Returning to main menu..." << std::endl;
+                            gameState = GameState::MainMenu;
+                            gameOver = false;
+                            selectedMenuOption = MenuOption::Start;
+                            break;
                         }
-                        
-                        for (int i = 0; i < GRID_HEIGHT; ++i) {
-                            for (int j = 0; j < GRID_WIDTH; ++j) {
-                                grid[i][j] = Cell();
+                        case sf::Keyboard::Key::R: {
+                            std::cout << "R key pressed! Restarting game..." << std::endl;
+                            gameState = GameState::Playing;
+                            gameOver = false;
+                            
+
+                            if (sprintModeActive) {
+                                sprintTimer = 0.0f;
+                                sprintCompleted = false;
                             }
+                            
+                            for (int i = 0; i < GRID_HEIGHT; ++i) {
+                                for (int j = 0; j < GRID_WIDTH; ++j) {
+                                    grid[i][j] = Cell();
+                                }
+                            }
+                            totalLinesCleared = 0;
+                            currentLevel = 0;
+                            totalScore = 0;
+                            currentCombo = 0;
+                            lastMoveScore = 0;
+                            totalHardDropScore = 0;
+                            totalLineScore = 0;
+                            totalComboScore = 0;
+                            
+                            jigtrizBag.reset();
+                            
+                            hasHeldPiece = false;
+                            canUseHold = true;
+
+                            leftHoldTime = 0.0f;
+                            rightHoldTime = 0.0f;
+                            dasTimer = 0.0f;
+                            leftPressed = false;
+                            rightPressed = false;
+                            
+                            linesSinceLastAbility = 0;
+                            bombAbilityAvailable = debugMode;
+                            explosionEffects.clear();
+                            glowEffects.clear();
+                            
+
+                            PieceType startType = jigtrizBag.getNextPiece();
+                            PieceShape startShape = getPieceShape(startType);
+                            int startX = (GRID_WIDTH - startShape.width) / 2;
+                            int firstFilledRow = findFirstFilledRow(startShape);
+                            int startY = -firstFilledRow;
+                            activePiece = Piece(startX, startY, startType);
+                            
+                            std::cout << "Game restarted!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
+                            
+                            break;
                         }
-                        totalLinesCleared = 0;
-                        currentLevel = 0;
-                        totalScore = 0;
-                        currentCombo = 0;
-                        lastMoveScore = 0;
-                        totalHardDropScore = 0;
-                        totalLineScore = 0;
-                        totalComboScore = 0;
-                        
-                        jigtrizBag.reset();
-                        
-                        hasHeldPiece = false;
-                        canUseHold = true;
-
-                        leftHoldTime = 0.0f;
-                        rightHoldTime = 0.0f;
-                        dasTimer = 0.0f;
-                        leftPressed = false;
-                        rightPressed = false;
-                        
-                        linesSinceLastAbility = 0;
-                        bombAbilityAvailable = debugMode;
-                        explosionEffects.clear();
-                        glowEffects.clear();
-                        
-
-                        PieceType startType = jigtrizBag.getNextPiece();
-                        PieceShape startShape = getPieceShape(startType);
-                        int startX = (GRID_WIDTH - startShape.width) / 2;
-                        int firstFilledRow = findFirstFilledRow(startShape);
-                        int startY = -firstFilledRow;
-                        activePiece = Piece(startX, startY, startType);
-                        
-                        std::cout << "Game restarted!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
-                        
-                        break;
+                        default: break;
                     }
+                }
+                
+
+                switch (keyPressed->code) {
                     case sf::Keyboard::Key::Backspace: {
                         isFullscreen = !isFullscreen;
                         if (isFullscreen) {

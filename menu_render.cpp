@@ -348,7 +348,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawJigtrizTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigtriz 0.2.5");
+    sf::Text titleText(font, "Jigtriz 0.2.6");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -589,7 +589,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 350));
         window.draw(titleText);
         
-        sf::Text versionText(menuFont, "v0.2.5");
+        sf::Text versionText(menuFont, "v0.2.6");
         versionText.setCharacterSize(24);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();
@@ -750,7 +750,7 @@ void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
             optionText.setCharacterSize(48);
             
 
-            bool isDisabled = (options[i].second == GameModeOption::Challenge);
+            bool isDisabled = false;
             
             if (selectedOption == options[i].second) {
                 if (isDisabled) {

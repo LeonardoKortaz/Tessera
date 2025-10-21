@@ -206,25 +206,20 @@ inline DifficultyConfig getChallengeTheForestConfig() {
     DifficultyConfig config;
     config.modeName = "The Forest";
     config.maxLevels = 10;
-    config.hasLineGoal = false;
-    config.lineGoal = 0;
+    config.hasLineGoal = true;
+    config.lineGoal = 100;
     config.bombEnabled = true;
-    config.bombInterval = 8;
+    config.bombInterval = 10;
     config.holdEnabled = true;
     
 
     config.levelThresholds = {
-        {0,   {7, 0, 0}},
-        {10,  {7, 1, 0}},
-        {25,  {7, 1, 1}},
-        {45,  {7, 2, 1}},
-        {70,  {7, 2, 2}},
-        {100, {7, 3, 2}},
-        {135, {7, 3, 3}},
-        {175, {7, 4, 3}},
-        {220, {7, 4, 4}},
-        {270, {7, 5, 4}},
-        {325, {7, 5, 5}}
+        {0,  {5, 2, 2}},
+        {10, {5, 2, 2}},
+        {25, {5, 3, 2}},
+        {50, {5, 3, 3}},
+        {75, {5, 4, 3}},
+        {100, {5, 4, 4}}
     };
     
     return config;
@@ -234,20 +229,20 @@ inline DifficultyConfig getChallengeRandomnessConfig() {
     DifficultyConfig config;
     config.modeName = "Randomness";
     config.maxLevels = 5;
-    config.hasLineGoal = false;
-    config.lineGoal = 0;
+    config.hasLineGoal = true;
+    config.lineGoal = 100;
     config.bombEnabled = true;
-    config.bombInterval = 12;
+    config.bombInterval = 10;
     config.holdEnabled = true;
     
 
     config.levelThresholds = {
-        {0,  {7, 1, 1}},
-        {20, {7, 2, 2}},
-        {50, {7, 3, 3}},
-        {90, {7, 4, 4}},
-        {140, {7, 5, 5}},
-        {200, {7, 6, 6}}
+        {0,  {5, 2, 2}},
+        {10, {5, 2, 2}},
+        {25, {5, 3, 2}},
+        {50, {5, 3, 3}},
+        {75, {5, 4, 3}},
+        {100, {5, 4, 4}}
     };
     
     return config;
@@ -257,19 +252,20 @@ inline DifficultyConfig getChallengeNonStraightConfig() {
     DifficultyConfig config;
     config.modeName = "Non Straight";
     config.maxLevels = 4;
-    config.hasLineGoal = false;
-    config.lineGoal = 0;
-    config.bombEnabled = false;
-    config.bombInterval = 0;
-    config.holdEnabled = false;
+    config.hasLineGoal = true;
+    config.lineGoal = 100;
+    config.bombEnabled = true;
+    config.bombInterval = 10;
+    config.holdEnabled = true;
     
 
     config.levelThresholds = {
-        {0,  {7, 0, 0}},
-        {15, {7, 1, 0}},
-        {40, {7, 2, 1}},
-        {75, {7, 3, 2}},
-        {120, {7, 4, 3}}
+        {0,  {5, 2, 2}},
+        {10, {5, 2, 2}},
+        {25, {5, 3, 2}},
+        {50, {5, 3, 3}},
+        {75, {5, 4, 3}},
+        {100, {5, 4, 4}}
     };
     
     return config;
