@@ -33,9 +33,16 @@ struct DifficultyConfig {
     bool holdEnabled;
     
 
+    bool useCustomPieceFilter;
+    std::vector<PieceType> allowedBasicPieces;
+    std::vector<PieceType> allowedMediumPieces;
+    std::vector<PieceType> allowedHardPieces;
+    
+
     DifficultyConfig() 
         : modeName("Unknown"), maxLevels(0), hasLineGoal(false), 
-          lineGoal(0), bombEnabled(false), bombInterval(10), holdEnabled(true) {}
+          lineGoal(0), bombEnabled(false), bombInterval(10), holdEnabled(true),
+          useCustomPieceFilter(false) {}
 };
 
 
@@ -201,25 +208,70 @@ inline DifficultyConfig getSprint96Config() {
 }
 
 
+inline DifficultyConfig getChallengeDebugConfig() {
+    DifficultyConfig config;
+    config.modeName = "DEBUG";
+    config.maxLevels = 1;
+    config.hasLineGoal = true;
+    config.lineGoal = 1;
+    config.bombEnabled = true;
+    config.bombInterval = 1;
+    config.holdEnabled = true;
+    
+
+    config.useCustomPieceFilter = true;
+    config.allowedBasicPieces = {
+        PieceType::I_Basic, PieceType::T_Basic, PieceType::L_Basic, 
+        PieceType::J_Basic, PieceType::O_Basic, PieceType::S_Basic, PieceType::Z_Basic
+    };
+    config.allowedMediumPieces = {};
+    config.allowedHardPieces = {};
+
+    config.levelThresholds = {
+        {0, {7, 0, 0}}
+    };
+    
+    return config;
+}
 
 inline DifficultyConfig getChallengeTheForestConfig() {
     DifficultyConfig config;
     config.modeName = "The Forest";
     config.maxLevels = 10;
     config.hasLineGoal = true;
-    config.lineGoal = 100;
+    config.lineGoal = 96;
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
     
 
+    config.useCustomPieceFilter = true;
+    config.allowedBasicPieces = {
+        PieceType::L_Basic, 
+        PieceType::J_Basic, 
+        PieceType::T_Basic, 
+        PieceType::I_Basic
+    };
+    config.allowedMediumPieces = {
+        PieceType::L_Medium, 
+        PieceType::J_Medium, 
+        PieceType::T_Medium, 
+        PieceType::I_Medium
+    };
+    config.allowedHardPieces = {
+        PieceType::L_Hard, 
+        PieceType::J_Hard, 
+        PieceType::T_Hard, 
+        PieceType::I_Hard
+    };
+
     config.levelThresholds = {
-        {0,  {5, 2, 2}},
-        {10, {5, 2, 2}},
-        {25, {5, 3, 2}},
-        {50, {5, 3, 3}},
-        {75, {5, 4, 3}},
-        {100, {5, 4, 4}}
+        {0,  {4, 0, 0}},
+        {10, {4, 0, 0}},
+        {25, {4, 1, 0}},
+        {50, {4, 1, 1}},
+        {75, {4, 2, 1}},
+        {100, {4, 2, 2}}
     };
     
     return config;
@@ -230,11 +282,26 @@ inline DifficultyConfig getChallengeRandomnessConfig() {
     config.modeName = "Randomness";
     config.maxLevels = 5;
     config.hasLineGoal = true;
-    config.lineGoal = 100;
+    config.lineGoal = 96;
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
     
+
+    config.useCustomPieceFilter = true;
+    config.allowedBasicPieces = {
+        PieceType::I_Basic, PieceType::T_Basic, PieceType::L_Basic, 
+        PieceType::J_Basic, PieceType::O_Basic, PieceType::S_Basic, PieceType::Z_Basic
+    };
+    config.allowedMediumPieces = {
+        PieceType::I_Medium, PieceType::T_Medium, PieceType::L_Medium, 
+        PieceType::J_Medium, PieceType::O_Medium, PieceType::S_Medium, PieceType::Z_Medium
+    };
+    config.allowedHardPieces = {
+        PieceType::I_Hard, PieceType::T_Hard, PieceType::L_Hard, 
+        PieceType::J_Hard, PieceType::O_Hard, PieceType::S_Hard, PieceType::Z_Hard,
+        PieceType::A_Bomb
+    };
 
     config.levelThresholds = {
         {0,  {5, 2, 2}},
@@ -253,19 +320,39 @@ inline DifficultyConfig getChallengeNonStraightConfig() {
     config.modeName = "Non Straight";
     config.maxLevels = 4;
     config.hasLineGoal = true;
-    config.lineGoal = 100;
+    config.lineGoal = 24;
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
     
 
+    config.useCustomPieceFilter = true;
+    config.allowedBasicPieces = {
+        PieceType::T_Basic, 
+        PieceType::O_Basic, 
+        PieceType::S_Basic, 
+        PieceType::Z_Basic
+    };
+    config.allowedMediumPieces = {
+        PieceType::T_Medium, 
+        PieceType::O_Medium, 
+        PieceType::S_Medium, 
+        PieceType::Z_Medium
+    };
+    config.allowedHardPieces = {
+        PieceType::T_Hard, 
+        PieceType::O_Hard, 
+        PieceType::S_Hard, 
+        PieceType::Z_Hard
+    };
+
     config.levelThresholds = {
-        {0,  {5, 2, 2}},
-        {10, {5, 2, 2}},
-        {25, {5, 3, 2}},
-        {50, {5, 3, 3}},
-        {75, {5, 4, 3}},
-        {100, {5, 4, 4}}
+        {0,  {4, 0, 0}},
+        {10, {4, 0, 0}},
+        {25, {4, 1, 0}},
+        {50, {4, 1, 1}},
+        {75, {4, 2, 1}},
+        {100, {4, 2, 2}}
     };
     
     return config;
@@ -321,6 +408,10 @@ inline const DifficultyConfig* getDifficultyConfig(GameModeOption mode, ClassicD
         
         case GameModeOption::Challenge:
             switch (challenge) {
+                case ChallengeMode::Debug: {
+                    static const DifficultyConfig config = getChallengeDebugConfig();
+                    return &config;
+                }
                 case ChallengeMode::TheForest: {
                     static const DifficultyConfig config = getChallengeTheForestConfig();
                     return &config;
@@ -334,7 +425,7 @@ inline const DifficultyConfig* getDifficultyConfig(GameModeOption mode, ClassicD
                     return &config;
                 }
                 default: {
-                    static const DifficultyConfig config = getChallengeTheForestConfig();
+                    static const DifficultyConfig config = getChallengeDebugConfig();
                     return &config;
                 }
             }

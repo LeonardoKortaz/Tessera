@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <iostream>
 
-void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData, int dropScore, int lineScore, int comboScore, ClassicDifficulty difficulty, bool isSprintMode, float sprintTime, int sprintTarget, bool sprintCompleted) {
+void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData, int dropScore, int lineScore, int comboScore, ClassicDifficulty difficulty, bool isSprintMode, float sprintTime, int sprintTarget, bool sprintCompleted, bool isChallengeMode) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 180));
     overlay.setSize(sf::Vector2f(1920, 1080));
@@ -31,7 +31,8 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
         window.draw(gameOverBg);
         
         if (fontLoaded) {
-            sf::Text gameOverText(font, sprintCompleted ? "BLITZ COMPLETE!" : "GAME OVER");
+            std::string completeText = isChallengeMode ? "CHALLENGE COMPLETE!" : "BLITZ COMPLETE!";
+            sf::Text gameOverText(font, sprintCompleted ? completeText : "GAME OVER");
             gameOverText.setCharacterSize(40);
             gameOverText.setFillColor(sprintCompleted ? sf::Color(100, 255, 100) : sf::Color(255, 100, 100));
             gameOverText.setStyle(sf::Text::Bold);
@@ -348,7 +349,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawJigtrizTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigtriz 0.2.6");
+    sf::Text titleText(font, "Jigtriz 0.2.7");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -589,7 +590,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 350));
         window.draw(titleText);
         
-        sf::Text versionText(menuFont, "v0.2.6");
+        sf::Text versionText(menuFont, "v0.2.7");
         versionText.setCharacterSize(24);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();
@@ -956,7 +957,7 @@ void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, co
     }
 }
 
-void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ChallengeMode selectedOption) {
+void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ChallengeMode selectedOption, bool debugMode, const SaveData& saveData) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 230));
     overlay.setSize(sf::Vector2f(1920, 1080));
@@ -977,11 +978,16 @@ void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, cons
         titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 300));
         window.draw(titleText);
         
-        std::vector<std::pair<std::string, ChallengeMode>> options = {
-            {"THE FOREST", ChallengeMode::TheForest},
-            {"RANDOMNESS", ChallengeMode::Randomness},
-            {"NON STRAIGHT", ChallengeMode::NonStraight}
-        };
+        std::vector<std::pair<std::string, ChallengeMode>> options;
+        
+
+        if (debugMode) {
+            options.push_back({"DEBUG (1 LINE)", ChallengeMode::Debug});
+        }
+        
+        options.push_back({"THE FOREST (96 LINES)", ChallengeMode::TheForest});
+        options.push_back({"RANDOMNESS (96 LINES)", ChallengeMode::Randomness});
+        options.push_back({"NON STRAIGHT (24 LINES)", ChallengeMode::NonStraight});
         
         float startY = centerY - 80;
         float spacing = 90;
@@ -989,6 +995,23 @@ void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, cons
         for (size_t i = 0; i < options.size(); ++i) {
             sf::Text optionText(menuFont, options[i].first);
             optionText.setCharacterSize(48);
+            
+
+            bool isCompleted = false;
+            switch (options[i].second) {
+                case ChallengeMode::Debug:
+                    isCompleted = saveData.bestTimeChallengeDebug > 0.0f;
+                    break;
+                case ChallengeMode::TheForest:
+                    isCompleted = saveData.bestTimeChallengeTheForest > 0.0f;
+                    break;
+                case ChallengeMode::Randomness:
+                    isCompleted = saveData.bestTimeChallengeRandomness > 0.0f;
+                    break;
+                case ChallengeMode::NonStraight:
+                    isCompleted = saveData.bestTimeChallengeNonStraight > 0.0f;
+                    break;
+            }
             
             if (selectedOption == options[i].second) {
                 optionText.setFillColor(sf::Color::Yellow);
@@ -1001,6 +1024,9 @@ void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, cons
                 selector.setOutlineThickness(3);
                 selector.setPosition(sf::Vector2f(centerX - 250, startY + i * spacing - 5));
                 window.draw(selector);
+            } else if (isCompleted) {
+
+                optionText.setFillColor(sf::Color(100, 255, 100));
             } else {
                 optionText.setFillColor(sf::Color::White);
             }
@@ -1358,8 +1384,21 @@ void drawJigtrizopediaMenu(sf::RenderWindow& window, const sf::Font& titleFont, 
             sf::Text optionText(menuFont, options[i].first);
             optionText.setCharacterSize(40);
             
-
-            optionText.setFillColor(sf::Color(100, 100, 100));
+            if (selectedOption == options[i].second) {
+                optionText.setFillColor(sf::Color::Yellow);
+                optionText.setStyle(sf::Text::Bold);
+                
+                sf::RectangleShape selector;
+                selector.setSize(sf::Vector2f(500, 55));
+                selector.setFillColor(sf::Color(255, 255, 0, 50));
+                selector.setOutlineColor(sf::Color::Yellow);
+                selector.setOutlineThickness(3);
+                sf::FloatRect optionBounds = optionText.getLocalBounds();
+                selector.setPosition(sf::Vector2f(centerX - 250, startY + i * spacing - 5));
+                window.draw(selector);
+            } else {
+                optionText.setFillColor(sf::Color::White);
+            }
             
             sf::FloatRect optionBounds = optionText.getLocalBounds();
             optionText.setPosition(sf::Vector2f(centerX - optionBounds.size.x/2, startY + i * spacing));
@@ -1375,7 +1414,7 @@ void drawJigtrizopediaMenu(sf::RenderWindow& window, const sf::Font& titleFont, 
     }
 }
 
-void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, int hoveredAchievement) {
+void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, const SaveData& saveData, int hoveredAchievement) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 230));
     overlay.setSize(sf::Vector2f(1920, 1080));
@@ -1383,7 +1422,6 @@ void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont,
     window.draw(overlay);
     
     float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
     
     if (fontLoaded) {
         sf::Text titleText(titleFont, "ACHIEVEMENTS");
@@ -1396,18 +1434,50 @@ void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont,
         titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, 80));
         window.draw(titleText);
         
-        const int COLS = 5;
-        const int ROWS = 4;
-        const float CELL_SIZE = 120.0f;
-        const float SPACING = 20.0f;
-        const float GRID_WIDTH = COLS * CELL_SIZE + (COLS - 1) * SPACING;
-        const float GRID_HEIGHT = ROWS * CELL_SIZE + (ROWS - 1) * SPACING;
-        const float START_X = centerX - GRID_WIDTH / 2.0f;
-        const float START_Y = 250;
+
+        std::vector<std::pair<std::string, std::string>> achievements = {
+            {"Combo Master", "Reach a combo of 10"},
+            {"Line Clearer", "Clear 5 lines in one move"},
+            {"Bomb-Free Score", "Score 200,000 in Classic without using bomb"},
+            {"Speed Runner", "Complete Blitz 48 under 2:00"},
+            {"High Difficulty Score", "Score 400,000 in Classic Medium or Hard"},
+            {"Bomb Holder", "Hold a bomb piece"},
+            {"Hexaclear", "Clear 6 lines in one move"},
+            {"ACH8", "Coming soon..."},
+            {"ACH9", "Coming soon..."},
+            {"ACH10", "Coming soon..."},
+            {"ACH11", "Coming soon..."},
+            {"ACH12", "Coming soon..."},
+            {"ACH13", "Coming soon..."},
+            {"ACH14", "Coming soon..."},
+            {"ACH15", "Coming soon..."},
+            {"ACH16", "Coming soon..."},
+            {"ACH17", "Coming soon..."},
+            {"ACH18", "Coming soon..."},
+            {"ACH19", "Coming soon..."},
+            {"ACH20", "Coming soon..."},
+            {"ACH21", "Coming soon..."},
+            {"ACH22", "Coming soon..."},
+            {"ACH23", "Coming soon..."},
+            {"ACH24", "Coming soon..."},
+            {"ACH25", "Coming soon..."}
+        };
         
+
+        const int COLS = 5;
+        const int ROWS = 5;
+        const float CELL_SIZE = 128.0f;
+        const float SPACING = 15.0f;
+        const float GRID_WIDTH = COLS * CELL_SIZE + (COLS - 1) * SPACING;
+        const float START_X = 150.0f;
+        const float START_Y = 220;
+        
+
         for (int row = 0; row < ROWS; ++row) {
             for (int col = 0; col < COLS; ++col) {
                 int achievementId = row * COLS + col;
+                if (achievementId >= 25) break;
+                
                 float x = START_X + col * (CELL_SIZE + SPACING);
                 float y = START_Y + row * (CELL_SIZE + SPACING);
                 
@@ -1415,59 +1485,115 @@ void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont,
                 achievementBox.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
                 achievementBox.setPosition(sf::Vector2f(x, y));
                 
+                bool unlocked = (achievementId < 7) ? saveData.achievements[achievementId] : false;
+                
+
                 if (achievementId == hoveredAchievement) {
-                    achievementBox.setFillColor(sf::Color(80, 80, 120, 220));
-                    achievementBox.setOutlineColor(sf::Color(255, 215, 0));
+                    if (unlocked) {
+                        achievementBox.setFillColor(sf::Color(80, 120, 80, 220));
+                        achievementBox.setOutlineColor(sf::Color(100, 255, 100));
+                    } else {
+                        achievementBox.setFillColor(sf::Color(80, 80, 120, 220));
+                        achievementBox.setOutlineColor(sf::Color(255, 215, 0));
+                    }
                     achievementBox.setOutlineThickness(4);
                 } else {
-                    achievementBox.setFillColor(sf::Color(40, 40, 60, 200));
-                    achievementBox.setOutlineColor(sf::Color(100, 100, 140));
+                    if (unlocked) {
+                        achievementBox.setFillColor(sf::Color(40, 60, 40, 200));
+                        achievementBox.setOutlineColor(sf::Color(80, 200, 80));
+                    } else {
+                        achievementBox.setFillColor(sf::Color(40, 40, 60, 200));
+                        achievementBox.setOutlineColor(sf::Color(100, 100, 140));
+                    }
                     achievementBox.setOutlineThickness(2);
                 }
                 
                 window.draw(achievementBox);
                 
-                sf::Text lockText(menuFont, "?");
-                lockText.setCharacterSize(60);
-                lockText.setFillColor(sf::Color(120, 120, 120));
-                lockText.setStyle(sf::Text::Bold);
-                sf::FloatRect lockBounds = lockText.getLocalBounds();
-                lockText.setPosition(sf::Vector2f(x + CELL_SIZE/2 - lockBounds.size.x/2, y + CELL_SIZE/2 - lockBounds.size.y/2 - 10));
-                window.draw(lockText);
+
+                if (unlocked) {
+
+                    sf::Text checkText(menuFont, "✓");
+                    checkText.setCharacterSize(60);
+                    checkText.setFillColor(sf::Color(100, 255, 100));
+                    checkText.setStyle(sf::Text::Bold);
+                    sf::FloatRect checkBounds = checkText.getLocalBounds();
+                    checkText.setPosition(sf::Vector2f(x + CELL_SIZE/2 - checkBounds.size.x/2, y + CELL_SIZE/2 - checkBounds.size.y/2 - 15));
+                    window.draw(checkText);
+                } else {
+
+                    sf::Text lockText(menuFont, "🔒");
+                    lockText.setCharacterSize(50);
+                    lockText.setFillColor(sf::Color(120, 120, 120));
+                    sf::FloatRect lockBounds = lockText.getLocalBounds();
+                    lockText.setPosition(sf::Vector2f(x + CELL_SIZE/2 - lockBounds.size.x/2, y + CELL_SIZE/2 - lockBounds.size.y/2 - 15));
+                    window.draw(lockText);
+                }
             }
         }
         
-        if (hoveredAchievement >= 0 && hoveredAchievement < 20) {
+
+        if (hoveredAchievement >= 0 && hoveredAchievement < 25) {
+            const float PANEL_X = START_X + GRID_WIDTH + 80;
+            const float PANEL_WIDTH = 600.0f;
+            const float PANEL_Y = START_Y;
+            const float PANEL_HEIGHT = 700.0f;
+            
+
             sf::RectangleShape infoBg;
-            infoBg.setSize(sf::Vector2f(700, 150));
+            infoBg.setSize(sf::Vector2f(PANEL_WIDTH, PANEL_HEIGHT));
             infoBg.setFillColor(sf::Color(20, 20, 40, 240));
             infoBg.setOutlineColor(sf::Color(255, 215, 0));
             infoBg.setOutlineThickness(3);
-            infoBg.setPosition(sf::Vector2f(centerX - 350, 850));
+            infoBg.setPosition(sf::Vector2f(PANEL_X, PANEL_Y));
             window.draw(infoBg);
             
-            std::string achievementName = "Achievement_";
-            if (hoveredAchievement < 9) achievementName += "0";
-            achievementName += std::to_string(hoveredAchievement + 1);
+            bool unlocked = (hoveredAchievement < 7) ? saveData.achievements[hoveredAchievement] : false;
             
-            std::string achievementDesc = "Description_";
-            if (hoveredAchievement < 9) achievementDesc += "0";
-            achievementDesc += std::to_string(hoveredAchievement + 1);
+
+            float iconY = PANEL_Y + 80;
+            if (unlocked) {
+                sf::Text bigCheck(menuFont, "✓");
+                bigCheck.setCharacterSize(100);
+                bigCheck.setFillColor(sf::Color(100, 255, 100));
+                bigCheck.setStyle(sf::Text::Bold);
+                sf::FloatRect bigCheckBounds = bigCheck.getLocalBounds();
+                bigCheck.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - bigCheckBounds.size.x/2, iconY - bigCheckBounds.size.y/2 - 20));
+                window.draw(bigCheck);
+            } else {
+                sf::Text bigLock(menuFont, "🔒");
+                bigLock.setCharacterSize(80);
+                bigLock.setFillColor(sf::Color(120, 120, 120));
+                sf::FloatRect bigLockBounds = bigLock.getLocalBounds();
+                bigLock.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - bigLockBounds.size.x/2, iconY - bigLockBounds.size.y/2 - 20));
+                window.draw(bigLock);
+            }
             
-            sf::Text nameText(menuFont, achievementName);
-            nameText.setCharacterSize(32);
-            nameText.setFillColor(sf::Color(255, 215, 0));
+
+            sf::Text nameText(menuFont, achievements[hoveredAchievement].first);
+            nameText.setCharacterSize(36);
+            nameText.setFillColor(unlocked ? sf::Color(255, 215, 0) : sf::Color(180, 180, 180));
             nameText.setStyle(sf::Text::Bold);
             sf::FloatRect nameBounds = nameText.getLocalBounds();
-            nameText.setPosition(sf::Vector2f(centerX - nameBounds.size.x/2, 870));
+            nameText.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - nameBounds.size.x/2, PANEL_Y + 220));
             window.draw(nameText);
             
-            sf::Text descText(menuFont, achievementDesc);
-            descText.setCharacterSize(24);
-            descText.setFillColor(sf::Color(200, 200, 200));
+
+            sf::Text descText(menuFont, achievements[hoveredAchievement].second);
+            descText.setCharacterSize(26);
+            descText.setFillColor(unlocked ? sf::Color(200, 200, 200) : sf::Color(150, 150, 150));
             sf::FloatRect descBounds = descText.getLocalBounds();
-            descText.setPosition(sf::Vector2f(centerX - descBounds.size.x/2, 920));
+            descText.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - descBounds.size.x/2, PANEL_Y + 280));
             window.draw(descText);
+            
+
+            sf::Text statusText(menuFont, unlocked ? "UNLOCKED" : "LOCKED");
+            statusText.setCharacterSize(28);
+            statusText.setFillColor(unlocked ? sf::Color(100, 255, 100) : sf::Color(255, 100, 100));
+            statusText.setStyle(sf::Text::Bold);
+            sf::FloatRect statusBounds = statusText.getLocalBounds();
+            statusText.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - statusBounds.size.x/2, PANEL_Y + 360));
+            window.draw(statusText);
         }
         
         sf::Text controlsText(menuFont, "Hover over achievements to see details | ESC to go back");
@@ -1475,6 +1601,132 @@ void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont,
         controlsText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect controlsBounds = controlsText.getLocalBounds();
         controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, 1020));
+        window.draw(controlsText);
+    }
+}
+
+void drawStatisticsScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, const SaveData& saveData) {
+    sf::RectangleShape overlay;
+    overlay.setFillColor(sf::Color(0, 0, 0, 230));
+    overlay.setSize(sf::Vector2f(1920, 1080));
+    overlay.setPosition(sf::Vector2f(0, 0));
+    window.draw(overlay);
+    
+    float centerX = 1920 / 2.0f;
+    float centerY = 1080 / 2.0f;
+    
+    if (fontLoaded) {
+
+        sf::Text titleText(titleFont, "STATISTICS");
+        titleText.setCharacterSize(70);
+        titleText.setFillColor(sf::Color(100, 200, 255));
+        titleText.setStyle(sf::Text::Bold);
+        titleText.setOutlineColor(sf::Color::Black);
+        titleText.setOutlineThickness(4);
+        sf::FloatRect titleBounds = titleText.getLocalBounds();
+        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, 100));
+        window.draw(titleText);
+        
+
+        sf::RectangleShape panel;
+        panel.setSize(sf::Vector2f(1200, 700));
+        panel.setFillColor(sf::Color(30, 30, 40, 200));
+        panel.setOutlineColor(sf::Color(100, 200, 255));
+        panel.setOutlineThickness(3);
+        panel.setPosition(sf::Vector2f(centerX - 600, 230));
+        window.draw(panel);
+        
+
+        float startY = 270;
+        float lineSpacing = 70;
+        
+
+        auto formatTime = [](float seconds) -> std::string {
+            int hours = static_cast<int>(seconds) / 3600;
+            int minutes = (static_cast<int>(seconds) % 3600) / 60;
+            int secs = static_cast<int>(seconds) % 60;
+            
+            if (hours > 0) {
+                return std::to_string(hours) + "h " + std::to_string(minutes) + "m " + std::to_string(secs) + "s";
+            } else if (minutes > 0) {
+                return std::to_string(minutes) + "m " + std::to_string(secs) + "s";
+            } else {
+                return std::to_string(secs) + "s";
+            }
+        };
+        
+
+        auto formatNumber = [](int number) -> std::string {
+            std::string str = std::to_string(number);
+            int insertPosition = str.length() - 3;
+            while (insertPosition > 0) {
+                str.insert(insertPosition, ",");
+                insertPosition -= 3;
+            }
+            return str;
+        };
+        
+
+        struct Stat {
+            std::string label;
+            std::string value;
+            sf::Color color;
+        };
+        
+
+        int challengesCompleted = 0;
+        int totalChallenges = 3;
+        if (saveData.bestTimeChallengeTheForest > 0.0f) challengesCompleted++;
+        if (saveData.bestTimeChallengeRandomness > 0.0f) challengesCompleted++;
+        if (saveData.bestTimeChallengeNonStraight > 0.0f) challengesCompleted++;
+        
+        std::string challengesText = std::to_string(challengesCompleted) + "/" + std::to_string(totalChallenges);
+        
+        std::vector<Stat> stats = {
+            {"Games Played", formatNumber(saveData.totalGamesPlayed), sf::Color(255, 200, 100)},
+            {"Total Lines Cleared", formatNumber(saveData.totalLinesCleared), sf::Color(100, 255, 100)},
+            {"Total Pieces Placed", formatNumber(saveData.totalPiecesPlaced), sf::Color(150, 150, 255)},
+            {"Total Score", formatNumber(saveData.totalScore), sf::Color(255, 255, 100)},
+            {"Challenges Completed", challengesText, sf::Color(255, 150, 255)},
+            {"Max Combo", std::to_string(saveData.maxComboEver), sf::Color(255, 100, 255)},
+            {"Bombs Used", formatNumber(saveData.totalBombsUsed), sf::Color(255, 100, 100)},
+            {"Rotations", formatNumber(saveData.totalRotations), sf::Color(150, 255, 200)},
+            {"Holds Used", formatNumber(saveData.totalHolds), sf::Color(200, 150, 255)},
+            {"Perfect Clears", formatNumber(saveData.totalPerfectClears), sf::Color(255, 200, 50)},
+            {"Total Playtime", formatTime(saveData.totalPlayTimeSeconds), sf::Color(100, 200, 255)}
+        };
+        
+
+        int col1Count = (stats.size() + 1) / 2;
+        float col1X = centerX - 500;
+        float col2X = centerX + 50;
+        
+        for (size_t i = 0; i < stats.size(); ++i) {
+            float x = (i < col1Count) ? col1X : col2X;
+            float y = startY + ((i < col1Count) ? i : (i - col1Count)) * lineSpacing;
+            
+
+            sf::Text labelText(menuFont, stats[i].label + ":");
+            labelText.setCharacterSize(32);
+            labelText.setFillColor(sf::Color(200, 200, 200));
+            labelText.setPosition(sf::Vector2f(x, y));
+            window.draw(labelText);
+            
+
+            sf::Text valueText(menuFont, stats[i].value);
+            valueText.setCharacterSize(36);
+            valueText.setFillColor(stats[i].color);
+            valueText.setStyle(sf::Text::Bold);
+            valueText.setPosition(sf::Vector2f(x, y + 35));
+            window.draw(valueText);
+        }
+        
+
+        sf::Text controlsText(menuFont, "ESC to go back");
+        controlsText.setCharacterSize(22);
+        controlsText.setFillColor(sf::Color(150, 150, 150));
+        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
+        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, 980));
         window.draw(controlsText);
     }
 }

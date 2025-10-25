@@ -3,6 +3,7 @@
 #include "piece_utils.h"
 #include "texture_utils.h"
 #include "difficulty_config.h"
+#include "achievements.h"
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
@@ -61,8 +62,25 @@ void saveGameData(const SaveData& data) {
         file << "BEST_TIME_SPRINT_24=" << data.bestTimeSprint24 << std::endl;
         file << "BEST_TIME_SPRINT_48=" << data.bestTimeSprint48 << std::endl;
         file << "BEST_TIME_SPRINT_96=" << data.bestTimeSprint96 << std::endl;
+        file << "BEST_TIME_CHALLENGE_DEBUG=" << data.bestTimeChallengeDebug << std::endl;
+        file << "BEST_TIME_CHALLENGE_THE_FOREST=" << data.bestTimeChallengeTheForest << std::endl;
+        file << "BEST_TIME_CHALLENGE_RANDOMNESS=" << data.bestTimeChallengeRandomness << std::endl;
+        file << "BEST_TIME_CHALLENGE_NON_STRAIGHT=" << data.bestTimeChallengeNonStraight << std::endl;
         file << "BEST_LINES=" << data.bestLines << std::endl;
         file << "BEST_LEVEL=" << data.bestLevel << std::endl;
+        
+
+        file << "STAT_TOTAL_LINES=" << data.totalLinesCleared << std::endl;
+        file << "STAT_TOTAL_PIECES=" << data.totalPiecesPlaced << std::endl;
+        file << "STAT_TOTAL_GAMES=" << data.totalGamesPlayed << std::endl;
+        file << "STAT_TOTAL_SCORE=" << data.totalScore << std::endl;
+        file << "STAT_MAX_COMBO=" << data.maxComboEver << std::endl;
+        file << "STAT_TOTAL_BOMBS=" << data.totalBombsUsed << std::endl;
+        file << "STAT_TOTAL_PLAYTIME=" << data.totalPlayTimeSeconds << std::endl;
+        file << "STAT_TOTAL_ROTATIONS=" << data.totalRotations << std::endl;
+        file << "STAT_TOTAL_HOLDS=" << data.totalHolds << std::endl;
+        file << "STAT_TOTAL_PERFECT_CLEARS=" << data.totalPerfectClears << std::endl;
+        
         file << "MASTER_VOLUME=" << data.masterVolume << std::endl;
         file << "IS_MUTED=" << (data.isMuted ? 1 : 0) << std::endl;
         
@@ -92,6 +110,11 @@ void saveGameData(const SaveData& data) {
             file << "TOP_HARD_" << (i+1) << "_SCORE=" << data.topScoresHard[i].score << std::endl;
             file << "TOP_HARD_" << (i+1) << "_LINES=" << data.topScoresHard[i].lines << std::endl;
             file << "TOP_HARD_" << (i+1) << "_LEVEL=" << data.topScoresHard[i].level << std::endl;
+        }
+        
+
+        for (int i = 0; i < 6; i++) {
+            file << "ACHIEVEMENT_" << i << "=" << (data.achievements[i] ? 1 : 0) << std::endl;
         }
         
 
@@ -144,14 +167,48 @@ SaveData loadGameData() {
                     data.bestTimeSprint48 = std::stof(value);
                 } else if (key == "BEST_TIME_SPRINT_96") {
                     data.bestTimeSprint96 = std::stof(value);
+                } else if (key == "BEST_TIME_CHALLENGE_DEBUG") {
+                    data.bestTimeChallengeDebug = std::stof(value);
+                } else if (key == "BEST_TIME_CHALLENGE_THE_FOREST") {
+                    data.bestTimeChallengeTheForest = std::stof(value);
+                } else if (key == "BEST_TIME_CHALLENGE_RANDOMNESS") {
+                    data.bestTimeChallengeRandomness = std::stof(value);
+                } else if (key == "BEST_TIME_CHALLENGE_NON_STRAIGHT") {
+                    data.bestTimeChallengeNonStraight = std::stof(value);
                 } else if (key == "BEST_LINES") {
                     data.bestLines = std::stoi(value);
                 } else if (key == "BEST_LEVEL") {
                     data.bestLevel = std::stoi(value);
+                } else if (key == "STAT_TOTAL_LINES") {
+                    data.totalLinesCleared = std::stoi(value);
+                } else if (key == "STAT_TOTAL_PIECES") {
+                    data.totalPiecesPlaced = std::stoi(value);
+                } else if (key == "STAT_TOTAL_GAMES") {
+                    data.totalGamesPlayed = std::stoi(value);
+                } else if (key == "STAT_TOTAL_SCORE") {
+                    data.totalScore = std::stoi(value);
+                } else if (key == "STAT_MAX_COMBO") {
+                    data.maxComboEver = std::stoi(value);
+                } else if (key == "STAT_TOTAL_BOMBS") {
+                    data.totalBombsUsed = std::stoi(value);
+                } else if (key == "STAT_TOTAL_PLAYTIME") {
+                    data.totalPlayTimeSeconds = std::stof(value);
+                } else if (key == "STAT_TOTAL_ROTATIONS") {
+                    data.totalRotations = std::stoi(value);
+                } else if (key == "STAT_TOTAL_HOLDS") {
+                    data.totalHolds = std::stoi(value);
+                } else if (key == "STAT_TOTAL_PERFECT_CLEARS") {
+                    data.totalPerfectClears = std::stoi(value);
                 } else if (key == "MASTER_VOLUME") {
                     data.masterVolume = std::stof(value);
                 } else if (key == "IS_MUTED") {
                     data.isMuted = (std::stoi(value) == 1);
+                } else if (key.rfind("ACHIEVEMENT_", 0) == 0) {
+
+                    int achievementId = std::stoi(key.substr(12));
+                    if (achievementId >= 0 && achievementId < 6) {
+                        data.achievements[achievementId] = (std::stoi(value) == 1);
+                    }
                 } else if (key == "KEY_MOVE_LEFT") {
                     data.moveLeft = std::stoi(value);
                 } else if (key == "KEY_MOVE_RIGHT") {
@@ -241,6 +298,13 @@ SaveData loadGameData() {
     return data;
 }
 
+
+void unlockAchievement(SaveData& saveData, Achievement ach) {
+    if (tryUnlockAchievement(saveData, ach)) {
+        saveGameData(saveData);
+    }
+}
+
 void drawGridBackground(sf::RenderWindow& window) {
 }
 
@@ -299,6 +363,12 @@ std::vector<PieceType> PieceBag::createNewBag(int level) {
         PieceType::I_Basic, PieceType::T_Basic, PieceType::L_Basic, 
         PieceType::J_Basic, PieceType::O_Basic, PieceType::S_Basic, PieceType::Z_Basic,
     };
+    
+
+    if (difficultyConfig && difficultyConfig->useCustomPieceFilter && !difficultyConfig->allowedBasicPieces.empty()) {
+        basicTypes = difficultyConfig->allowedBasicPieces;
+        std::cout << "Using custom basic pieces filter (" << basicTypes.size() << " pieces)" << std::endl;
+    }
     
 
     if (!difficultyConfig) {
@@ -390,23 +460,41 @@ void PieceBag::fillNextQueue() {
 }
 
 void PieceBag::refillMediumBag() {
-    mediumBag = {
+
+    std::vector<PieceType> defaultMediumTypes = {
         PieceType::I_Medium, PieceType::T_Medium, PieceType::L_Medium, 
         PieceType::J_Medium, PieceType::O_Medium, PieceType::S_Medium, PieceType::Z_Medium
     };
+    
+
+    if (difficultyConfig && difficultyConfig->useCustomPieceFilter && !difficultyConfig->allowedMediumPieces.empty()) {
+        mediumBag = difficultyConfig->allowedMediumPieces;
+    } else {
+        mediumBag = defaultMediumTypes;
+    }
+    
     std::shuffle(mediumBag.begin(), mediumBag.end(), rng);
     mediumBagIndex = 0;
-    std::cout << "Medium bag refilled and shuffled" << std::endl;
+    std::cout << "Medium bag refilled and shuffled (" << mediumBag.size() << " pieces)" << std::endl;
 }
 
 void PieceBag::refillHardBag() {
-    hardBag = {
+
+    std::vector<PieceType> defaultHardTypes = {
         PieceType::I_Hard, PieceType::T_Hard, PieceType::L_Hard, 
         PieceType::J_Hard, PieceType::O_Hard, PieceType::S_Hard, PieceType::Z_Hard
     };
+    
+
+    if (difficultyConfig && difficultyConfig->useCustomPieceFilter && !difficultyConfig->allowedHardPieces.empty()) {
+        hardBag = difficultyConfig->allowedHardPieces;
+    } else {
+        hardBag = defaultHardTypes;
+    }
+    
     std::shuffle(hardBag.begin(), hardBag.end(), rng);
     hardBagIndex = 0;
-    std::cout << "Hard bag refilled and shuffled" << std::endl;
+    std::cout << "Hard bag refilled and shuffled (" << hardBag.size() << " pieces)" << std::endl;
 }
 
 PieceBag::PieceBag() : rng(std::random_device{}()), currentLevel(0) {
@@ -1715,10 +1803,20 @@ int main(int argc, char* argv[]) {
     bool gameOver = false;
     
 
+    float sessionPlayTime = 0.0f;
+    int sessionPiecesPlaced = 0;
+    
+
+    #define RESET_SESSION_STATS() do { sessionPlayTime = 0.0f; sessionPiecesPlaced = 0; } while(0)
+    
+
+    const DifficultyConfig* currentConfig = nullptr;
+
     float sprintTimer = 0.0f;
     int sprintTargetLines = 0;
     bool sprintModeActive = false;
     bool sprintCompleted = false;
+    bool challengeModeActive = false;
     
     int linesSinceLastAbility = 0;
     bool bombAbilityAvailable = false;
@@ -1732,6 +1830,10 @@ int main(int argc, char* argv[]) {
     int totalLineScore = 0;
     int totalComboScore = 0;
     const int HARD_DROP_POINTS_PER_CELL = 5;
+    
+
+    bool bombUsedThisGame = false;
+    int maxComboThisGame = 0;
     
 
     PieceType heldPiece = PieceType::I_Basic;
@@ -1790,7 +1892,7 @@ int main(int argc, char* argv[]) {
                             std::cout << "Entered BLITZ lines selection (mouse)" << std::endl;
                         } else if (selectedGameModeOption == GameModeOption::Challenge) {
                             gameState = GameState::ChallengeSelect;
-                            selectedChallengeMode = ChallengeMode::TheForest;
+                            selectedChallengeMode = debugMode ? ChallengeMode::Debug : ChallengeMode::TheForest;
                             std::cout << "Entered CHALLENGE selection (mouse)" << std::endl;
                         }
                     } else if (gameState == GameState::ClassicDifficultySelect || 
@@ -1801,8 +1903,13 @@ int main(int argc, char* argv[]) {
                         gameOver = false;
                         
 
+                        bombUsedThisGame = false;
+                        maxComboThisGame = 0;
+                        
+
                         if (selectedGameModeOption == GameModeOption::Sprint) {
                             sprintModeActive = true;
+                            challengeModeActive = false;
                             sprintCompleted = false;
                             sprintTimer = 0.0f;
                             switch (selectedSprintLines) {
@@ -1819,8 +1926,14 @@ int main(int argc, char* argv[]) {
                                     sprintTargetLines = 96;
                                     break;
                             }
+                        } else if (selectedGameModeOption == GameModeOption::Challenge) {
+                            challengeModeActive = true;
+                            sprintModeActive = false;
+                            sprintCompleted = false;
+                            sprintTimer = 0.0f;
                         } else {
                             sprintModeActive = false;
+                            challengeModeActive = false;
                             sprintCompleted = false;
                         }
                         
@@ -1832,6 +1945,7 @@ int main(int argc, char* argv[]) {
                             selectedChallengeMode
                         );
                         jigtrizBag.setDifficultyConfig(config);
+                        currentConfig = config;
                         
                         for (int i = 0; i < GRID_HEIGHT; ++i) {
                             for (int j = 0; j < GRID_WIDTH; ++j) {
@@ -1846,6 +1960,7 @@ int main(int argc, char* argv[]) {
                         totalHardDropScore = 0;
                         totalLineScore = 0;
                         totalComboScore = 0;
+                        RESET_SESSION_STATS();
                         jigtrizBag.reset();
                         hasHeldPiece = false;
                         canUseHold = true;
@@ -1868,8 +1983,15 @@ int main(int argc, char* argv[]) {
                         
                         std::cout << "Game started (mouse) with mode: " << config->modeName << std::endl;
                     } else if (gameState == GameState::Jigtrizopedia) {
-
-                        std::cout << "Jigtrizopedia buttons are currently disabled" << std::endl;
+                        if (selectedJigtrizopediaOption == JigtrizopediaOption::Achievements) {
+                            gameState = GameState::AchievementsView;
+                            std::cout << "Entered ACHIEVEMENTS view (mouse)" << std::endl;
+                        } else if (selectedJigtrizopediaOption == JigtrizopediaOption::Statistics) {
+                            gameState = GameState::StatisticsView;
+                            std::cout << "Entered STATISTICS view (mouse)" << std::endl;
+                        } else {
+                            std::cout << "Other Jigtrizopedia buttons are currently disabled" << std::endl;
+                        }
                     } else if (gameState == GameState::Options) {
                         if (selectedOptionsOption == OptionsMenuOption::ClearScores) {
                             gameState = GameState::ConfirmClearScores;
@@ -1886,6 +2008,10 @@ int main(int argc, char* argv[]) {
                         } else if (selectedPauseOption == PauseOption::Restart) {
                             gameState = GameState::Playing;
                             gameOver = false;
+                            
+
+                            bombUsedThisGame = false;
+                            maxComboThisGame = 0;
                             
 
                             if (sprintModeActive) {
@@ -1906,6 +2032,7 @@ int main(int argc, char* argv[]) {
                             totalHardDropScore = 0;
                             totalLineScore = 0;
                             totalComboScore = 0;
+                            RESET_SESSION_STATS();
                             jigtrizBag.reset();
                             hasHeldPiece = false;
                             canUseHold = true;
@@ -2047,6 +2174,10 @@ int main(int argc, char* argv[]) {
                                 gameOver = false;
                                 
 
+                                bombUsedThisGame = false;
+                                maxComboThisGame = 0;
+                                
+
                                 if (sprintModeActive) {
                                     sprintTimer = 0.0f;
                                     sprintCompleted = false;
@@ -2065,6 +2196,7 @@ int main(int argc, char* argv[]) {
                                 totalHardDropScore = 0;
                                 totalLineScore = 0;
                                 totalComboScore = 0;
+                                RESET_SESSION_STATS();
                                 jigtrizBag.reset();
                                 hasHeldPiece = false;
                                 canUseHold = true;
@@ -2110,8 +2242,15 @@ int main(int argc, char* argv[]) {
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
-
-                            std::cout << "Jigtrizopedia buttons are currently disabled" << std::endl;
+                            if (selectedJigtrizopediaOption == JigtrizopediaOption::Achievements) {
+                                gameState = GameState::AchievementsView;
+                                std::cout << "Entered ACHIEVEMENTS view (keyboard)" << std::endl;
+                            } else if (selectedJigtrizopediaOption == JigtrizopediaOption::Statistics) {
+                                gameState = GameState::StatisticsView;
+                                std::cout << "Entered STATISTICS view (keyboard)" << std::endl;
+                            } else {
+                                std::cout << "Other Jigtrizopedia buttons are currently disabled" << std::endl;
+                            }
                             break;
                         default: 
                             break;
@@ -2142,7 +2281,7 @@ int main(int argc, char* argv[]) {
                                 std::cout << "Entered BLITZ lines selection" << std::endl;
                             } else if (selectedGameModeOption == GameModeOption::Challenge) {
                                 gameState = GameState::ChallengeSelect;
-                                selectedChallengeMode = ChallengeMode::TheForest;
+                                selectedChallengeMode = debugMode ? ChallengeMode::Debug : ChallengeMode::TheForest;
                                 std::cout << "Entered CHALLENGE selection" << std::endl;
                             }
                             break;
@@ -2174,11 +2313,18 @@ int main(int argc, char* argv[]) {
                                 selectedChallengeMode
                             );
                             jigtrizBag.setDifficultyConfig(config);
+                            currentConfig = config;
                             
                             gameState = GameState::Playing;
                             gameOver = false;
                             sprintModeActive = false;
+                            challengeModeActive = false;
                             sprintCompleted = false;
+                            
+
+                            bombUsedThisGame = false;
+                            maxComboThisGame = 0;
+                            
                             for (int i = 0; i < GRID_HEIGHT; ++i) {
                                 for (int j = 0; j < GRID_WIDTH; ++j) {
                                     grid[i][j] = Cell();
@@ -2192,6 +2338,7 @@ int main(int argc, char* argv[]) {
                             totalHardDropScore = 0;
                             totalLineScore = 0;
                             totalComboScore = 0;
+                            RESET_SESSION_STATS();
                             jigtrizBag.reset();
                             hasHeldPiece = false;
                             canUseHold = true;
@@ -2263,12 +2410,18 @@ int main(int argc, char* argv[]) {
                                 selectedChallengeMode
                             );
                             jigtrizBag.setDifficultyConfig(config);
+                            currentConfig = config;
                             
                             gameState = GameState::Playing;
                             gameOver = false;
                             
 
+                            bombUsedThisGame = false;
+                            maxComboThisGame = 0;
+                            
+
                             sprintModeActive = true;
+                            challengeModeActive = false;
                             sprintCompleted = false;
                             sprintTimer = 0.0f;
                             switch (selectedSprintLines) {
@@ -2299,6 +2452,7 @@ int main(int argc, char* argv[]) {
                             totalHardDropScore = 0;
                             totalLineScore = 0;
                             totalComboScore = 0;
+                            RESET_SESSION_STATS();
                             jigtrizBag.reset();
                             hasHeldPiece = false;
                             canUseHold = true;
@@ -2330,13 +2484,37 @@ int main(int argc, char* argv[]) {
                             std::cout << "Returned to GAME MODE selection" << std::endl;
                             break;
                         case sf::Keyboard::Key::Up:
-                        case sf::Keyboard::Key::W:
-                            selectedChallengeMode = static_cast<ChallengeMode>((static_cast<int>(selectedChallengeMode) + 2) % 3);
+                        case sf::Keyboard::Key::W: {
+                            int numOptions = debugMode ? 4 : 3;
+                            int current = static_cast<int>(selectedChallengeMode);
+                            
+                            if (debugMode) {
+
+                                selectedChallengeMode = static_cast<ChallengeMode>((current + numOptions - 1) % numOptions);
+                            } else {
+
+                                if (current == 1) current = 3;
+                                else current--;
+                                selectedChallengeMode = static_cast<ChallengeMode>(current);
+                            }
                             break;
+                        }
                         case sf::Keyboard::Key::Down:
-                        case sf::Keyboard::Key::S:
-                            selectedChallengeMode = static_cast<ChallengeMode>((static_cast<int>(selectedChallengeMode) + 1) % 3);
+                        case sf::Keyboard::Key::S: {
+                            int numOptions = debugMode ? 4 : 3;
+                            int current = static_cast<int>(selectedChallengeMode);
+                            
+                            if (debugMode) {
+
+                                selectedChallengeMode = static_cast<ChallengeMode>((current + 1) % numOptions);
+                            } else {
+
+                                if (current == 3) current = 1;
+                                else current++;
+                                selectedChallengeMode = static_cast<ChallengeMode>(current);
+                            }
                             break;
+                        }
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
                         {
@@ -2348,9 +2526,21 @@ int main(int argc, char* argv[]) {
                                 selectedChallengeMode
                             );
                             jigtrizBag.setDifficultyConfig(config);
+                            currentConfig = config;
                             
                             gameState = GameState::Playing;
                             gameOver = false;
+                            
+
+                            challengeModeActive = true;
+                            sprintModeActive = false;
+                            
+
+                            sprintTimer = 0.0f;
+                            sprintCompleted = false;
+                            bombUsedThisGame = false;
+                            maxComboThisGame = 0;
+                            
                             for (int i = 0; i < GRID_HEIGHT; ++i) {
                                 for (int j = 0; j < GRID_WIDTH; ++j) {
                                     grid[i][j] = Cell();
@@ -2364,6 +2554,7 @@ int main(int argc, char* argv[]) {
                             totalHardDropScore = 0;
                             totalLineScore = 0;
                             totalComboScore = 0;
+                            RESET_SESSION_STATS();
                             jigtrizBag.reset();
                             hasHeldPiece = false;
                             canUseHold = true;
@@ -2393,6 +2584,15 @@ int main(int argc, char* argv[]) {
                         case sf::Keyboard::Key::Escape:
                             gameState = GameState::Jigtrizopedia;
                             std::cout << "Returned to JIGTRIZOPEDIA from ACHIEVEMENTS" << std::endl;
+                            break;
+                        default: 
+                            break;
+                    }
+                } else if (gameState == GameState::StatisticsView) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            gameState = GameState::Jigtrizopedia;
+                            std::cout << "Returned to JIGTRIZOPEDIA from STATISTICS" << std::endl;
                             break;
                         default: 
                             break;
@@ -2560,6 +2760,16 @@ int main(int argc, char* argv[]) {
                                 saveData.bestTimeSprint96 = 0.0f;
                                 
 
+                                saveData.bestTimeChallengeDebug = 0.0f;
+                                saveData.bestTimeChallengeTheForest = 0.0f;
+                                saveData.bestTimeChallengeRandomness = 0.0f;
+                                saveData.bestTimeChallengeNonStraight = 0.0f;
+                                
+
+                                for (int i = 0; i < 6; i++) {
+                                    saveData.achievements[i] = false;
+                                }
+
                                 for (int i = 0; i < 3; i++) {
                                     saveData.topScores[i].score = 0;
                                     saveData.topScores[i].lines = 0;
@@ -2592,9 +2802,15 @@ int main(int argc, char* argv[]) {
                 } else if (gameState == GameState::Playing) {
                 
                 if (keyPressed->code == keyBindings.rotateLeft) {
-                    if (!gameOver) activePiece.rotateLeft(grid);
+                    if (!gameOver) {
+                        activePiece.rotateLeft(grid);
+                        saveData.totalRotations++;
+                    }
                 } else if (keyPressed->code == keyBindings.rotateRight) {
-                    if (!gameOver) activePiece.rotateRight(grid);
+                    if (!gameOver) {
+                        activePiece.rotateRight(grid);
+                        saveData.totalRotations++;
+                    }
                 } else if (keyPressed->code == keyBindings.hold) {
                     if (!canUseHold || gameOver) {
                         
@@ -2603,6 +2819,14 @@ int main(int argc, char* argv[]) {
 
                             heldPiece = activePiece.getType();
                             hasHeldPiece = true;
+                            
+
+                            saveData.totalHolds++;
+                            
+
+                            if (heldPiece == PieceType::A_Bomb) {
+                                unlockAchievement(saveData, Achievement::HoldBomb);
+                            }
                             
                             PieceType newType = jigtrizBag.getNextPiece();
                             std::cout << "HOLD: Stored " << pieceTypeToString(heldPiece) << ", spawning " << pieceTypeToString(newType) << std::endl;
@@ -2616,6 +2840,14 @@ int main(int argc, char* argv[]) {
                             PieceType currentType = activePiece.getType();
                             PieceType swapType = heldPiece;
                             heldPiece = currentType;
+                            
+
+                            saveData.totalHolds++;
+                            
+
+                            if (heldPiece == PieceType::A_Bomb) {
+                                unlockAchievement(saveData, Achievement::HoldBomb);
+                            }
                             
                             std::cout << "SWAP: " << pieceTypeToString(currentType) << " <-> " << pieceTypeToString(swapType) << std::endl;
                             PieceShape swapShape = getPieceShape(swapType);
@@ -2750,6 +2982,12 @@ int main(int argc, char* argv[]) {
                         std::cout << "BOMB ABILITY ACTIVATED - Spawning bomb!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
                         
 
+                        bombUsedThisGame = true;
+                        
+
+                        saveData.totalBombsUsed++;
+                        
+
                         PieceType replacedPiece = activePiece.getType();
                         jigtrizBag.returnPieceToBag(replacedPiece);
                         std::cout << "Returned " << pieceTypeToString(replacedPiece) << " to bag" << std::endl;
@@ -2770,6 +3008,59 @@ int main(int argc, char* argv[]) {
                         int linesNeeded = LINES_FOR_ABILITY - linesSinceLastAbility;
                         std::cout << "Bomb ability not ready yet! Need " << linesNeeded << " more lines." << std::endl;
                     }
+                } else if (keyPressed->code == sf::Keyboard::Key::R) {
+                    if (!gameOver) {
+                        std::cout << "R key pressed during game! Restarting..." << std::endl;
+                        
+
+                        bombUsedThisGame = false;
+                        maxComboThisGame = 0;
+                        
+                        if (sprintModeActive) {
+                            sprintTimer = 0.0f;
+                            sprintCompleted = false;
+                        }
+                        
+                        for (int i = 0; i < GRID_HEIGHT; ++i) {
+                            for (int j = 0; j < GRID_WIDTH; ++j) {
+                                grid[i][j] = Cell();
+                            }
+                        }
+                        totalLinesCleared = 0;
+                        currentLevel = 0;
+                        totalScore = 0;
+                        currentCombo = 0;
+                        lastMoveScore = 0;
+                        totalHardDropScore = 0;
+                        totalLineScore = 0;
+                        totalComboScore = 0;
+                        RESET_SESSION_STATS();
+                        
+                        jigtrizBag.reset();
+                        
+                        hasHeldPiece = false;
+                        canUseHold = true;
+                        
+                        leftHoldTime = 0.0f;
+                        rightHoldTime = 0.0f;
+                        dasTimer = 0.0f;
+                        leftPressed = false;
+                        rightPressed = false;
+                        
+                        linesSinceLastAbility = 0;
+                        bombAbilityAvailable = debugMode;
+                        explosionEffects.clear();
+                        glowEffects.clear();
+                        
+                        PieceType startType = jigtrizBag.getNextPiece();
+                        PieceShape startShape = getPieceShape(startType);
+                        int startX = (GRID_WIDTH - startShape.width) / 2;
+                        int firstFilledRow = findFirstFilledRow(startShape);
+                        int startY = -firstFilledRow;
+                        activePiece = Piece(startX, startY, startType);
+                        
+                        std::cout << "Game restarted during play!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
+                    }
                 }
                 
 
@@ -2786,6 +3077,10 @@ int main(int argc, char* argv[]) {
                             std::cout << "R key pressed! Restarting game..." << std::endl;
                             gameState = GameState::Playing;
                             gameOver = false;
+                            
+
+                            bombUsedThisGame = false;
+                            maxComboThisGame = 0;
                             
 
                             if (sprintModeActive) {
@@ -2806,6 +3101,7 @@ int main(int argc, char* argv[]) {
                             totalHardDropScore = 0;
                             totalLineScore = 0;
                             totalComboScore = 0;
+                            RESET_SESSION_STATS();
                             
                             jigtrizBag.reset();
                             
@@ -2871,19 +3167,21 @@ int main(int argc, char* argv[]) {
         if (gameState == GameState::AchievementsView) {
             auto mousePos = sf::Mouse::getPosition(window);
             
+
             const int COLS = 5;
-            const int ROWS = 4;
-            const float CELL_SIZE = 120.0f;
-            const float SPACING = 20.0f;
-            const float GRID_WIDTH = COLS * CELL_SIZE + (COLS - 1) * SPACING;
-            const float START_X = 1920 / 2.0f - GRID_WIDTH / 2.0f;
-            const float START_Y = 250;
+            const int ROWS = 5;
+            const float CELL_SIZE = 128.0f;
+            const float SPACING = 15.0f;
+            const float START_X = 150.0f;
+            const float START_Y = 220;
             
             hoveredAchievement = -1;
             
             for (int row = 0; row < ROWS; ++row) {
                 for (int col = 0; col < COLS; ++col) {
                     int achievementId = row * COLS + col;
+                    if (achievementId >= 25) break;
+                    
                     float x = START_X + col * (CELL_SIZE + SPACING);
                     float y = START_Y + row * (CELL_SIZE + SPACING);
                     
@@ -2898,6 +3196,11 @@ int main(int argc, char* argv[]) {
         }
         
         if (gameState == GameState::Playing) {
+        
+
+        if (!gameOver) {
+            sessionPlayTime += deltaTime;
+        }
 
         bool currentLeftPressed = sf::Keyboard::isKeyPressed(keyBindings.moveLeft);
         bool currentRightPressed = sf::Keyboard::isKeyPressed(keyBindings.moveRight);
@@ -2960,7 +3263,8 @@ int main(int argc, char* argv[]) {
             activePiece.update(deltaTime, fastFall, grid);
             
 
-            if (sprintModeActive) {
+            bool hasLineGoal = currentConfig && currentConfig->hasLineGoal;
+            if (hasLineGoal) {
                 sprintTimer += deltaTime;
             }
         }
@@ -2990,30 +3294,74 @@ int main(int argc, char* argv[]) {
         
         if (activePiece.hasStopped() && !gameOver) {
             activePiece.ChangeToStatic(grid, activePiece.getAbility(), &bombSound, &explosionEffects, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer);
+            
+
+            sessionPiecesPlaced++;
+            
             int clearedLines = clearFullLines(grid, laserSound, wowSounds, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer);
             totalLinesCleared += clearedLines;
             
 
-            if (sprintModeActive && totalLinesCleared >= sprintTargetLines) {
+            bool hasLineGoal = currentConfig && currentConfig->hasLineGoal;
+            int lineGoal = hasLineGoal ? currentConfig->lineGoal : 0;
+            
+            if (hasLineGoal && totalLinesCleared >= lineGoal) {
                 gameOver = true;
                 sprintCompleted = true;
-                std::cout << "BLITZ COMPLETED! Time: " << sprintTimer << " seconds | Lines: " << totalLinesCleared << "/" << sprintTargetLines << std::endl;
+                std::cout << "MODE COMPLETED! Time: " << sprintTimer << " seconds | Lines: " << totalLinesCleared << "/" << lineGoal << std::endl;
                 
 
-                float* bestTimePtr = nullptr;
-                if (sprintTargetLines == 1) bestTimePtr = &saveData.bestTimeSprint1;
-                else if (sprintTargetLines == 24) bestTimePtr = &saveData.bestTimeSprint24;
-                else if (sprintTargetLines == 48) bestTimePtr = &saveData.bestTimeSprint48;
-                else if (sprintTargetLines == 96) bestTimePtr = &saveData.bestTimeSprint96;
+                if (sprintModeActive && lineGoal == 48 && sprintTimer < 120.0f) {
+                    unlockAchievement(saveData, Achievement::Blitz48Under230);
+                }
                 
-                if (bestTimePtr && (*bestTimePtr == 0.0f || sprintTimer < *bestTimePtr)) {
-                    *bestTimePtr = sprintTimer;
-                    std::cout << "NEW BEST TIME for " << sprintTargetLines << " lines: " << sprintTimer << " seconds!" << std::endl;
-                    saveGameData(saveData);
+
+                if (sprintModeActive) {
+                    float* bestTimePtr = nullptr;
+                    if (sprintTargetLines == 1) bestTimePtr = &saveData.bestTimeSprint1;
+                    else if (sprintTargetLines == 24) bestTimePtr = &saveData.bestTimeSprint24;
+                    else if (sprintTargetLines == 48) bestTimePtr = &saveData.bestTimeSprint48;
+                    else if (sprintTargetLines == 96) bestTimePtr = &saveData.bestTimeSprint96;
+                    
+                    if (bestTimePtr && (*bestTimePtr == 0.0f || sprintTimer < *bestTimePtr)) {
+                        *bestTimePtr = sprintTimer;
+                        std::cout << "NEW BEST TIME for " << sprintTargetLines << " lines: " << sprintTimer << " seconds!" << std::endl;
+                        saveGameData(saveData);
+                    }
+                }
+                
+
+                if (challengeModeActive) {
+                    float* bestTimePtr = nullptr;
+                    switch (selectedChallengeMode) {
+                        case ChallengeMode::Debug:
+                            bestTimePtr = &saveData.bestTimeChallengeDebug;
+                            break;
+                        case ChallengeMode::TheForest:
+                            bestTimePtr = &saveData.bestTimeChallengeTheForest;
+                            break;
+                        case ChallengeMode::Randomness:
+                            bestTimePtr = &saveData.bestTimeChallengeRandomness;
+                            break;
+                        case ChallengeMode::NonStraight:
+                            bestTimePtr = &saveData.bestTimeChallengeNonStraight;
+                            break;
+                    }
+                    
+                    if (bestTimePtr && (*bestTimePtr == 0.0f || sprintTimer < *bestTimePtr)) {
+                        *bestTimePtr = sprintTimer;
+                        std::cout << "NEW BEST TIME for challenge: " << sprintTimer << " seconds!" << std::endl;
+                        saveGameData(saveData);
+                    }
                 }
             }
             
             if (clearedLines > 0) {
+
+                if (clearedLines >= 4) {
+                    saveData.totalPerfectClears++;
+                }
+                
                 int fullScore = calculateScore(clearedLines);
                 int baseScore = clearedLines * 1000;
                 int lineBonus = fullScore - baseScore;
@@ -3024,6 +3372,31 @@ int main(int argc, char* argv[]) {
                 totalComboScore += lineBonus + comboBonus;
                 
                 currentCombo += clearedLines;
+                
+
+                if (currentCombo >= 10) {
+                    unlockAchievement(saveData, Achievement::Combo10);
+                }
+                
+
+                if (clearedLines >= 5) {
+                    unlockAchievement(saveData, Achievement::Combo5OneClear);
+                }
+                
+
+                if (clearedLines >= 6) {
+                    unlockAchievement(saveData, Achievement::Combo6OneClear);
+                }
+                
+
+                if (currentCombo > maxComboThisGame) {
+                    maxComboThisGame = currentCombo;
+                }
+                
+
+                if (currentCombo > saveData.maxComboEver) {
+                    saveData.maxComboEver = currentCombo;
+                }
                 
                 std::cout << "Lines cleared: " << clearedLines << " | Base: " << baseScore << " | Combo before: x" << (currentCombo - clearedLines) << " (+" << comboBonus << ") | Total: +" << lastMoveScore << " | New combo: x" << currentCombo << " | Score: " << totalScore << std::endl;
                 
@@ -3067,6 +3440,16 @@ int main(int argc, char* argv[]) {
                 if (!debugMode && !sprintModeActive) {
                     insertNewScore(saveData, totalScore, totalLinesCleared, currentLevel, selectedClassicDifficulty);
                     
+
+                    if (totalScore >= 200000 && !bombUsedThisGame) {
+                        unlockAchievement(saveData, Achievement::Score200kNoBomb);
+                    }
+                    
+
+                    if (totalScore >= 400000 && (selectedClassicDifficulty == ClassicDifficulty::Medium || selectedClassicDifficulty == ClassicDifficulty::Hard)) {
+                        unlockAchievement(saveData, Achievement::Score400kMedHard);
+                    }
+                    
                     bool recordsUpdated = false;
                     if (totalLinesCleared > saveData.bestLines) {
                         saveData.bestLines = totalLinesCleared;
@@ -3078,6 +3461,22 @@ int main(int argc, char* argv[]) {
                         recordsUpdated = true;
                         std::cout << "NEW BEST LEVEL: " << currentLevel << "!" << std::endl;
                     }
+                    
+
+                    saveData.totalGamesPlayed++;
+                    saveData.totalLinesCleared += totalLinesCleared;
+                    saveData.totalPiecesPlaced += sessionPiecesPlaced;
+                    saveData.totalScore += totalScore;
+                    saveData.totalPlayTimeSeconds += sessionPlayTime;
+                    std::cout << "Statistics updated: +1 game, +" << totalLinesCleared << " lines, +" << sessionPiecesPlaced << " pieces, +" << totalScore << " score, +" << sessionPlayTime << "s playtime" << std::endl;
+                    
+
+                    saveData.totalGamesPlayed++;
+                    saveData.totalLinesCleared += totalLinesCleared;
+                    saveData.totalPiecesPlaced += sessionPiecesPlaced;
+                    saveData.totalScore += totalScore;
+                    saveData.totalPlayTimeSeconds += sessionPlayTime;
+                    std::cout << "Session stats saved: " << sessionPiecesPlaced << " pieces, " << totalLinesCleared << " lines, " << sessionPlayTime << "s playtime" << std::endl;
                     
                     saveData.masterVolume = masterVolume;
                     saveData.isMuted = isMuted;
@@ -3183,12 +3582,14 @@ int main(int argc, char* argv[]) {
 
             float startY = centerY - 80.0f;
             float spacing = 90.0f;
+            int numOptions = debugMode ? 4 : 3;
+            int startEnumValue = debugMode ? 0 : 1;
             
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < numOptions; i++) {
                 float selectorY = startY + i * spacing - 5;
                 if (mouseX >= centerX - 250 && mouseX <= centerX + 250 &&
                     mouseY >= selectorY && mouseY <= selectorY + 60) {
-                    selectedChallengeMode = static_cast<ChallengeMode>(i);
+                    selectedChallengeMode = static_cast<ChallengeMode>(i + startEnumValue);
                     break;
                 }
             }
@@ -3361,11 +3762,13 @@ int main(int argc, char* argv[]) {
         } else if (gameState == GameState::SprintLinesSelect) {
             drawSprintLinesMenu(window, titleFont, menuFont, fontLoaded, selectedSprintLines, saveData, debugMode);
         } else if (gameState == GameState::ChallengeSelect) {
-            drawChallengeMenu(window, titleFont, menuFont, fontLoaded, selectedChallengeMode);
+            drawChallengeMenu(window, titleFont, menuFont, fontLoaded, selectedChallengeMode, debugMode, saveData);
         } else if (gameState == GameState::Jigtrizopedia) {
             drawJigtrizopediaMenu(window, titleFont, menuFont, fontLoaded, selectedJigtrizopediaOption);
         } else if (gameState == GameState::AchievementsView) {
-            drawAchievementsScreen(window, titleFont, menuFont, fontLoaded, hoveredAchievement);
+            drawAchievementsScreen(window, titleFont, menuFont, fontLoaded, saveData, hoveredAchievement);
+        } else if (gameState == GameState::StatisticsView) {
+            drawStatisticsScreen(window, titleFont, menuFont, fontLoaded, saveData);
         } else if (gameState == GameState::Options) {
             drawOptionsMenu(window, menuFont, fontLoaded, debugMode, selectedOptionsOption);
             
@@ -3510,15 +3913,23 @@ int main(int argc, char* argv[]) {
         drawNextPieces(window, jigtrizBag.getNextQueue(), textures, useTextures);
         drawHeldPiece(window, heldPiece, hasHeldPiece, textures, useTextures, menuFont, fontLoaded);
         drawBombAbility(window, bombAbilityAvailable, linesSinceLastAbility, textures, useTextures, menuFont, fontLoaded);
-        drawLevelInfo(window, totalLinesCleared, currentLevel, totalScore, textures, useTextures, menuFont, fontLoaded, sprintModeActive, sprintTimer, sprintTargetLines);
-        if (!sprintModeActive) {
+        
+
+        bool useSprintUI = sprintModeActive || (currentConfig && currentConfig->hasLineGoal);
+        int targetLines = sprintModeActive ? sprintTargetLines : (currentConfig && currentConfig->hasLineGoal ? currentConfig->lineGoal : 0);
+        drawLevelInfo(window, totalLinesCleared, currentLevel, totalScore, textures, useTextures, menuFont, fontLoaded, useSprintUI, sprintTimer, targetLines);
+        if (!useSprintUI) {
             drawCombo(window, currentCombo, lastMoveScore, menuFont, fontLoaded);
         }
         drawGridBorder(window);
         drawJigtrizTitle(window, titleFont, fontLoaded);
         
         if (gameOver) {
-            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData, totalHardDropScore, totalLineScore, totalComboScore, selectedClassicDifficulty, sprintModeActive, sprintTimer, sprintTargetLines, sprintCompleted);
+
+            bool useLineGoalInterface = currentConfig && currentConfig->hasLineGoal;
+            int lineTarget = useLineGoalInterface ? currentConfig->lineGoal : 0;
+            
+            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData, totalHardDropScore, totalLineScore, totalComboScore, selectedClassicDifficulty, useLineGoalInterface, sprintTimer, lineTarget, sprintCompleted, challengeModeActive);
         }
         
         if (gameState == GameState::Paused) {

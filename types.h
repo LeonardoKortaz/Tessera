@@ -40,6 +40,7 @@ enum class GameState {
     ChallengeSelect,
     Jigtrizopedia,
     AchievementsView,
+    StatisticsView,
     Options,
     Rebinding,
     ConfirmClearScores,
@@ -75,9 +76,10 @@ enum class SprintLines {
 };
 
 enum class ChallengeMode {
-    TheForest = 0,
-    Randomness = 1,
-    NonStraight = 2
+    Debug = 0,
+    TheForest = 1,
+    Randomness = 2,
+    NonStraight = 3
 };
 
 enum class JigtrizopediaOption {
@@ -131,6 +133,27 @@ struct SaveData {
     float bestTimeSprint24 = 0.0f;
     float bestTimeSprint48 = 0.0f;
     float bestTimeSprint96 = 0.0f;
+    
+
+    float bestTimeChallengeDebug = 0.0f;
+    float bestTimeChallengeTheForest = 0.0f;
+    float bestTimeChallengeRandomness = 0.0f;
+    float bestTimeChallengeNonStraight = 0.0f;
+    
+
+    bool achievements[7] = {false, false, false, false, false, false, false};
+    
+
+    int totalLinesCleared = 0;
+    int totalPiecesPlaced = 0;
+    int totalGamesPlayed = 0;
+    int totalScore = 0;
+    int maxComboEver = 0;
+    int totalBombsUsed = 0;
+    float totalPlayTimeSeconds = 0.0f;
+    int totalRotations = 0;
+    int totalHolds = 0;
+    int totalPerfectClears = 0;
     
 
     int highScore = 0;
