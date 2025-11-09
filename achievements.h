@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include <string>
+#include <vector>
 
 
 enum class Achievement {
@@ -11,19 +12,29 @@ enum class Achievement {
     Blitz48Under230 = 3,
     Score400kMedHard = 4,
     HoldBomb = 5,
-    Combo6OneClear = 6
+    Combo6OneClear = 6,
+    Explosion = 7,
+    MenuBombClicker = 8,
+    PerfectClear = 9
 };
 
+constexpr int TOTAL_ACHIEVEMENTS = 10;
+constexpr int MAX_ACHIEVEMENT_SLOTS = 25;
 
-struct AchievementData {
-    std::string name;
+
+struct AchievementInfo {
+    std::string title;
+    std::string subtitle;
     std::string description;
-    bool unlocked;
+    bool isSecret;
 };
 
 
 std::string getAchievementName(Achievement ach);
 std::string getAchievementDescription(Achievement ach);
+AchievementInfo getAchievementInfo(Achievement ach);
+AchievementInfo getAchievementInfo(Achievement ach, bool unlocked);
+std::vector<AchievementInfo> getAllAchievementsInfo();
 
 
 bool tryUnlockAchievement(SaveData& saveData, Achievement ach);

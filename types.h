@@ -13,6 +13,7 @@
 
 struct DifficultyConfig;
 struct BagLevelConfig;
+enum class Achievement;
 
 
 constexpr int GRID_WIDTH = 11;
@@ -33,12 +34,14 @@ TextureType getTextureType(PieceType type);
 
 
 enum class GameState {
+    SplashScreen,
     MainMenu,
     GameModeSelect,
     ClassicDifficultySelect,
     SprintLinesSelect,
     ChallengeSelect,
-    Jigtrizopedia,
+    PracticeSelect,
+    Extras,
     AchievementsView,
     StatisticsView,
     Options,
@@ -51,7 +54,7 @@ enum class GameState {
 
 enum class MenuOption {
     Start = 0,
-    Jigtrizopedia = 1,
+    Extras = 1,
     Options = 2,
     Exit = 3
 };
@@ -59,13 +62,28 @@ enum class MenuOption {
 enum class GameModeOption {
     Classic = 0,
     Sprint = 1,
-    Challenge = 2
+    Challenge = 2,
+    Practice = 3
 };
 
 enum class ClassicDifficulty {
     Easy = 0,
     Medium = 1,
     Hard = 2
+};
+
+enum class PracticeDifficulty {
+    VeryEasy = 0,
+    Easy = 1,
+    Medium = 2,
+    Hard = 3
+};
+
+enum class PracticeLineGoal {
+    Infinite = 0,
+    Lines24 = 1,
+    Lines48 = 2,
+    Lines96 = 3
 };
 
 enum class SprintLines {
@@ -79,11 +97,15 @@ enum class ChallengeMode {
     Debug = 0,
     TheForest = 1,
     Randomness = 2,
-    NonStraight = 3
+    NonStraight = 3,
+    OneRot = 4,
+    ChristopherCurse = 5,
+    Vanishing = 6,
+    AutoDrop = 7
 };
 
-enum class JigtrizopediaOption {
-    JigtrizPieces = 0,
+enum class ExtrasOption {
+    JigzterPieces = 0,
     Achievements = 1,
     Statistics = 2,
     Back = 3
@@ -139,9 +161,13 @@ struct SaveData {
     float bestTimeChallengeTheForest = 0.0f;
     float bestTimeChallengeRandomness = 0.0f;
     float bestTimeChallengeNonStraight = 0.0f;
+    float bestTimeChallengeOneRot = 0.0f;
+    float bestTimeChallengeChristopherCurse = 0.0f;
+    float bestTimeChallengeVanishing = 0.0f;
+    float bestTimeChallengeAutoDrop = 0.0f;
     
 
-    bool achievements[7] = {false, false, false, false, false, false, false};
+    bool achievements[10] = {false, false, false, false, false, false, false, false, false, false};
     
 
     int totalLinesCleared = 0;
@@ -242,7 +268,8 @@ enum class TextureType {
     
     A_Bomb,
 
-    MuteIcon
+    MuteIcon,
+    JigzterLogo
 };
 
 
@@ -250,6 +277,9 @@ struct Cell {
     bool occupied = false;
     sf::Color color = sf::Color::Transparent;
     TextureType textureType = TextureType::Empty;
+    float vanishTimer = 0.0f;
+    bool isVanishing = false;
+    
     Cell() = default;
     Cell(const sf::Color& col, TextureType texType = TextureType::Empty) : occupied(true), color(col), textureType(texType) {}
     sf::Color getColor() const { return color; }
@@ -265,9 +295,12 @@ struct PieceShape {
 
 
 struct ExplosionEffect {
-    int x, y;
+    float x, y;
     float timer;
-    ExplosionEffect(int posX, int posY) : x(posX), y(posY), timer(0.5f) {}
+    float rotation;
+    float zDepth;
+    ExplosionEffect(float posX, float posY, float rot = 0.0f, float z = 0.0f) 
+        : x(posX), y(posY), timer(0.5f), rotation(rot), zDepth(z) {}
 };
 
 
@@ -276,9 +309,10 @@ struct GlowEffect {
     sf::Color color;
     float timer;
     float alpha;
+    float rotation;
     
-    GlowEffect(float wx, float wy, sf::Color col) 
-        : worldX(wx), worldY(wy), color(col), timer(0.75f), alpha(128) {}
+    GlowEffect(float wx, float wy, sf::Color col, float rot = 0.0f) 
+        : worldX(wx), worldY(wy), color(col), timer(0.75f), alpha(128), rotation(rot) {}
     
     void update(float deltaTime) {
         timer -= deltaTime;
@@ -291,6 +325,80 @@ struct GlowEffect {
     
     bool isFinished() const {
         return timer <= 0.0f;
+    }
+};
+
+
+struct AchievementPopup {
+    Achievement achievement;
+    std::string title;
+    float timer;
+    float slideProgress;
+    bool sliding;
+    
+    AchievementPopup(Achievement ach, const std::string& achTitle)
+        : achievement(ach), title(achTitle), timer(5.0f), slideProgress(0.0f), sliding(true) {}
+    
+    void update(float deltaTime) {
+        if (sliding && slideProgress < 1.0f) {
+            slideProgress += deltaTime * 2.0f;
+            if (slideProgress > 1.0f) slideProgress = 1.0f;
+        }
+        timer -= deltaTime;
+        if (timer < 0.5f && sliding) {
+            sliding = false;
+        }
+    }
+    
+    bool isFinished() const {
+        return timer <= 0.0f;
+    }
+    
+    float getOffsetX(float windowWidth) const {
+        const float popupWidth = 400.0f;
+        const float rightMargin = 20.0f;
+        float targetX = windowWidth - popupWidth - rightMargin;
+        float startX = windowWidth;
+        
+        if (sliding) {
+            return startX + (targetX - startX) * slideProgress;
+        } else {
+            float slideOut = (0.5f - timer) / 0.5f;
+            return targetX + (startX - targetX) * slideOut;
+        }
+    }
+};
+
+
+struct BackgroundPiece {
+    float x, y;
+    float speed;
+    float rotation;
+    float rotationSpeed;
+    PieceType type;
+    float opacity;
+    float brightness;
+    
+    BackgroundPiece(float startX, float startY, float fallSpeed, PieceType pieceType)
+        : x(startX), y(startY), speed(fallSpeed), rotation(0.0f), 
+          rotationSpeed((rand() % 4096 - 2048) / 100.0f), type(pieceType), opacity(1.0f) {
+
+
+        float minSpeed = 32.0f;
+        float maxSpeed = 288.0f;
+        float minBrightness = 0.05f;
+        float maxBrightness = 0.8f;
+        float normalizedSpeed = (fallSpeed - minSpeed) / (maxSpeed - minSpeed);
+        brightness = minBrightness + normalizedSpeed * (maxBrightness - minBrightness);
+    }
+    
+    void update(float deltaTime) {
+        y += speed * deltaTime;
+        rotation += rotationSpeed * deltaTime;
+    }
+    
+    bool isOffScreen() const {
+        return y > 1080.0f + 100.0f;
     }
 };
 

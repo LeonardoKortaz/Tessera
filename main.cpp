@@ -4,9 +4,11 @@
 #include "texture_utils.h"
 #include "difficulty_config.h"
 #include "achievements.h"
+#include "audio_manager.h"
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
+#include <cmath>
 #include <map>
 #include <fstream>
 #include <sstream>
@@ -26,9 +28,9 @@ std::string getSaveFilePath() {
     
     char* appData = std::getenv("APPDATA");
     if (appData) {
-        saveDataPath = std::filesystem::path(appData) / "Jigtriz";
+        saveDataPath = std::filesystem::path(appData) / "Jigzter";
     } else {
-        saveDataPath = std::filesystem::current_path() / "Jigtriz_Saves";
+        saveDataPath = std::filesystem::current_path() / "Jigzter_Saves";
     }
 #else
     
@@ -36,7 +38,7 @@ std::string getSaveFilePath() {
     if (homePath) {
         saveDataPath = std::filesystem::path(homePath) / ".jigz";
     } else {
-        saveDataPath = std::filesystem::current_path() / "Jigtriz_Saves";
+        saveDataPath = std::filesystem::current_path() / "Jigzter_Saves";
     }
 #endif
     
@@ -66,6 +68,10 @@ void saveGameData(const SaveData& data) {
         file << "BEST_TIME_CHALLENGE_THE_FOREST=" << data.bestTimeChallengeTheForest << std::endl;
         file << "BEST_TIME_CHALLENGE_RANDOMNESS=" << data.bestTimeChallengeRandomness << std::endl;
         file << "BEST_TIME_CHALLENGE_NON_STRAIGHT=" << data.bestTimeChallengeNonStraight << std::endl;
+        file << "BEST_TIME_CHALLENGE_ONE_ROT=" << data.bestTimeChallengeOneRot << std::endl;
+        file << "BEST_TIME_CHALLENGE_CHRISTOPHER_CURSE=" << data.bestTimeChallengeChristopherCurse << std::endl;
+        file << "BEST_TIME_CHALLENGE_VANISHING=" << data.bestTimeChallengeVanishing << std::endl;
+        file << "BEST_TIME_CHALLENGE_AUTO_DROP=" << data.bestTimeChallengeAutoDrop << std::endl;
         file << "BEST_LINES=" << data.bestLines << std::endl;
         file << "BEST_LEVEL=" << data.bestLevel << std::endl;
         
@@ -113,7 +119,7 @@ void saveGameData(const SaveData& data) {
         }
         
 
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 10; i++) {
             file << "ACHIEVEMENT_" << i << "=" << (data.achievements[i] ? 1 : 0) << std::endl;
         }
         
@@ -175,6 +181,14 @@ SaveData loadGameData() {
                     data.bestTimeChallengeRandomness = std::stof(value);
                 } else if (key == "BEST_TIME_CHALLENGE_NON_STRAIGHT") {
                     data.bestTimeChallengeNonStraight = std::stof(value);
+                } else if (key == "BEST_TIME_CHALLENGE_ONE_ROT") {
+                    data.bestTimeChallengeOneRot = std::stof(value);
+                } else if (key == "BEST_TIME_CHALLENGE_CHRISTOPHER_CURSE") {
+                    data.bestTimeChallengeChristopherCurse = std::stof(value);
+                } else if (key == "BEST_TIME_CHALLENGE_VANISHING") {
+                    data.bestTimeChallengeVanishing = std::stof(value);
+                } else if (key == "BEST_TIME_CHALLENGE_AUTO_DROP") {
+                    data.bestTimeChallengeAutoDrop = std::stof(value);
                 } else if (key == "BEST_LINES") {
                     data.bestLines = std::stoi(value);
                 } else if (key == "BEST_LEVEL") {
@@ -206,7 +220,7 @@ SaveData loadGameData() {
                 } else if (key.rfind("ACHIEVEMENT_", 0) == 0) {
 
                     int achievementId = std::stoi(key.substr(12));
-                    if (achievementId >= 0 && achievementId < 6) {
+                    if (achievementId >= 0 && achievementId < 10) {
                         data.achievements[achievementId] = (std::stoi(value) == 1);
                     }
                 } else if (key == "KEY_MOVE_LEFT") {
@@ -299,10 +313,148 @@ SaveData loadGameData() {
 }
 
 
-void unlockAchievement(SaveData& saveData, Achievement ach) {
+void unlockAchievement(SaveData& saveData, Achievement ach, std::vector<AchievementPopup>* popups = nullptr, AudioManager* audioManager = nullptr) {
     if (tryUnlockAchievement(saveData, ach)) {
         saveGameData(saveData);
+        
+        if (popups) {
+            AchievementInfo info = getAchievementInfo(ach);
+            popups->emplace_back(ach, info.title);
+        }
+        
+        if (audioManager) {
+            audioManager->playAchievementSound();
+        }
     }
+}
+
+
+void explodeMenuBomb(const BackgroundPiece& bomb, 
+                     std::vector<ExplosionEffect>& explosionEffects,
+                     std::vector<GlowEffect>& glowEffects,
+                     AudioManager& audioManager,
+                     float& shakeIntensity,
+                     float& shakeDuration,
+                     float& shakeTimer,
+                     SaveData& saveData,
+                     std::vector<AchievementPopup>& achievementPopups) {
+    
+    float bombRotation = bomb.rotation;
+    float bombCenterX = bomb.x;
+    float bombCenterY = bomb.y;
+    float bombZDepth = bomb.y;
+    
+
+    for (int dy = -2; dy <= 2; ++dy) {
+        for (int dx = -2; dx <= 2; ++dx) {
+
+            float localOffsetX = dx * 32.0f;
+            float localOffsetY = dy * 32.0f;
+            
+
+            float angleRad = bombRotation * 3.14159265f / 180.0f;
+            float cosAngle = std::cos(angleRad);
+            float sinAngle = std::sin(angleRad);
+            
+            float rotatedOffsetX = localOffsetX * cosAngle - localOffsetY * sinAngle;
+            float rotatedOffsetY = localOffsetX * sinAngle + localOffsetY * cosAngle;
+            
+
+            float explosionX = bombCenterX + rotatedOffsetX;
+            float explosionY = bombCenterY + rotatedOffsetY;
+            
+
+            explosionEffects.emplace_back(explosionX, explosionY, bombRotation, bombZDepth);
+            
+
+            float offsetX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 20.0f;
+            float offsetY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 20.0f;
+            float glowRotation = static_cast<float>(rand() % 360);
+            sf::Color glowColor = sf::Color(
+                150 + rand() % 106, 
+                150 + rand() % 106, 
+                150 + rand() % 106
+            );
+            glowEffects.emplace_back(explosionX + offsetX, explosionY + offsetY, glowColor, glowRotation);
+        }
+    }
+    
+
+    audioManager.playBombSound();
+    shakeIntensity = 15.0f;
+    shakeDuration = 0.4f;
+    shakeTimer = 0.0f;
+    
+
+    unlockAchievement(saveData, Achievement::MenuBombClicker, &achievementPopups, &audioManager);
+    saveGameData(saveData);
+    
+    std::cout << "Bomb clicked and exploded in menu!" << std::endl;
+}
+
+std::string getGameModeText(GameModeOption mode, ClassicDifficulty difficulty, SprintLines lines, ChallengeMode challenge) {
+    std::string modeText = "";
+    
+    if (mode == GameModeOption::Classic) {
+        modeText = "CLASSIC - ";
+        switch (difficulty) {
+            case ClassicDifficulty::Easy:
+                modeText += "EASY";
+                break;
+            case ClassicDifficulty::Medium:
+                modeText += "MEDIUM";
+                break;
+            case ClassicDifficulty::Hard:
+                modeText += "HARD";
+                break;
+        }
+    } else if (mode == GameModeOption::Sprint) {
+        modeText = "BLITZ - ";
+        switch (lines) {
+            case SprintLines::Lines1:
+                modeText += "1 LINE";
+                break;
+            case SprintLines::Lines24:
+                modeText += "24 LINES";
+                break;
+            case SprintLines::Lines48:
+                modeText += "48 LINES";
+                break;
+            case SprintLines::Lines96:
+                modeText += "96 LINES";
+                break;
+        }
+    } else if (mode == GameModeOption::Challenge) {
+        modeText = "CHALLENGE - ";
+        switch (challenge) {
+            case ChallengeMode::Debug:
+                modeText += "DEBUG";
+                break;
+            case ChallengeMode::TheForest:
+                modeText += "THE FOREST";
+                break;
+            case ChallengeMode::Randomness:
+                modeText += "RANDOMNESS";
+                break;
+            case ChallengeMode::NonStraight:
+                modeText += "NON-STRAIGHT";
+                break;
+            case ChallengeMode::OneRot:
+                modeText += "ONE ROTATION";
+                break;
+            case ChallengeMode::ChristopherCurse:
+                modeText += "THE CURSE";
+                break;
+            case ChallengeMode::Vanishing:
+                modeText += "VANISHING";
+                break;
+            case ChallengeMode::AutoDrop:
+                modeText += "AUTO DROP";
+                break;
+        }
+    }
+    
+    return modeText;
 }
 
 void drawGridBackground(sf::RenderWindow& window) {
@@ -329,6 +481,45 @@ int findFirstFilledRow(const PieceShape& shape) {
     }
     std::cout << "[WARNING] No filled cells found in shape!" << std::endl;
     return 0;
+}
+
+
+void drawCell(sf::RenderWindow& window, float x, float y, float cellSize, const sf::Color& color, 
+              TextureType texType, const std::map<TextureType, sf::Texture>& textures, 
+              bool useTextures, const sf::Transform& transform = sf::Transform::Identity) {
+    if (useTextures) {
+
+        TextureType textureToUse = texType;
+        
+
+        if (textures.find(textureToUse) == textures.end()) {
+            textureToUse = TextureType::GenericBlock;
+        }
+        
+        if (textures.find(textureToUse) != textures.end()) {
+            sf::Sprite sprite(textures.at(textureToUse));
+            sprite.setPosition(sf::Vector2f(x, y));
+            
+
+            if (textureToUse == TextureType::A_Bomb) {
+                sprite.setColor(sf::Color::White);
+            } else {
+                sprite.setColor(color);
+            }
+            
+            sf::Vector2u textureSize = textures.at(textureToUse).getSize();
+            sprite.setScale(sf::Vector2f(cellSize / textureSize.x, cellSize / textureSize.y));
+            window.draw(sprite, transform);
+            return;
+        }
+    }
+    
+
+    sf::RectangleShape rect;
+    rect.setSize(sf::Vector2f(cellSize, cellSize));
+    rect.setPosition(sf::Vector2f(x, y));
+    rect.setFillColor(color);
+    window.draw(rect, transform);
 }
 
 
@@ -577,13 +768,13 @@ void PieceBag::returnPieceToBag(PieceType piece) {
     std::cout << "[DEBUG] Bag size after return: " << currentBag.size() << std::endl;
 }
 
-void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceLastAbility, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded) {
+void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceLastAbility, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, bool infiniteBombs = false) {
     float panelX = 50;
     float panelY = GRID_OFFSET_Y + 300;
 
     sf::RectangleShape panelBg;
     panelBg.setFillColor(sf::Color(30, 30, 40, 200));
-    if (isAvailable) {
+    if (isAvailable || infiniteBombs) {
         panelBg.setOutlineColor(sf::Color(255, 100, 100, 255));
     } else {
         panelBg.setOutlineColor(sf::Color(100, 100, 100, 255));
@@ -596,18 +787,18 @@ void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceL
     if (fontLoaded) {
         sf::Text titleText(font, "BOMB");
         titleText.setCharacterSize(24);
-        titleText.setFillColor(isAvailable ? sf::Color(255, 100, 100) : sf::Color(100, 100, 100));
+        titleText.setFillColor((isAvailable || infiniteBombs) ? sf::Color(255, 100, 100) : sf::Color(100, 100, 100));
         titleText.setPosition(sf::Vector2f(panelX + 25, panelY));
         window.draw(titleText);
     } else {
         sf::RectangleShape titleLabel;
-        titleLabel.setFillColor(isAvailable ? sf::Color(255, 100, 100) : sf::Color(100, 100, 100));
+        titleLabel.setFillColor((isAvailable || infiniteBombs) ? sf::Color(255, 100, 100) : sf::Color(100, 100, 100));
         titleLabel.setSize(sf::Vector2f(60, 8));
         titleLabel.setPosition(sf::Vector2f(panelX + 20, panelY));
         window.draw(titleLabel);
     }
     
-    if (isAvailable) {
+    if (isAvailable || infiniteBombs) {
         PieceShape bombShape = getPieceShape(PieceType::A_Bomb);
         TextureType texType = TextureType::A_Bomb;
         
@@ -630,10 +821,10 @@ void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceL
         }
         
         if (fontLoaded) {
-            sf::Text readyText(font, "READY!");
-            readyText.setCharacterSize(25);
-            readyText.setFillColor(sf::Color(100, 255, 100));
-            readyText.setPosition(sf::Vector2f(panelX + 22, panelY + 100));
+            sf::Text readyText(font, infiniteBombs ? "INFINITE" : "READY!");
+            readyText.setCharacterSize(infiniteBombs ? 22 : 25);
+            readyText.setFillColor(infiniteBombs ? sf::Color(255, 215, 0) : sf::Color(100, 255, 100));
+            readyText.setPosition(sf::Vector2f(panelX + (infiniteBombs ? 15 : 22), panelY + 100));
             window.draw(readyText);
             
             sf::Text keyText(font, "Press 'I'");
@@ -708,27 +899,7 @@ void drawHeldPiece(sf::RenderWindow& window, PieceType heldType, bool hasHeld, c
                 if (shape.blocks[row][col]) {
                     float miniX = centerX - (shape.width * miniCellSize) / 2 + col * miniCellSize;
                     float miniY = centerY - (shape.height * miniCellSize) / 2 + row * miniCellSize;
-                    
-                    if (useTextures && textures.find(TextureType::GenericBlock) != textures.end()) {
-                        sf::Sprite miniSprite(textures.at(TextureType::GenericBlock));
-                        miniSprite.setPosition(sf::Vector2f(miniX, miniY));
-                        miniSprite.setColor(shape.color);
-                        sf::Vector2u textureSize = textures.at(TextureType::GenericBlock).getSize();
-                        miniSprite.setScale(sf::Vector2f(miniCellSize / textureSize.x, miniCellSize / textureSize.y));
-                        window.draw(miniSprite);
-                    } else if (useTextures && textures.find(texType) != textures.end()) {
-                        sf::Sprite miniSprite(textures.at(texType));
-                        miniSprite.setPosition(sf::Vector2f(miniX, miniY));
-                        sf::Vector2u textureSize = textures.at(texType).getSize();
-                        miniSprite.setScale(sf::Vector2f(miniCellSize / textureSize.x, miniCellSize / textureSize.y));
-                        window.draw(miniSprite);
-                    } else {
-                        sf::RectangleShape miniCell;
-                        miniCell.setSize(sf::Vector2f(miniCellSize, miniCellSize));
-                        miniCell.setPosition(sf::Vector2f(miniX, miniY));
-                        miniCell.setFillColor(shape.color);
-                        window.draw(miniCell);
-                    }
+                    drawCell(window, miniX, miniY, miniCellSize, shape.color, texType, textures, useTextures);
                 }
             }
         }
@@ -973,29 +1144,7 @@ void drawNextPieces(sf::RenderWindow& window, const std::vector<PieceType>& next
                     float miniCellSize = 16.0f;
                     float miniX = centerX - (shape.width * miniCellSize) / 2 + col * miniCellSize;
                     float miniY = centerY - (shape.height * miniCellSize) / 2 + row * miniCellSize;
-                    
-                    if (useTextures && textures.find(TextureType::GenericBlock) != textures.end()) {
-                        sf::Sprite miniSprite(textures.at(TextureType::GenericBlock));
-                        miniSprite.setPosition(sf::Vector2f(miniX, miniY));
-                        miniSprite.setColor(shape.color);
-                        sf::Vector2u textureSize = textures.at(TextureType::GenericBlock).getSize();
-                        miniSprite.setScale(sf::Vector2f(miniCellSize / textureSize.x, miniCellSize / textureSize.y));
-                        window.draw(miniSprite);
-                    } else if (useTextures && textures.find(texType) != textures.end()) {
-                        sf::Sprite miniSprite(textures.at(texType));
-                        miniSprite.setPosition(sf::Vector2f(miniX, miniY));
-                        sf::Vector2u textureSize = textures.at(texType).getSize();
-                        miniSprite.setScale(sf::Vector2f(miniCellSize / textureSize.x, miniCellSize / textureSize.y));
-                        window.draw(miniSprite);
-                    } else {
-                        sf::RectangleShape miniCell;
-                        miniCell.setSize(sf::Vector2f(miniCellSize, miniCellSize));
-                        miniCell.setPosition(sf::Vector2f(miniX, miniY));
-                        miniCell.setFillColor(shape.color);
-                        miniCell.setOutlineColor(sf::Color::Black);
-                        miniCell.setOutlineThickness(1);
-                        window.draw(miniCell);
-                    }
+                    drawCell(window, miniX, miniY, miniCellSize, shape.color, texType, textures, useTextures);
                 }
             }
         }
@@ -1028,6 +1177,8 @@ public:
     AbilityType getAbility() const { return ability; }
     int getX() const { return x; }
     int getY() const { return y; }
+    void setColor(const sf::Color& newColor) { shape.color = newColor; }
+    const PieceShape& getShape() const { return shape; }
     bool collidesAt(const std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, int testX, int testY) const {
         for (int i = 0; i < shape.height; ++i) {
             for (int j = 0; j < shape.width; ++j) {
@@ -1058,7 +1209,7 @@ public:
 
             if (lockDelayTimer >= LOCK_DELAY_TIME) {
                 isStatic = true;
-                ChangeToStatic(grid, ability);
+
             }
         } else {
             touchingGround = false;
@@ -1071,7 +1222,7 @@ public:
             }
         }
     }
-    void ChangeToStatic(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, AbilityType ability = AbilityType::None, std::unique_ptr<sf::Sound>* bombSound = nullptr, std::vector<ExplosionEffect>* explosions = nullptr, std::vector<GlowEffect>* glowEffects = nullptr, float* shakeIntensity = nullptr, float* shakeDuration = nullptr, float* shakeTimer = nullptr) {
+    void ChangeToStatic(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, AbilityType ability = AbilityType::None, AudioManager* audioManager = nullptr, std::vector<ExplosionEffect>* explosions = nullptr, std::vector<GlowEffect>* glowEffects = nullptr, float* shakeIntensity = nullptr, float* shakeDuration = nullptr, float* shakeTimer = nullptr, int* consecutiveBombsUsed = nullptr, SaveData* saveData = nullptr, std::vector<AchievementPopup>* achievementPopups = nullptr, bool isVanishingMode = false) {
         for (int i = 0; i < shape.height; ++i) {
             for (int j = 0; j < shape.width; ++j) {
                 if (shape.blocks[i][j]) {
@@ -1079,22 +1230,32 @@ public:
                     int gy = y + i;
                     if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT) {
                         grid[gy][gx] = Cell(shape.color, getTextureType(type));
+
+                        if (isVanishingMode) {
+                            grid[gy][gx].isVanishing = true;
+                            grid[gy][gx].vanishTimer = 0.0f;
+                        }
                     }
                 }
             }
         }
         
         if (ability != AbilityType::None) {
-            AbilityEffect(grid, bombSound, explosions, glowEffects, shakeIntensity, shakeDuration, shakeTimer);
+            AbilityEffect(grid, audioManager, explosions, glowEffects, shakeIntensity, shakeDuration, shakeTimer, consecutiveBombsUsed, saveData, achievementPopups);
         }
     }
-    void BombEffect(int centerX, int centerY, std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, std::unique_ptr<sf::Sound>& bombSound, std::vector<ExplosionEffect>& explosions, std::vector<GlowEffect>& glowEffects, float& shakeIntensity, float& shakeDuration, float& shakeTimer) {
-        if (bombSound) {
-            std::cout << "Playing bomb sound! Volume: " << bombSound->getVolume() << std::endl;
-            bombSound->play();
-            std::cout << "Bomb sound status: " << static_cast<int>(bombSound->getStatus()) << std::endl;
-        } else {
-            std::cout << "ERROR: bombSound is null!" << std::endl;
+    void BombEffect(int centerX, int centerY, std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, AudioManager& audioManager, std::vector<ExplosionEffect>& explosions, std::vector<GlowEffect>& glowEffects, float& shakeIntensity, float& shakeDuration, float& shakeTimer, int* consecutiveBombsUsed = nullptr, SaveData* saveData = nullptr, std::vector<AchievementPopup>* achievementPopups = nullptr) {
+        audioManager.playBombSound();
+        
+
+        if (consecutiveBombsUsed && saveData && achievementPopups) {
+            (*consecutiveBombsUsed)++;
+            std::cout << "[BOMB] Consecutive explosions: " << *consecutiveBombsUsed << "/3" << std::endl;
+            
+            if (*consecutiveBombsUsed >= 3) {
+                std::cout << "[ACHIEVEMENT] UNLOCKING EXPLOSION!" << std::endl;
+                unlockAchievement(*saveData, Achievement::Explosion, achievementPopups, &audioManager);
+            }
         }
         
 
@@ -1116,14 +1277,19 @@ public:
                     sf::Color blockColor = grid[y][x].occupied ? grid[y][x].color : sf::Color(200, 200, 200);
                     
                     grid[y][x] = Cell();
-                    explosions.push_back(ExplosionEffect(x, y));
                     
-                    float baseWorldX = GRID_OFFSET_X + x * CELL_SIZE;
-                    float baseWorldY = GRID_OFFSET_Y + y * CELL_SIZE;
+
+                    float explosionX = GRID_OFFSET_X + x * CELL_SIZE;
+                    float explosionY = GRID_OFFSET_Y + y * CELL_SIZE;
+                    float explosionRotation = static_cast<float>(rand() % 360);
+                    
+                    explosions.push_back(ExplosionEffect(explosionX, explosionY, explosionRotation, 0.0f));
+                    
                     float offsetX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 20.0f;
                     float offsetY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 20.0f;
+                    float glowRotation = static_cast<float>(rand() % 360);
                     
-                    glowEffects.push_back(GlowEffect(baseWorldX + offsetX, baseWorldY + offsetY, blockColor));
+                    glowEffects.push_back(GlowEffect(explosionX + offsetX, explosionY + offsetY, blockColor, glowRotation));
                 }
             }
         }
@@ -1145,17 +1311,16 @@ public:
             }
         }
     }
-    void AbilityEffect(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, std::unique_ptr<sf::Sound>* bombSound = nullptr, std::vector<ExplosionEffect>* explosions = nullptr, std::vector<GlowEffect>* glowEffects = nullptr, float* shakeIntensity = nullptr, float* shakeDuration = nullptr, float* shakeTimer = nullptr)
+    void AbilityEffect(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, AudioManager* audioManager = nullptr, std::vector<ExplosionEffect>* explosions = nullptr, std::vector<GlowEffect>* glowEffects = nullptr, float* shakeIntensity = nullptr, float* shakeDuration = nullptr, float* shakeTimer = nullptr, int* consecutiveBombsUsed = nullptr, SaveData* saveData = nullptr, std::vector<AchievementPopup>* achievementPopups = nullptr)
     {
         switch(ability)
         {
             case AbilityType::Bomb:
-                if (bombSound && explosions && glowEffects && shakeIntensity && shakeDuration && shakeTimer) {
-                    BombEffect(x, y, grid, *bombSound, *explosions, *glowEffects, *shakeIntensity, *shakeDuration, *shakeTimer);
+                if (audioManager && explosions && glowEffects && shakeIntensity && shakeDuration && shakeTimer) {
+                    BombEffect(x, y, grid, *audioManager, *explosions, *glowEffects, *shakeIntensity, *shakeDuration, *shakeTimer, consecutiveBombsUsed, saveData, achievementPopups);
                 } else {
                     std::cout << "Bomb ability activated (no sound/explosions)!" << std::endl;
                 }
-                std::cout << "Bomb ability activated!" << std::endl;
                 break;
             default:
                 break;
@@ -1183,40 +1348,13 @@ public:
             }
         }
         
+        TextureType texType = getTextureType(type);
         for (int i = 0; i < shape.height; ++i) {
             for (int j = 0; j < shape.width; ++j) {
                 if (shape.blocks[i][j]) {
                     float worldX = GRID_OFFSET_X + (x + j) * CELL_SIZE;
                     float worldY = GRID_OFFSET_Y + (y + i) * CELL_SIZE;
-                    
-                    TextureType pieceTexType = getTextureType(type);
-                    
-
-                    if (useTextures && pieceTexType != TextureType::GenericBlock && 
-                        textures.find(pieceTexType) != textures.end()) {
-                        sf::Sprite cellSprite(textures.at(pieceTexType));
-                        cellSprite.setPosition(sf::Vector2f(worldX, worldY));
-                        sf::Vector2u textureSize = textures.at(pieceTexType).getSize();
-                        cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
-                        window.draw(cellSprite);
-                    }
-
-                    else if (useTextures && textures.find(TextureType::GenericBlock) != textures.end()) {
-                        sf::Sprite cellSprite(textures.at(TextureType::GenericBlock));
-                        cellSprite.setPosition(sf::Vector2f(worldX, worldY));
-                        cellSprite.setColor(shape.color);
-                        sf::Vector2u textureSize = textures.at(TextureType::GenericBlock).getSize();
-                        cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
-                        window.draw(cellSprite);
-                    }
-
-                    else {
-                        sf::RectangleShape cellShape;
-                        cellShape.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
-                        cellShape.setPosition(sf::Vector2f(worldX, worldY));
-                        cellShape.setFillColor(shape.color);
-                        window.draw(cellShape);
-                    }
+                    drawCell(window, worldX, worldY, CELL_SIZE, shape.color, texType, textures, useTextures);
                 }
             }
         }
@@ -1337,48 +1475,18 @@ public:
         int ghostY = getGhostY(grid);
         if (ghostY == y) return;
         
+        TextureType texType = getTextureType(type);
         for (int i = 0; i < shape.height; ++i) {
             for (int j = 0; j < shape.width; ++j) {
                 if (shape.blocks[i][j]) {
                     float worldX = GRID_OFFSET_X + (x + j) * CELL_SIZE;
                     float worldY = GRID_OFFSET_Y + (ghostY + i) * CELL_SIZE;
                     
-                    TextureType pieceTexType = getTextureType(type);
+
+                    sf::Color ghostColor = shape.color;
+                    ghostColor.a = 80;
                     
-
-                    if (useTextures && pieceTexType != TextureType::GenericBlock && 
-                        textures.find(pieceTexType) != textures.end()) {
-                        sf::Sprite cellSprite(textures.at(pieceTexType));
-                        cellSprite.setPosition(sf::Vector2f(worldX, worldY));
-                        sf::Vector2u textureSize = textures.at(pieceTexType).getSize();
-                        cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
-                        cellSprite.setColor(sf::Color(255, 255, 255, 80));
-                        window.draw(cellSprite);
-                    }
-
-                    else if (useTextures && textures.find(TextureType::GenericBlock) != textures.end()) {
-                        sf::Sprite cellSprite(textures.at(TextureType::GenericBlock));
-                        cellSprite.setPosition(sf::Vector2f(worldX, worldY));
-                        sf::Vector2u textureSize = textures.at(TextureType::GenericBlock).getSize();
-                        cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
-
-                        sf::Color ghostColor = shape.color;
-                        ghostColor.a = 80;
-                        cellSprite.setColor(ghostColor);
-                        window.draw(cellSprite);
-                    }
-
-                    else {
-                        sf::RectangleShape cellShape;
-                        cellShape.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
-                        cellShape.setPosition(sf::Vector2f(worldX, worldY));
-                        sf::Color ghostColor = shape.color;
-                        ghostColor.a = 80;
-                        cellShape.setFillColor(ghostColor);
-                        cellShape.setOutlineThickness(1);
-                        cellShape.setOutlineColor(sf::Color(255, 255, 255, 120));
-                        window.draw(cellShape);
-                    }
+                    drawCell(window, worldX, worldY, CELL_SIZE, ghostColor, texType, textures, useTextures);
                 }
             }
         }
@@ -1396,7 +1504,7 @@ int calculateScore(int linesCleared) {
     return linesCleared * scorePerLine;
 }
 
-int clearFullLines(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, std::unique_ptr<sf::Sound>& laserSound, std::vector<std::unique_ptr<sf::Sound>>& wowSounds, std::vector<GlowEffect>* glowEffects = nullptr, float* shakeIntensity = nullptr, float* shakeDuration = nullptr, float* shakeTimer = nullptr) {
+int clearFullLines(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, AudioManager& audioManager, std::vector<GlowEffect>* glowEffects = nullptr, float* shakeIntensity = nullptr, float* shakeDuration = nullptr, float* shakeTimer = nullptr) {
     int linesCleared = 0;
     
 
@@ -1420,8 +1528,9 @@ int clearFullLines(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, 
                     float baseWorldY = GRID_OFFSET_Y + row * CELL_SIZE;
                     float offsetX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 20.0f;
                     float offsetY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 20.0f;
+                    float glowRotation = static_cast<float>(rand() % 360);
                     
-                    glowEffects->push_back(GlowEffect(baseWorldX + offsetX, baseWorldY + offsetY, blockColor));
+                    glowEffects->push_back(GlowEffect(baseWorldX + offsetX, baseWorldY + offsetY, blockColor, glowRotation));
                 }
             }
         }
@@ -1450,8 +1559,8 @@ int clearFullLines(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, 
         }
     }
     
-    if (linesCleared > 0 && laserSound) { 
-        laserSound->play(); 
+    if (linesCleared > 0) { 
+        audioManager.playLaserSound(); 
     }
     
 
@@ -1464,45 +1573,56 @@ int clearFullLines(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, 
     }
     
     if (linesCleared >= 4) {
-        std::vector<int> availableWowSounds;
-        for (int i = 0; i < wowSounds.size(); i++) {
-            if (wowSounds[i]) {
-                availableWowSounds.push_back(i);
-            }
-        }
-        if (!availableWowSounds.empty()) {
-            int randomIndex = availableWowSounds[rand() % availableWowSounds.size()];
-            wowSounds[randomIndex]->play();
-            std::cout << "AMAZING! " << linesCleared << " lines cleared! Playing wow_0" << (randomIndex + 1) << ".ogg" << std::endl;
-        }
+        int randomWow = rand() % 3;
+        audioManager.playWowSound(randomWow);
+        std::cout << "AMAZING! " << linesCleared << " lines cleared! Playing wow_0" << (randomWow + 1) << ".ogg" << std::endl;
     }
     
     return linesCleared;
 }
 
-void updateAllVolumes(sf::Music& backgroundMusic, std::unique_ptr<sf::Sound>& spaceSound, std::unique_ptr<sf::Sound>& laserSound, std::unique_ptr<sf::Sound>& bombSound, std::vector<std::unique_ptr<sf::Sound>>& wowSounds, float masterVolume, float baseMusicVolume, float baseSpaceVolume, float baseLaserVolume, float baseBombVolume, float baseWowVolume) {
-    backgroundMusic.setVolume((baseMusicVolume * masterVolume) / 100.0f);
+void updateAllVolumes(sf::Music& menuMusic, sf::Music& gameplayMusic, std::unique_ptr<sf::Sound>& spaceSound, std::unique_ptr<sf::Sound>& laserSound, std::unique_ptr<sf::Sound>& bombSound, std::unique_ptr<sf::Sound>& achievementSound, std::unique_ptr<sf::Sound>& gameOverSound, std::vector<std::unique_ptr<sf::Sound>>& wowSounds, float masterVolume, float menuMusicVolume, float gameplayMusicVolume, float spaceVolume, float laserVolume, float bombVolume, float achievementVolume, float gameOverVolume, float wowVolume) {
+    menuMusic.setVolume((menuMusicVolume * masterVolume) / 100.0f);
+    gameplayMusic.setVolume((gameplayMusicVolume * masterVolume) / 100.0f);
     
     if (spaceSound) {
-        spaceSound->setVolume((baseSpaceVolume * masterVolume) / 100.0f);
+        spaceSound->setVolume((spaceVolume * masterVolume) / 100.0f);
     }
     
     if (laserSound) {
-        laserSound->setVolume((baseLaserVolume * masterVolume) / 100.0f);
+        laserSound->setVolume((laserVolume * masterVolume) / 100.0f);
     }
     
     if (bombSound) {
-        bombSound->setVolume((baseBombVolume * masterVolume) / 100.0f);
+        bombSound->setVolume((bombVolume * masterVolume) / 100.0f);
+    }
+    
+    if (achievementSound) {
+        achievementSound->setVolume((achievementVolume * masterVolume) / 100.0f);
+    }
+    
+    if (gameOverSound) {
+        gameOverSound->setVolume((gameOverVolume * masterVolume) / 100.0f);
     }
     
     for (auto& wowSound : wowSounds) {
         if (wowSound) {
-            wowSound->setVolume((baseWowVolume * masterVolume) / 100.0f);
+            wowSound->setVolume((wowVolume * masterVolume) / 100.0f);
         }
     }
 }
 
-void insertNewScore(SaveData& saveData, int score, int lines, int level, ClassicDifficulty difficulty) {
+void switchMusic(sf::Music& fromMusic, sf::Music& toMusic, sf::Music*& currentMusic) {
+    if (currentMusic == &toMusic) {
+        return;
+    }
+    
+    fromMusic.stop();
+    toMusic.play();
+    currentMusic = &toMusic;
+}
+
+bool insertNewScore(SaveData& saveData, int score, int lines, int level, ClassicDifficulty difficulty) {
     SaveData::ScoreEntry newEntry = {score, lines, level};
     
 
@@ -1527,6 +1647,8 @@ void insertNewScore(SaveData& saveData, int score, int lines, int level, Classic
             break;
         }
     }
+    
+    bool madeTopThree = (insertPos >= 0);
     
     if (insertPos >= 0) {
 
@@ -1583,6 +1705,8 @@ void insertNewScore(SaveData& saveData, int score, int lines, int level, Classic
     if (score > saveData.highScore) {
         saveData.highScore = score;
     }
+    
+    return madeTopThree;
 }
 
 #ifdef _WIN32
@@ -1624,20 +1748,42 @@ int main(int argc, char* argv[]) {
     bool isFullscreen = true;
     if (isFullscreen) {
         auto desktopMode = sf::VideoMode::getDesktopMode();
-        window.create(desktopMode, "Jigtriz", sf::Style::None);
+        window.create(desktopMode, "Jigzter", sf::Style::None);
+        window.setMouseCursorVisible(false);
     } else {
-        window.create(sf::VideoMode(sf::Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT)), "Jigtriz", sf::Style::Default);
+        window.create(sf::VideoMode(sf::Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT)), "Jigzter", sf::Style::Default);
+        window.setMouseCursorVisible(false);
     }
+    window.setMouseCursorGrabbed(false);
     window.setFramerateLimit(144);
     window.requestFocus();
+    
+
+    sf::View mainView(sf::Vector2f(static_cast<float>(WINDOW_WIDTH) / 2.0f, static_cast<float>(WINDOW_HEIGHT) / 2.0f), 
+                      sf::Vector2f(static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT)));
+    window.setView(mainView);
+    std::cout << "Window created with resolution: " << window.getSize().x << "x" << window.getSize().y << std::endl;
+    std::cout << "View size: " << WINDOW_WIDTH << "x" << WINDOW_HEIGHT << " (will be scaled to fit)" << std::endl;
+    
+
+    sf::Texture splashTexture;
+    bool splashLoaded = false;
+    if (splashTexture.loadFromFile("Assets/Texture/SplashScreen/Kilonia Studios.png")) {
+        splashLoaded = true;
+        std::cout << "Splash screen texture loaded successfully" << std::endl;
+    } else {
+        std::cout << "Unable to load splash screen texture" << std::endl;
+    }
+    
     std::map<TextureType, sf::Texture> textures;
     std::vector<TextureInfo> textureList = {
         {TextureType::Empty, "Assets/Texture/Cells/cell_background.png", sf::Color(50, 50, 60)},
-        {TextureType::GenericBlock, "Assets/Texture/Cells/cell_normal_block.png", sf::Color::White},
-        {TextureType::MediumBlock, "Assets/Texture/Cells/cell_medium_block.png", sf::Color::White},
-        {TextureType::HardBlock, "Assets/Texture/Cells/cell_hard_block.png", sf::Color::White},
-        {TextureType::A_Bomb, "Assets/Texture/Cells/cell_bomb_block.png", sf::Color(255, 100, 100)},
-        {TextureType::MuteIcon, "Assets/Texture/Icon/Mute.png", sf::Color::White}
+        {TextureType::GenericBlock, "Assets/Texture/Cells/cell_normal_block_default.png", sf::Color::White},
+        {TextureType::MediumBlock, "Assets/Texture/Cells/cell_medium_block_default.png", sf::Color::White},
+        {TextureType::HardBlock, "Assets/Texture/Cells/cell_hard_block_default.png", sf::Color::White},
+        {TextureType::A_Bomb, "Assets/Texture/Cells/cell_bomb_block_default.png", sf::Color(255, 100, 100)},
+        {TextureType::MuteIcon, "Assets/Texture/Icon/Mute.png", sf::Color::White},
+        {TextureType::JigzterLogo, "Assets/Texture/Logo/JigzterLogo.png", sf::Color::White}
     };
     bool useTextures = false;
     for (const auto& info : textureList) {
@@ -1681,96 +1827,53 @@ int main(int argc, char* argv[]) {
     
     bool fontLoaded = titleFontLoaded && menuFontLoaded;
     
-    sf::Music backgroundMusic;
-    sf::SoundBuffer spaceSoundBuffer;
-    sf::SoundBuffer laserSoundBuffer;
-    sf::SoundBuffer bombSoundBuffer;
-    std::vector<sf::SoundBuffer> wowSoundBuffers;
-    std::vector<std::unique_ptr<sf::Sound>> wowSounds;
-    std::unique_ptr<sf::Sound> spaceSound;
-    std::unique_ptr<sf::Sound> laserSound;
-    std::unique_ptr<sf::Sound> bombSound;
-    
-    float masterVolume = saveData.masterVolume;
-    bool isMuted = saveData.isMuted;
-    float lastMasterVolume = saveData.masterVolume;
-    
-    if (isMuted) {
-        lastMasterVolume = masterVolume;
-        masterVolume = 0.0f;
-        std::cout << "Game started in MUTED mode" << std::endl;
-    }
-    
-    const float baseMusicVolume = 60.0f;
-    const float baseSpaceVolume = 8.0f;
-    const float baseLaserVolume = 8.0f;
-    const float baseBombVolume = 100.0f;
-    const float baseWowVolume = 70.0f;
-    
-    if (backgroundMusic.openFromFile("Assets/Sound/Music/Jigtriz.ogg")) {
-        backgroundMusic.setLooping(true);
-        backgroundMusic.setVolume((baseMusicVolume * masterVolume) / 100.0f);
-        backgroundMusic.play();
-        std::cout << "Background music loaded successfully!" << std::endl;
-    } else {
-        std::cout << "Unable to load background music (Assets/Sound/Music/Jigtriz.ogg) - continuing without music." << std::endl;
-    }
-    if (spaceSoundBuffer.loadFromFile("Assets/Sound/SFX/ground.ogg")) {
-        spaceSound = std::make_unique<sf::Sound>(spaceSoundBuffer);
-        spaceSound->setVolume((baseSpaceVolume * masterVolume) / 100.0f);
-        std::cout << "Space sound loaded successfully!" << std::endl;
-    } else {
-        std::cout << "Unable to load space sound (Assets/Sound/SFX/ground.ogg) - continuing without sound." << std::endl;
-    }
-    if (laserSoundBuffer.loadFromFile("Assets/Sound/SFX/laser.ogg")) {
-        laserSound = std::make_unique<sf::Sound>(laserSoundBuffer);
-        laserSound->setVolume((baseLaserVolume * masterVolume) / 100.0f);
-        std::cout << "Laser sound loaded successfully!" << std::endl;
-    } else {
-        std::cout << "Unable to load laser sound (Assets/Sound/SFX/laser.ogg) - continuing without sound." << std::endl;
-    }
-    if (bombSoundBuffer.loadFromFile("Assets/Sound/SFX/bomb.ogg")) {
-        bombSound = std::make_unique<sf::Sound>(bombSoundBuffer);
-        bombSound->setVolume((baseBombVolume * masterVolume) / 100.0f);
-        std::cout << "Bomb sound loaded successfully! Master volume: " << masterVolume << ", Base volume: " << baseBombVolume << ", Final volume: " << bombSound->getVolume() << std::endl;
-    } else {
-        std::cout << "Unable to load bomb sound (Assets/Sound/SFX/bomb.ogg) - continuing without sound." << std::endl;
-    }
 
-    wowSoundBuffers.resize(3);
-    wowSounds.resize(3);
-    for (int i = 0; i < 3; i++) {
-        std::string filename = "Assets/Sound/SFX/wow_0" + std::to_string(i + 1) + ".ogg";
-        if (wowSoundBuffers[i].loadFromFile(filename)) {
-            wowSounds[i] = std::make_unique<sf::Sound>(wowSoundBuffers[i]);
-            wowSounds[i]->setVolume((baseWowVolume * masterVolume) / 100.0f);
-            std::cout << "Wow sound loaded successfully: " << filename << std::endl;
-        } else {
-            std::cout << "Unable to load wow sound: " << filename << " - continuing without this sound." << std::endl;
-        }
+    AudioManager audioManager;
+    audioManager.setMasterVolume(saveData.masterVolume);
+    if (saveData.isMuted) {
+        audioManager.toggleMute();
     }
+    audioManager.loadAllAudio();
+
     
     std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT> grid;
-    PieceBag jigtrizBag;
+    PieceBag JigzterBag;
     
     std::vector<ExplosionEffect> explosionEffects;
     std::vector<GlowEffect> glowEffects;
+    std::vector<BackgroundPiece> backgroundPieces;
+    std::vector<AchievementPopup> achievementPopups;
     
     float shakeIntensity = 0.0f;
     float shakeDuration = 0.0f;
     float shakeTimer = 0.0f;
+    
+    float backgroundSpawnTimer = 0.0f;
+    const float BACKGROUND_SPAWN_INTERVAL = 0.02f;
 
-    GameState gameState = GameState::MainMenu;
+    GameState gameState = GameState::SplashScreen;
     MenuOption selectedMenuOption = MenuOption::Start;
     GameModeOption selectedGameModeOption = GameModeOption::Classic;
     ClassicDifficulty selectedClassicDifficulty = ClassicDifficulty::Easy;
     SprintLines selectedSprintLines = SprintLines::Lines24;
-    ChallengeMode selectedChallengeMode = ChallengeMode::TheForest;
-    JigtrizopediaOption selectedJigtrizopediaOption = JigtrizopediaOption::JigtrizPieces;
+    ChallengeMode selectedChallengeMode = ChallengeMode::Randomness;
+    PracticeDifficulty selectedPracticeDifficulty = PracticeDifficulty::Easy;
+    PracticeLineGoal selectedPracticeLineGoal = PracticeLineGoal::Infinite;
+    bool practiceInfiniteBombs = false;
+    int selectedPracticeOption = 0;
+    ExtrasOption selectedExtrasOption = ExtrasOption::JigzterPieces;
     OptionsMenuOption selectedOptionsOption = OptionsMenuOption::ClearScores;
     PauseOption selectedPauseOption = PauseOption::Resume;
     ConfirmOption selectedConfirmOption = ConfirmOption::No;
     int hoveredAchievement = -1;
+    
+    bool showCustomCursor = false;
+    
+
+    int splashSequenceStep = 0;
+    float splashElapsedTime = 0.0f;
+    const float FADE_DURATION = 1.0f;
+    float blackScreenAlpha = 1.0f;
     
     KeyBindings keyBindings;
 
@@ -1801,6 +1904,9 @@ int main(int argc, char* argv[]) {
     int currentLevel = 0;
     int totalScore = 0;
     bool gameOver = false;
+    bool gameOverSoundPlayed = false;
+    float gameOverMusicTimer = 0.0f;
+    const float GAME_OVER_MUSIC_DELAY = 2.0f;
     
 
     float sessionPlayTime = 0.0f;
@@ -1817,6 +1923,13 @@ int main(int argc, char* argv[]) {
     bool sprintModeActive = false;
     bool sprintCompleted = false;
     bool challengeModeActive = false;
+    bool practiceModeActive = false;
+    
+    float autoDropTimer = 0.0f;
+    const float AUTO_DROP_INTERVAL = 1.337f;
+    
+    float hardDropCooldown = 0.0f;
+    const float HARD_DROP_COOLDOWN_TIME = 0.25f;
     
     int linesSinceLastAbility = 0;
     bool bombAbilityAvailable = false;
@@ -1834,11 +1947,15 @@ int main(int argc, char* argv[]) {
 
     bool bombUsedThisGame = false;
     int maxComboThisGame = 0;
+    int consecutiveBombsUsed = 0;
     
 
     PieceType heldPiece = PieceType::I_Basic;
     bool hasHeldPiece = false;
     bool canUseHold = true;
+    
+
+    int currentPieceRotations = 0;
     
 
     float leftHoldTime = 0.0f;
@@ -1849,7 +1966,7 @@ int main(int argc, char* argv[]) {
     bool leftPressed = false;
     bool rightPressed = false;
     
-    PieceType initType = jigtrizBag.getNextPiece();
+    PieceType initType = JigzterBag.getNextPiece();
     std::cout << "Initial spawn: " << pieceTypeToString(initType) << " (Bag System)" << std::endl;
     PieceShape initShape = getPieceShape(initType);
     int startX = (GRID_WIDTH - initShape.width) / 2;
@@ -1864,47 +1981,267 @@ int main(int argc, char* argv[]) {
         while (auto event = window.pollEvent()) {
             if (event->is<sf::Event::Closed>()) { window.close(); }
             
+
+            if (event->is<sf::Event::MouseMoved>()) {
+                if (gameState != GameState::SplashScreen && gameState != GameState::Playing) {
+                    showCustomCursor = true;
+                }
+            }
+            
             if (const auto* mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mouseButtonPressed->button == sf::Mouse::Button::Left) {
-                    if (gameState == GameState::MainMenu) {
-                        if (selectedMenuOption == MenuOption::Start) {
-                            gameState = GameState::GameModeSelect;
-                            selectedGameModeOption = GameModeOption::Classic;
-                            std::cout << "Entered GAME MODE selection (mouse)" << std::endl;
-                        } else if (selectedMenuOption == MenuOption::Jigtrizopedia) {
-                            gameState = GameState::Jigtrizopedia;
-                            selectedJigtrizopediaOption = JigtrizopediaOption::JigtrizPieces;
-                            std::cout << "Entered JIGTRIZOPEDIA menu (mouse)" << std::endl;
-                        } else if (selectedMenuOption == MenuOption::Options) {
-                            gameState = GameState::Options;
-                            std::cout << "Entered OPTIONS menu (mouse)" << std::endl;
-                        } else if (selectedMenuOption == MenuOption::Exit) {
-                            window.close();
+                    if (gameState == GameState::SplashScreen) {
+
+                        gameState = GameState::MainMenu;
+                        audioManager.playMenuMusic();
+                        showCustomCursor = true;
+                        std::cout << "Splash screen skipped (mouse)" << std::endl;
+                    } else if (gameState == GameState::MainMenu) {
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        float centerX = WINDOW_WIDTH / 2.0f;
+                        float centerY = WINDOW_HEIGHT / 2.0f;
+                        
+
+                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
+                        if (clickedBombIndex >= 0) {
+
+                            const auto& bomb = backgroundPieces[clickedBombIndex];
+                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
+                                          shakeIntensity, shakeDuration, shakeTimer, 
+                                          saveData, achievementPopups);
+                            
+
+                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
+                        }
+
+                        else {
+
+
+                            if (clickX >= centerX - 200 && clickX <= centerX + 200 &&
+                                clickY >= centerY - 60 && clickY <= centerY + 20) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::GameModeSelect;
+                                selectedGameModeOption = GameModeOption::Classic;
+                                std::cout << "Entered GAME MODE selection (mouse)" << std::endl;
+                            }
+
+                            else if (clickX >= centerX - 250 && clickX <= centerX + 250 &&
+                                     clickY >= centerY + 50 && clickY <= centerY + 130) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::Extras;
+                                selectedExtrasOption = ExtrasOption::JigzterPieces;
+                                std::cout << "Entered EXTRAS menu (mouse)" << std::endl;
+                            }
+
+                            else if (clickX >= centerX - 225 && clickX <= centerX + 225 &&
+                                     clickY >= centerY + 160 && clickY <= centerY + 240) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::Options;
+                                std::cout << "Entered OPTIONS menu (mouse)" << std::endl;
+                            }
+
+                            else if (clickX >= centerX - 175 && clickX <= centerX + 175 &&
+                                     clickY >= centerY + 270 && clickY <= centerY + 350) {
+                                window.close();
+                            }
                         }
                     } else if (gameState == GameState::GameModeSelect) {
-                        if (selectedGameModeOption == GameModeOption::Classic) {
-                            gameState = GameState::ClassicDifficultySelect;
-                            selectedClassicDifficulty = ClassicDifficulty::Easy;
-                            std::cout << "Entered CLASSIC difficulty selection (mouse)" << std::endl;
-                        } else if (selectedGameModeOption == GameModeOption::Sprint) {
-                            gameState = GameState::SprintLinesSelect;
-                            selectedSprintLines = SprintLines::Lines24;
-                            std::cout << "Entered BLITZ lines selection (mouse)" << std::endl;
-                        } else if (selectedGameModeOption == GameModeOption::Challenge) {
-                            gameState = GameState::ChallengeSelect;
-                            selectedChallengeMode = debugMode ? ChallengeMode::Debug : ChallengeMode::TheForest;
-                            std::cout << "Entered CHALLENGE selection (mouse)" << std::endl;
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        float centerX = WINDOW_WIDTH / 2.0f;
+                        float centerY = WINDOW_HEIGHT / 2.0f;
+                        
+
+                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
+                        if (clickedBombIndex >= 0) {
+                            const auto& bomb = backgroundPieces[clickedBombIndex];
+                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
+                                          shakeIntensity, shakeDuration, shakeTimer, 
+                                          saveData, achievementPopups);
+                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
+                        }
+                        else {
+                            float startY = centerY - 80.0f;
+                            float spacing = 90.0f;
+                            
+
+                            for (int i = 0; i < 4; i++) {
+                                float selectorY = startY + i * spacing - 5;
+                                if (clickX >= centerX - 200 && clickX <= centerX + 200 &&
+                                    clickY >= selectorY && clickY <= selectorY + 60) {
+                                    GameModeOption clickedMode = static_cast<GameModeOption>(i);
+                                    
+                                    audioManager.playMenuClickSound();
+                                    if (clickedMode == GameModeOption::Classic) {
+                                        gameState = GameState::ClassicDifficultySelect;
+                                        selectedClassicDifficulty = ClassicDifficulty::Easy;
+                                        std::cout << "Entered CLASSIC difficulty selection (mouse)" << std::endl;
+                                    } else if (clickedMode == GameModeOption::Sprint) {
+                                        gameState = GameState::SprintLinesSelect;
+                                        selectedSprintLines = SprintLines::Lines24;
+                                        std::cout << "Entered BLITZ lines selection (mouse)" << std::endl;
+                                    } else if (clickedMode == GameModeOption::Challenge) {
+                                        gameState = GameState::ChallengeSelect;
+                                        selectedChallengeMode = debugMode ? ChallengeMode::Debug : ChallengeMode::Randomness;
+                                        std::cout << "Entered CHALLENGE selection (mouse)" << std::endl;
+                                    } else if (clickedMode == GameModeOption::Practice) {
+                                        gameState = GameState::PracticeSelect;
+                                        selectedPracticeDifficulty = PracticeDifficulty::Easy;
+                                        selectedPracticeLineGoal = PracticeLineGoal::Infinite;
+                                        practiceInfiniteBombs = false;
+                                        selectedPracticeOption = 0;
+                                        std::cout << "Entered PRACTICE selection (mouse)" << std::endl;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    } else if (gameState == GameState::PracticeSelect) {
+
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        float centerX = WINDOW_WIDTH / 2.0f;
+                        float centerY = WINDOW_HEIGHT / 2.0f;
+                        
+                        float startY = centerY - 180.0f;
+                        float spacing = 100.0f;
+                        float startButtonY = startY + spacing * 3 + 25;
+                        
+
+                        bool clickedOption = false;
+                        for (int i = 0; i < 3; i++) {
+                            float selectorY = startY + i * spacing - 5;
+                            if (clickX >= centerX - 350 && clickX <= centerX + 350 &&
+                                clickY >= selectorY && clickY <= selectorY + 60) {
+                                audioManager.playMenuClickSound();
+                                
+                                if (i == 0) {
+                                    selectedPracticeDifficulty = static_cast<PracticeDifficulty>(
+                                        (static_cast<int>(selectedPracticeDifficulty) + 1) % 4
+                                    );
+                                } else if (i == 1) {
+                                    selectedPracticeLineGoal = static_cast<PracticeLineGoal>(
+                                        (static_cast<int>(selectedPracticeLineGoal) + 1) % 4
+                                    );
+                                } else if (i == 2) {
+                                    practiceInfiniteBombs = !practiceInfiniteBombs;
+                                }
+                                clickedOption = true;
+                                break;
+                            }
+                        }
+                        
+
+                        if (!clickedOption && selectedPracticeOption == 3 &&
+                            clickX >= centerX - 250 && clickX <= centerX + 250 &&
+                            clickY >= startButtonY && clickY <= startButtonY + 60) {
+                            
+                            audioManager.switchToGameplayMusic();
+                            audioManager.playMenuClickSound();
+                            
+                            gameState = GameState::Playing;
+                            showCustomCursor = false;
+                            gameOver = false;
+                            gameOverSoundPlayed = false;
+                            gameOverMusicTimer = 0.0f;
+                            
+                            bombUsedThisGame = false;
+                            maxComboThisGame = 0;
+                            consecutiveBombsUsed = 0;
+                            hardDropCooldown = 0.0f;
+                            
+                            practiceModeActive = true;
+                            sprintModeActive = false;
+                            challengeModeActive = false;
+                            sprintCompleted = false;
+                            sprintTimer = 0.0f;
+                            autoDropTimer = 0.0f;
+                            
+                            const DifficultyConfig* config = getDifficultyConfig(
+                                selectedGameModeOption,
+                                selectedClassicDifficulty,
+                                selectedSprintLines,
+                                selectedChallengeMode,
+                                selectedPracticeDifficulty,
+                                selectedPracticeLineGoal,
+                                practiceInfiniteBombs
+                            );
+                            JigzterBag.setDifficultyConfig(config);
+                            currentConfig = config;
+                            
+                            for (int i = 0; i < GRID_HEIGHT; ++i) {
+                                for (int j = 0; j < GRID_WIDTH; ++j) {
+                                    grid[i][j] = Cell();
+                                }
+                            }
+                            totalLinesCleared = 0;
+                            currentLevel = 0;
+                            totalScore = 0;
+                            currentCombo = 0;
+                            lastMoveScore = 0;
+                            totalHardDropScore = 0;
+                            totalLineScore = 0;
+                            totalComboScore = 0;
+                            RESET_SESSION_STATS();
+                            JigzterBag.reset();
+                            hasHeldPiece = false;
+                            canUseHold = true;
+                            linesSinceLastAbility = 0;
+                            bombAbilityAvailable = practiceInfiniteBombs ? true : debugMode;
+                            explosionEffects.clear();
+                            glowEffects.clear();
+                            leftHoldTime = 0.0f;
+                            rightHoldTime = 0.0f;
+                            dasTimer = 0.0f;
+                            leftPressed = false;
+                            rightPressed = false;
+                            
+                            PieceType firstType = JigzterBag.getNextPiece();
+                            PieceShape firstShape = getPieceShape(firstType);
+                            int spawnX = (GRID_WIDTH - firstShape.width) / 2;
+                            int firstFilledRow = findFirstFilledRow(firstShape);
+                            int spawnY = -firstFilledRow;
+                            
+                            if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                int randomColorIndex = rand() % currentConfig->colorPalette.size();
+                                sf::Color randomColor = currentConfig->colorPalette[randomColorIndex];
+                                activePiece = Piece(spawnX, spawnY, firstType);
+                                activePiece.setColor(randomColor);
+                            } else {
+                                activePiece = Piece(spawnX, spawnY, firstType);
+                            }
+                            
+                            std::cout << "Practice mode started with difficulty: " << static_cast<int>(selectedPracticeDifficulty) 
+                                     << ", line goal: " << static_cast<int>(selectedPracticeLineGoal) 
+                                     << ", infinite bombs: " << (practiceInfiniteBombs ? "YES" : "NO") << std::endl;
                         }
                     } else if (gameState == GameState::ClassicDifficultySelect || 
                                gameState == GameState::SprintLinesSelect || 
                                gameState == GameState::ChallengeSelect) {
 
+                        audioManager.switchToGameplayMusic();
+                        
                         gameState = GameState::Playing;
+                        showCustomCursor = false;
                         gameOver = false;
+                        gameOverSoundPlayed = false;
+                        gameOverMusicTimer = 0.0f;
                         
 
                         bombUsedThisGame = false;
                         maxComboThisGame = 0;
+                        consecutiveBombsUsed = 0;
+                        hardDropCooldown = 0.0f;
                         
 
                         if (selectedGameModeOption == GameModeOption::Sprint) {
@@ -1912,6 +2249,7 @@ int main(int argc, char* argv[]) {
                             challengeModeActive = false;
                             sprintCompleted = false;
                             sprintTimer = 0.0f;
+                            autoDropTimer = 0.0f;
                             switch (selectedSprintLines) {
                                 case SprintLines::Lines1:
                                     sprintTargetLines = 1;
@@ -1929,11 +2267,21 @@ int main(int argc, char* argv[]) {
                         } else if (selectedGameModeOption == GameModeOption::Challenge) {
                             challengeModeActive = true;
                             sprintModeActive = false;
+                            practiceModeActive = false;
                             sprintCompleted = false;
                             sprintTimer = 0.0f;
+                            autoDropTimer = 0.0f;
+                        } else if (selectedGameModeOption == GameModeOption::Practice) {
+                            practiceModeActive = true;
+                            sprintModeActive = false;
+                            challengeModeActive = false;
+                            sprintCompleted = false;
+                            sprintTimer = 0.0f;
+                            autoDropTimer = 0.0f;
                         } else {
                             sprintModeActive = false;
                             challengeModeActive = false;
+                            practiceModeActive = false;
                             sprintCompleted = false;
                         }
                         
@@ -1942,9 +2290,12 @@ int main(int argc, char* argv[]) {
                             selectedGameModeOption,
                             selectedClassicDifficulty,
                             selectedSprintLines,
-                            selectedChallengeMode
+                            selectedChallengeMode,
+                            selectedPracticeDifficulty,
+                            selectedPracticeLineGoal,
+                            practiceInfiniteBombs
                         );
-                        jigtrizBag.setDifficultyConfig(config);
+                        JigzterBag.setDifficultyConfig(config);
                         currentConfig = config;
                         
                         for (int i = 0; i < GRID_HEIGHT; ++i) {
@@ -1961,7 +2312,7 @@ int main(int argc, char* argv[]) {
                         totalLineScore = 0;
                         totalComboScore = 0;
                         RESET_SESSION_STATS();
-                        jigtrizBag.reset();
+                        JigzterBag.reset();
                         hasHeldPiece = false;
                         canUseHold = true;
                         linesSinceLastAbility = 0;
@@ -1974,48 +2325,172 @@ int main(int argc, char* argv[]) {
                         leftPressed = false;
                         rightPressed = false;
                         
-                        PieceType startType = jigtrizBag.getNextPiece();
+                        PieceType startType = JigzterBag.getNextPiece();
                         PieceShape startShape = getPieceShape(startType);
                         int startX = (GRID_WIDTH - startShape.width) / 2;
                         int firstFilledRow = findFirstFilledRow(startShape);
                         int startY = -firstFilledRow;
                         activePiece = Piece(startX, startY, startType);
                         
+
+                        if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                            int randomIndex = rand() % currentConfig->colorPalette.size();
+                            activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                        }
+                        
                         std::cout << "Game started (mouse) with mode: " << config->modeName << std::endl;
-                    } else if (gameState == GameState::Jigtrizopedia) {
-                        if (selectedJigtrizopediaOption == JigtrizopediaOption::Achievements) {
-                            gameState = GameState::AchievementsView;
-                            std::cout << "Entered ACHIEVEMENTS view (mouse)" << std::endl;
-                        } else if (selectedJigtrizopediaOption == JigtrizopediaOption::Statistics) {
-                            gameState = GameState::StatisticsView;
-                            std::cout << "Entered STATISTICS view (mouse)" << std::endl;
-                        } else {
-                            std::cout << "Other Jigtrizopedia buttons are currently disabled" << std::endl;
+                    } else if (gameState == GameState::Extras) {
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        float centerX = WINDOW_WIDTH / 2.0f;
+                        float centerY = WINDOW_HEIGHT / 2.0f;
+                        
+
+                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
+                        if (clickedBombIndex >= 0) {
+                            const auto& bomb = backgroundPieces[clickedBombIndex];
+                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
+                                          shakeIntensity, shakeDuration, shakeTimer, 
+                                          saveData, achievementPopups);
+                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
+                        }
+                        else {
+                            float startY = centerY - 200.0f;
+                            float spacing = 70.0f;
+                            
+
+                            for (int i = 0; i < 3; i++) {
+                                float selectorY = startY + i * spacing - 5;
+                                if (clickX >= centerX - 225 && clickX <= centerX + 225 &&
+                                    clickY >= selectorY && clickY <= selectorY + 55) {
+                                    ExtrasOption clickedOption = static_cast<ExtrasOption>(i);
+                                    
+                                    if (clickedOption == ExtrasOption::Achievements) {
+                                        audioManager.playMenuClickSound();
+                                        gameState = GameState::AchievementsView;
+                                        std::cout << "Entered ACHIEVEMENTS view (mouse)" << std::endl;
+                                    } else if (clickedOption == ExtrasOption::Statistics) {
+                                        audioManager.playMenuClickSound();
+                                        gameState = GameState::StatisticsView;
+                                        std::cout << "Entered STATISTICS view (mouse)" << std::endl;
+                                    } else {
+                                        std::cout << "Other Extras buttons are currently disabled" << std::endl;
+                                    }
+                                    break;
+                                }
+                            }
                         }
                     } else if (gameState == GameState::Options) {
-                        if (selectedOptionsOption == OptionsMenuOption::ClearScores) {
-                            gameState = GameState::ConfirmClearScores;
-                            selectedConfirmOption = ConfirmOption::No;
-                            std::cout << "Opening confirmation dialog (mouse)" << std::endl;
-                        } else if (selectedOptionsOption == OptionsMenuOption::RebindKeys) {
-                            gameState = GameState::Rebinding;
-                            std::cout << "Entering REBIND KEYS menu (mouse)" << std::endl;
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        float centerX = WINDOW_WIDTH / 2.0f;
+                        float centerY = WINDOW_HEIGHT / 2.0f;
+                        
+
+                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
+                        if (clickedBombIndex >= 0) {
+                            const auto& bomb = backgroundPieces[clickedBombIndex];
+                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
+                                          shakeIntensity, shakeDuration, shakeTimer, 
+                                          saveData, achievementPopups);
+                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
                         }
+                        else {
+
+                            if (clickX >= centerX - 200 && clickX <= centerX + 200 &&
+                                clickY >= centerY - 85 && clickY <= centerY - 25) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::ConfirmClearScores;
+                                selectedConfirmOption = ConfirmOption::No;
+                                std::cout << "Opening confirmation dialog (mouse)" << std::endl;
+                            }
+
+                            else if (clickX >= centerX - 200 && clickX <= centerX + 200 &&
+                                     clickY >= centerY + 15 && clickY <= centerY + 75) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::Rebinding;
+                                std::cout << "Entering REBIND KEYS menu (mouse)" << std::endl;
+                            }
+                        }
+                    } else if (gameState == GameState::AchievementsView) {
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        
+
+                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
+                        if (clickedBombIndex >= 0) {
+                            const auto& bomb = backgroundPieces[clickedBombIndex];
+                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
+                                          shakeIntensity, shakeDuration, shakeTimer, 
+                                          saveData, achievementPopups);
+                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
+                        }
+
+                    } else if (gameState == GameState::StatisticsView) {
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        
+
+                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
+                        if (clickedBombIndex >= 0) {
+                            const auto& bomb = backgroundPieces[clickedBombIndex];
+                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
+                                          shakeIntensity, shakeDuration, shakeTimer, 
+                                          saveData, achievementPopups);
+                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
+                        }
+
                     } else if (gameState == GameState::Paused) {
-                        if (selectedPauseOption == PauseOption::Resume) {
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        float centerX = WINDOW_WIDTH / 2.0f;
+                        float centerY = WINDOW_HEIGHT / 2.0f;
+                        
+
+                        if (clickX >= centerX - 150 && clickX <= centerX + 150 &&
+                            clickY >= centerY - 50 && clickY <= centerY) {
+                            audioManager.playMenuClickSound();
                             gameState = GameState::Playing;
+                            showCustomCursor = false;
                             std::cout << "Game resumed (mouse)" << std::endl;
-                        } else if (selectedPauseOption == PauseOption::Restart) {
+                        }
+
+                        else if (clickX >= centerX - 150 && clickX <= centerX + 150 &&
+                                 clickY >= centerY + 20 && clickY <= centerY + 70) {
+                            audioManager.playMenuClickSound();
+                            audioManager.switchToGameplayMusic();
+                            
                             gameState = GameState::Playing;
+                            showCustomCursor = false;
                             gameOver = false;
+                            gameOverSoundPlayed = false;
+                            gameOverMusicTimer = 0.0f;
                             
 
                             bombUsedThisGame = false;
                             maxComboThisGame = 0;
+                            consecutiveBombsUsed = 0;
+                            hardDropCooldown = 0.0f;
                             
 
-                            if (sprintModeActive) {
+                            if (sprintModeActive || challengeModeActive) {
                                 sprintTimer = 0.0f;
+                                autoDropTimer = 0.0f;
                                 sprintCompleted = false;
                             }
                             
@@ -2033,7 +2508,7 @@ int main(int argc, char* argv[]) {
                             totalLineScore = 0;
                             totalComboScore = 0;
                             RESET_SESSION_STATS();
-                            jigtrizBag.reset();
+                            JigzterBag.reset();
                             hasHeldPiece = false;
                             canUseHold = true;
                             linesSinceLastAbility = 0;
@@ -2046,17 +2521,82 @@ int main(int argc, char* argv[]) {
                             leftPressed = false;
                             rightPressed = false;
                             
-                            PieceType startType = jigtrizBag.getNextPiece();
+                            PieceType startType = JigzterBag.getNextPiece();
                             PieceShape startShape = getPieceShape(startType);
                             int startX = (GRID_WIDTH - startShape.width) / 2;
                             activePiece = Piece(startX, 0, startType);
                             
+
+                            if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                int randomIndex = rand() % currentConfig->colorPalette.size();
+                                activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                            }
+                            
                             std::cout << "Game restarted (mouse)" << std::endl;
-                        } else if (selectedPauseOption == PauseOption::QuitToMenu) {
+                        }
+
+                        else if (clickX >= centerX - 150 && clickX <= centerX + 150 &&
+                                 clickY >= centerY + 90 && clickY <= centerY + 140) {
+                            audioManager.playMenuClickSound();
+                            audioManager.switchToMenuMusic();
+                            
                             gameState = GameState::MainMenu;
                             selectedMenuOption = MenuOption::Start;
                             std::cout << "Returned to main menu (mouse)" << std::endl;
                         }
+                    } else if (gameState == GameState::ClassicDifficultySelect ||
+                               gameState == GameState::SprintLinesSelect ||
+                               gameState == GameState::ChallengeSelect) {
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        
+
+                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
+                        if (clickedBombIndex >= 0) {
+                            const auto& bomb = backgroundPieces[clickedBombIndex];
+                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
+                                          shakeIntensity, shakeDuration, shakeTimer, 
+                                          saveData, achievementPopups);
+                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
+                        }
+
+                    } else if (gameState == GameState::Rebinding) {
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        
+
+                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
+                        if (clickedBombIndex >= 0) {
+                            const auto& bomb = backgroundPieces[clickedBombIndex];
+                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
+                                          shakeIntensity, shakeDuration, shakeTimer, 
+                                          saveData, achievementPopups);
+                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
+                        }
+
+                    } else if (gameState == GameState::ConfirmClearScores) {
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        
+
+                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
+                        if (clickedBombIndex >= 0) {
+                            const auto& bomb = backgroundPieces[clickedBombIndex];
+                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
+                                          shakeIntensity, shakeDuration, shakeTimer, 
+                                          saveData, achievementPopups);
+                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
+                        }
+
                     }
                 }
             }
@@ -2064,54 +2604,33 @@ int main(int argc, char* argv[]) {
             if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
                 
                 if (keyPressed->code == keyBindings.mute) {
-                    if (isMuted) {
-                        isMuted = false;
-                        masterVolume = lastMasterVolume;
-                        updateAllVolumes(backgroundMusic, spaceSound, laserSound, bombSound, wowSounds, masterVolume, baseMusicVolume, baseSpaceVolume, baseLaserVolume, baseBombVolume, baseWowVolume);
-                        std::cout << "Audio UNMUTED - Master volume restored to: " << masterVolume << "%" << std::endl;
-                    } else {
-                        isMuted = true;
-                        lastMasterVolume = masterVolume;
-                        masterVolume = 0.0f;
-                        updateAllVolumes(backgroundMusic, spaceSound, laserSound, bombSound, wowSounds, masterVolume, baseMusicVolume, baseSpaceVolume, baseLaserVolume, baseBombVolume, baseWowVolume);
-                        std::cout << "Audio MUTED" << std::endl;
-                    }
+                    audioManager.toggleMute();
                     showVolumeIndicator = true;
                     volumeIndicatorTimer = VOLUME_INDICATOR_DURATION;
-                    saveData.masterVolume = isMuted ? lastMasterVolume : masterVolume;
-                    saveData.isMuted = isMuted;
+                    saveData.masterVolume = audioManager.getMasterVolume();
+                    saveData.isMuted = audioManager.isMutedStatus();
                     saveGameData(saveData);
                 } else if (keyPressed->code == keyBindings.volumeDown) {
-                    if (!isMuted && masterVolume > 0.0f) {
-                        masterVolume = std::max(0.0f, masterVolume - 10.0f);
-                        updateAllVolumes(backgroundMusic, spaceSound, laserSound, bombSound, wowSounds, masterVolume, baseMusicVolume, baseSpaceVolume, baseLaserVolume, baseBombVolume, baseWowVolume);
-                        std::cout << "Master volume decreased to: " << masterVolume << "%" << std::endl;
-                        showVolumeIndicator = true;
-                        volumeIndicatorTimer = VOLUME_INDICATOR_DURATION;
-                        saveData.masterVolume = masterVolume;
-                        saveGameData(saveData);
-                    } else if (isMuted) {
-                        std::cout << "Cannot change volume while muted" << std::endl;
-                    } else {
-                        std::cout << "Master volume already at minimum (0%)" << std::endl;
-                    }
+                    audioManager.decreaseMasterVolume();
+                    showVolumeIndicator = true;
+                    volumeIndicatorTimer = VOLUME_INDICATOR_DURATION;
+                    saveData.masterVolume = audioManager.getMasterVolume();
+                    saveGameData(saveData);
                 } else if (keyPressed->code == keyBindings.volumeUp) {
-                    if (!isMuted && masterVolume < 100.0f) {
-                        masterVolume = std::min(100.0f, masterVolume + 10.0f);
-                        updateAllVolumes(backgroundMusic, spaceSound, laserSound, bombSound, wowSounds, masterVolume, baseMusicVolume, baseSpaceVolume, baseLaserVolume, baseBombVolume, baseWowVolume);
-                        std::cout << "Master volume increased to: " << masterVolume << "%" << std::endl;
-                        showVolumeIndicator = true;
-                        volumeIndicatorTimer = VOLUME_INDICATOR_DURATION;
-                        saveData.masterVolume = masterVolume;
-                        saveGameData(saveData);
-                    } else if (isMuted) {
-                        std::cout << "Cannot change volume while muted" << std::endl;
-                    } else {
-                        std::cout << "Master volume already at maximum (100%)" << std::endl;
-                    }
+                    audioManager.increaseMasterVolume();
+                    showVolumeIndicator = true;
+                    volumeIndicatorTimer = VOLUME_INDICATOR_DURATION;
+                    saveData.masterVolume = audioManager.getMasterVolume();
+                    saveGameData(saveData);
                 }
                 
-                if (gameState == GameState::MainMenu) {
+                if (gameState == GameState::SplashScreen) {
+
+                    gameState = GameState::MainMenu;
+                    audioManager.playMenuMusic();
+                    showCustomCursor = true;
+                    std::cout << "Splash screen skipped (keyboard)" << std::endl;
+                } else if (gameState == GameState::MainMenu) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape: 
                             window.close(); 
@@ -2125,23 +2644,28 @@ int main(int argc, char* argv[]) {
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
+                            showCustomCursor = false;
                             selectedMenuOption = static_cast<MenuOption>((static_cast<int>(selectedMenuOption) - 1 + 4) % 4);
                             break;
                         case sf::Keyboard::Key::Down:
                         case sf::Keyboard::Key::S:
+                            showCustomCursor = false;
                             selectedMenuOption = static_cast<MenuOption>((static_cast<int>(selectedMenuOption) + 1) % 4);
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
                             if (selectedMenuOption == MenuOption::Start) {
+                                audioManager.playMenuClickSound();
                                 gameState = GameState::GameModeSelect;
                                 selectedGameModeOption = GameModeOption::Classic;
                                 std::cout << "Entered GAME MODE selection" << std::endl;
-                            } else if (selectedMenuOption == MenuOption::Jigtrizopedia) {
-                                gameState = GameState::Jigtrizopedia;
-                                selectedJigtrizopediaOption = JigtrizopediaOption::JigtrizPieces;
-                                std::cout << "Entered JIGTRIZOPEDIA menu" << std::endl;
+                            } else if (selectedMenuOption == MenuOption::Extras) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::Extras;
+                                selectedExtrasOption = ExtrasOption::JigzterPieces;
+                                std::cout << "Entered EXTRAS menu" << std::endl;
                             } else if (selectedMenuOption == MenuOption::Options) {
+                                audioManager.playMenuClickSound();
                                 gameState = GameState::Options;
                                 std::cout << "Entered OPTIONS menu" << std::endl;
                             } else if (selectedMenuOption == MenuOption::Exit) {
@@ -2154,7 +2678,9 @@ int main(int argc, char* argv[]) {
                 } else if (gameState == GameState::Paused) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
                             gameState = GameState::Playing;
+                            showCustomCursor = false;
                             std::cout << "Game resumed" << std::endl;
                             break;
                         case sf::Keyboard::Key::Up:
@@ -2167,19 +2693,30 @@ int main(int argc, char* argv[]) {
                             break;
                         case sf::Keyboard::Key::Space:
                             if (selectedPauseOption == PauseOption::Resume) {
+                                audioManager.playMenuClickSound();
                                 gameState = GameState::Playing;
+                                showCustomCursor = false;
                                 std::cout << "Game resumed from menu" << std::endl;
                             } else if (selectedPauseOption == PauseOption::Restart) {
+                                audioManager.playMenuClickSound();
+                                audioManager.switchToGameplayMusic();
+                                
                                 gameState = GameState::Playing;
+                                showCustomCursor = false;
                                 gameOver = false;
+                                gameOverSoundPlayed = false;
+                                gameOverMusicTimer = 0.0f;
                                 
 
                                 bombUsedThisGame = false;
                                 maxComboThisGame = 0;
+                                consecutiveBombsUsed = 0;
+                                hardDropCooldown = 0.0f;
                                 
 
-                                if (sprintModeActive) {
+                                if (sprintModeActive || challengeModeActive) {
                                     sprintTimer = 0.0f;
+                                    autoDropTimer = 0.0f;
                                     sprintCompleted = false;
                                 }
                                 
@@ -2197,7 +2734,7 @@ int main(int argc, char* argv[]) {
                                 totalLineScore = 0;
                                 totalComboScore = 0;
                                 RESET_SESSION_STATS();
-                                jigtrizBag.reset();
+                                JigzterBag.reset();
                                 hasHeldPiece = false;
                                 canUseHold = true;
                                 linesSinceLastAbility = 0;
@@ -2210,13 +2747,22 @@ int main(int argc, char* argv[]) {
                                 leftPressed = false;
                                 rightPressed = false;
                                 
-                                PieceType startType = jigtrizBag.getNextPiece();
+                                PieceType startType = JigzterBag.getNextPiece();
                                 PieceShape startShape = getPieceShape(startType);
                                 int startX = (GRID_WIDTH - startShape.width) / 2;
                                 activePiece = Piece(startX, 0, startType);
                                 
+
+                                if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                    int randomIndex = rand() % currentConfig->colorPalette.size();
+                                    activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                                }
+                                
                                 std::cout << "Game restarted from pause menu!" << std::endl;
                             } else if (selectedPauseOption == PauseOption::QuitToMenu) {
+                                audioManager.playMenuClickSound();
+                                audioManager.switchToMenuMusic();
+                                
                                 gameState = GameState::MainMenu;
                                 selectedMenuOption = MenuOption::Start;
                                 std::cout << "Returned to main menu" << std::endl;
@@ -2225,31 +2771,34 @@ int main(int argc, char* argv[]) {
                         default: 
                             break;
                     }
-                } else if (gameState == GameState::Jigtrizopedia) {
+                } else if (gameState == GameState::Extras) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
                             gameState = GameState::MainMenu;
-                            selectedMenuOption = MenuOption::Jigtrizopedia;
-                            std::cout << "Returned to main menu from JIGTRIZOPEDIA" << std::endl;
+                            selectedMenuOption = MenuOption::Extras;
+                            std::cout << "Returned to main menu from EXTRAS" << std::endl;
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
-                            selectedJigtrizopediaOption = static_cast<JigtrizopediaOption>((static_cast<int>(selectedJigtrizopediaOption) + 2) % 3);
+                            selectedExtrasOption = static_cast<ExtrasOption>((static_cast<int>(selectedExtrasOption) + 2) % 3);
                             break;
                         case sf::Keyboard::Key::Down:
                         case sf::Keyboard::Key::S:
-                            selectedJigtrizopediaOption = static_cast<JigtrizopediaOption>((static_cast<int>(selectedJigtrizopediaOption) + 1) % 3);
+                            selectedExtrasOption = static_cast<ExtrasOption>((static_cast<int>(selectedExtrasOption) + 1) % 3);
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
-                            if (selectedJigtrizopediaOption == JigtrizopediaOption::Achievements) {
+                            if (selectedExtrasOption == ExtrasOption::Achievements) {
+                                audioManager.playMenuClickSound();
                                 gameState = GameState::AchievementsView;
                                 std::cout << "Entered ACHIEVEMENTS view (keyboard)" << std::endl;
-                            } else if (selectedJigtrizopediaOption == JigtrizopediaOption::Statistics) {
+                            } else if (selectedExtrasOption == ExtrasOption::Statistics) {
+                                audioManager.playMenuClickSound();
                                 gameState = GameState::StatisticsView;
                                 std::cout << "Entered STATISTICS view (keyboard)" << std::endl;
                             } else {
-                                std::cout << "Other Jigtrizopedia buttons are currently disabled" << std::endl;
+                                std::cout << "Other Extras buttons are currently disabled" << std::endl;
                             }
                             break;
                         default: 
@@ -2258,19 +2807,21 @@ int main(int argc, char* argv[]) {
                 } else if (gameState == GameState::GameModeSelect) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
                             gameState = GameState::MainMenu;
                             std::cout << "Returned to main menu from GAME MODE selection" << std::endl;
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
-                            selectedGameModeOption = static_cast<GameModeOption>((static_cast<int>(selectedGameModeOption) + 2) % 3);
+                            selectedGameModeOption = static_cast<GameModeOption>((static_cast<int>(selectedGameModeOption) + 3) % 4);
                             break;
                         case sf::Keyboard::Key::Down:
                         case sf::Keyboard::Key::S:
-                            selectedGameModeOption = static_cast<GameModeOption>((static_cast<int>(selectedGameModeOption) + 1) % 3);
+                            selectedGameModeOption = static_cast<GameModeOption>((static_cast<int>(selectedGameModeOption) + 1) % 4);
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
+                            audioManager.playMenuClickSound();
                             if (selectedGameModeOption == GameModeOption::Classic) {
                                 gameState = GameState::ClassicDifficultySelect;
                                 selectedClassicDifficulty = ClassicDifficulty::Easy;
@@ -2283,6 +2834,13 @@ int main(int argc, char* argv[]) {
                                 gameState = GameState::ChallengeSelect;
                                 selectedChallengeMode = debugMode ? ChallengeMode::Debug : ChallengeMode::TheForest;
                                 std::cout << "Entered CHALLENGE selection" << std::endl;
+                            } else if (selectedGameModeOption == GameModeOption::Practice) {
+                                gameState = GameState::PracticeSelect;
+                                selectedPracticeDifficulty = PracticeDifficulty::Easy;
+                                selectedPracticeLineGoal = PracticeLineGoal::Infinite;
+                                practiceInfiniteBombs = false;
+                                selectedPracticeOption = 0;
+                                std::cout << "Entered PRACTICE selection" << std::endl;
                             }
                             break;
                         default: 
@@ -2291,6 +2849,7 @@ int main(int argc, char* argv[]) {
                 } else if (gameState == GameState::ClassicDifficultySelect) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
                             gameState = GameState::GameModeSelect;
                             std::cout << "Returned to GAME MODE selection" << std::endl;
                             break;
@@ -2310,20 +2869,31 @@ int main(int argc, char* argv[]) {
                                 selectedGameModeOption,
                                 selectedClassicDifficulty,
                                 selectedSprintLines,
-                                selectedChallengeMode
+                                selectedChallengeMode,
+                                selectedPracticeDifficulty,
+                                selectedPracticeLineGoal,
+                                practiceInfiniteBombs
                             );
-                            jigtrizBag.setDifficultyConfig(config);
+                            JigzterBag.setDifficultyConfig(config);
                             currentConfig = config;
+                            
+                            audioManager.playMenuClickSound();
+                            audioManager.switchToGameplayMusic();
                             
                             gameState = GameState::Playing;
                             gameOver = false;
+                            gameOverSoundPlayed = false;
+                            gameOverMusicTimer = 0.0f;
                             sprintModeActive = false;
                             challengeModeActive = false;
+                            practiceModeActive = false;
                             sprintCompleted = false;
                             
 
                             bombUsedThisGame = false;
                             maxComboThisGame = 0;
+                            consecutiveBombsUsed = 0;
+                            hardDropCooldown = 0.0f;
                             
                             for (int i = 0; i < GRID_HEIGHT; ++i) {
                                 for (int j = 0; j < GRID_WIDTH; ++j) {
@@ -2339,7 +2909,7 @@ int main(int argc, char* argv[]) {
                             totalLineScore = 0;
                             totalComboScore = 0;
                             RESET_SESSION_STATS();
-                            jigtrizBag.reset();
+                            JigzterBag.reset();
                             hasHeldPiece = false;
                             canUseHold = true;
                             linesSinceLastAbility = 0;
@@ -2351,12 +2921,18 @@ int main(int argc, char* argv[]) {
                             dasTimer = 0.0f;
                             leftPressed = false;
                             rightPressed = false;
-                            PieceType startType = jigtrizBag.getNextPiece();
+                            PieceType startType = JigzterBag.getNextPiece();
                             PieceShape startShape = getPieceShape(startType);
                             int startX = (GRID_WIDTH - startShape.width) / 2;
                             int firstFilledRow = findFirstFilledRow(startShape);
                             int startY = -firstFilledRow;
                             activePiece = Piece(startX, startY, startType);
+                            
+
+                            if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                int randomIndex = rand() % currentConfig->colorPalette.size();
+                                activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                            }
                             std::cout << "Game started (Classic) - Difficulty: " << config->modeName << std::endl;
                             break;
                         }
@@ -2366,6 +2942,7 @@ int main(int argc, char* argv[]) {
                 } else if (gameState == GameState::SprintLinesSelect) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
                             gameState = GameState::GameModeSelect;
                             std::cout << "Returned to GAME MODE selection" << std::endl;
                             break;
@@ -2407,23 +2984,35 @@ int main(int argc, char* argv[]) {
                                 selectedGameModeOption,
                                 selectedClassicDifficulty,
                                 selectedSprintLines,
-                                selectedChallengeMode
+                                selectedChallengeMode,
+                                selectedPracticeDifficulty,
+                                selectedPracticeLineGoal,
+                                practiceInfiniteBombs
                             );
-                            jigtrizBag.setDifficultyConfig(config);
+                            JigzterBag.setDifficultyConfig(config);
                             currentConfig = config;
+                            
+                            audioManager.playMenuClickSound();
+                            audioManager.switchToGameplayMusic();
                             
                             gameState = GameState::Playing;
                             gameOver = false;
+                            gameOverSoundPlayed = false;
+                            gameOverMusicTimer = 0.0f;
                             
 
                             bombUsedThisGame = false;
                             maxComboThisGame = 0;
+                            consecutiveBombsUsed = 0;
+                            hardDropCooldown = 0.0f;
                             
 
                             sprintModeActive = true;
                             challengeModeActive = false;
+                            practiceModeActive = false;
                             sprintCompleted = false;
                             sprintTimer = 0.0f;
+                            autoDropTimer = 0.0f;
                             switch (selectedSprintLines) {
                                 case SprintLines::Lines1:
                                     sprintTargetLines = 1;
@@ -2453,7 +3042,7 @@ int main(int argc, char* argv[]) {
                             totalLineScore = 0;
                             totalComboScore = 0;
                             RESET_SESSION_STATS();
-                            jigtrizBag.reset();
+                            JigzterBag.reset();
                             hasHeldPiece = false;
                             canUseHold = true;
                             linesSinceLastAbility = 0;
@@ -2465,12 +3054,18 @@ int main(int argc, char* argv[]) {
                             dasTimer = 0.0f;
                             leftPressed = false;
                             rightPressed = false;
-                            PieceType startType = jigtrizBag.getNextPiece();
+                            PieceType startType = JigzterBag.getNextPiece();
                             PieceShape startShape = getPieceShape(startType);
                             int startX = (GRID_WIDTH - startShape.width) / 2;
                             int firstFilledRow = findFirstFilledRow(startShape);
                             int startY = -firstFilledRow;
                             activePiece = Piece(startX, startY, startType);
+                            
+
+                            if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                int randomIndex = rand() % currentConfig->colorPalette.size();
+                                activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                            }
                             std::cout << "Game started (Sprint) - Lines: " << config->modeName << std::endl;
                             break;
                         }
@@ -2480,12 +3075,13 @@ int main(int argc, char* argv[]) {
                 } else if (gameState == GameState::ChallengeSelect) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
                             gameState = GameState::GameModeSelect;
                             std::cout << "Returned to GAME MODE selection" << std::endl;
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W: {
-                            int numOptions = debugMode ? 4 : 3;
+                            int numOptions = debugMode ? 8 : 7;
                             int current = static_cast<int>(selectedChallengeMode);
                             
                             if (debugMode) {
@@ -2493,7 +3089,7 @@ int main(int argc, char* argv[]) {
                                 selectedChallengeMode = static_cast<ChallengeMode>((current + numOptions - 1) % numOptions);
                             } else {
 
-                                if (current == 1) current = 3;
+                                if (current == 1) current = 7;
                                 else current--;
                                 selectedChallengeMode = static_cast<ChallengeMode>(current);
                             }
@@ -2501,7 +3097,7 @@ int main(int argc, char* argv[]) {
                         }
                         case sf::Keyboard::Key::Down:
                         case sf::Keyboard::Key::S: {
-                            int numOptions = debugMode ? 4 : 3;
+                            int numOptions = debugMode ? 8 : 7;
                             int current = static_cast<int>(selectedChallengeMode);
                             
                             if (debugMode) {
@@ -2509,7 +3105,7 @@ int main(int argc, char* argv[]) {
                                 selectedChallengeMode = static_cast<ChallengeMode>((current + 1) % numOptions);
                             } else {
 
-                                if (current == 3) current = 1;
+                                if (current == 7) current = 1;
                                 else current++;
                                 selectedChallengeMode = static_cast<ChallengeMode>(current);
                             }
@@ -2523,23 +3119,35 @@ int main(int argc, char* argv[]) {
                                 selectedGameModeOption,
                                 selectedClassicDifficulty,
                                 selectedSprintLines,
-                                selectedChallengeMode
+                                selectedChallengeMode,
+                                selectedPracticeDifficulty,
+                                selectedPracticeLineGoal,
+                                practiceInfiniteBombs
                             );
-                            jigtrizBag.setDifficultyConfig(config);
+                            JigzterBag.setDifficultyConfig(config);
                             currentConfig = config;
+                            
+                            audioManager.playMenuClickSound();
+                            audioManager.switchToGameplayMusic();
                             
                             gameState = GameState::Playing;
                             gameOver = false;
+                            gameOverSoundPlayed = false;
+                            gameOverMusicTimer = 0.0f;
                             
 
                             challengeModeActive = true;
                             sprintModeActive = false;
+                            practiceModeActive = false;
                             
 
                             sprintTimer = 0.0f;
+                            autoDropTimer = 0.0f;
                             sprintCompleted = false;
                             bombUsedThisGame = false;
                             maxComboThisGame = 0;
+                            consecutiveBombsUsed = 0;
+                            hardDropCooldown = 0.0f;
                             
                             for (int i = 0; i < GRID_HEIGHT; ++i) {
                                 for (int j = 0; j < GRID_WIDTH; ++j) {
@@ -2555,7 +3163,7 @@ int main(int argc, char* argv[]) {
                             totalLineScore = 0;
                             totalComboScore = 0;
                             RESET_SESSION_STATS();
-                            jigtrizBag.reset();
+                            JigzterBag.reset();
                             hasHeldPiece = false;
                             canUseHold = true;
                             linesSinceLastAbility = 0;
@@ -2567,23 +3175,165 @@ int main(int argc, char* argv[]) {
                             dasTimer = 0.0f;
                             leftPressed = false;
                             rightPressed = false;
-                            PieceType startType = jigtrizBag.getNextPiece();
+                            PieceType startType = JigzterBag.getNextPiece();
                             PieceShape startShape = getPieceShape(startType);
                             int startX = (GRID_WIDTH - startShape.width) / 2;
                             int firstFilledRow = findFirstFilledRow(startShape);
                             int startY = -firstFilledRow;
                             activePiece = Piece(startX, startY, startType);
+                            
+
+                            if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                int randomIndex = rand() % currentConfig->colorPalette.size();
+                                activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                            }
+                            
+
+                            if (selectedChallengeMode == ChallengeMode::OneRot) {
+                                currentPieceRotations = 0;
+                            }
+                            
                             std::cout << "Game started (Challenge) - Mode: " << config->modeName << std::endl;
                             break;
                         }
                         default: 
                             break;
                     }
+                } else if (gameState == GameState::PracticeSelect) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
+                            gameState = GameState::GameModeSelect;
+                            std::cout << "Returned to GAME MODE selection" << std::endl;
+                            break;
+                        case sf::Keyboard::Key::Up:
+                        case sf::Keyboard::Key::W:
+                            selectedPracticeOption = (selectedPracticeOption + 3) % 4;
+                            break;
+                        case sf::Keyboard::Key::Down:
+                        case sf::Keyboard::Key::S:
+                            selectedPracticeOption = (selectedPracticeOption + 1) % 4;
+                            break;
+                        case sf::Keyboard::Key::Left:
+                        case sf::Keyboard::Key::A:
+                            if (selectedPracticeOption == 0) {
+
+                                int current = static_cast<int>(selectedPracticeDifficulty);
+                                selectedPracticeDifficulty = static_cast<PracticeDifficulty>((current + 3) % 4);
+                            } else if (selectedPracticeOption == 1) {
+
+                                int current = static_cast<int>(selectedPracticeLineGoal);
+                                selectedPracticeLineGoal = static_cast<PracticeLineGoal>((current + 3) % 4);
+                            } else if (selectedPracticeOption == 2) {
+
+                                practiceInfiniteBombs = !practiceInfiniteBombs;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Right:
+                        case sf::Keyboard::Key::D:
+                            if (selectedPracticeOption == 0) {
+
+                                int current = static_cast<int>(selectedPracticeDifficulty);
+                                selectedPracticeDifficulty = static_cast<PracticeDifficulty>((current + 1) % 4);
+                            } else if (selectedPracticeOption == 1) {
+
+                                int current = static_cast<int>(selectedPracticeLineGoal);
+                                selectedPracticeLineGoal = static_cast<PracticeLineGoal>((current + 1) % 4);
+                            } else if (selectedPracticeOption == 2) {
+
+                                practiceInfiniteBombs = !practiceInfiniteBombs;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Enter:
+                        case sf::Keyboard::Key::Space:
+                            if (selectedPracticeOption == 3) {
+
+                                selectedGameModeOption = GameModeOption::Practice;
+                                
+                                const DifficultyConfig* config = getDifficultyConfig(
+                                    selectedGameModeOption,
+                                    selectedClassicDifficulty,
+                                    selectedSprintLines,
+                                    selectedChallengeMode,
+                                    selectedPracticeDifficulty,
+                                    selectedPracticeLineGoal,
+                                    practiceInfiniteBombs
+                                );
+                                JigzterBag.setDifficultyConfig(config);
+                                currentConfig = config;
+                                
+                                audioManager.playMenuClickSound();
+                                audioManager.switchToGameplayMusic();
+                                
+                                gameState = GameState::Playing;
+                                gameOver = false;
+                                gameOverSoundPlayed = false;
+                                gameOverMusicTimer = 0.0f;
+                                
+                                bombUsedThisGame = false;
+                                maxComboThisGame = 0;
+                                consecutiveBombsUsed = 0;
+                                hardDropCooldown = 0.0f;
+                                
+                                practiceModeActive = true;
+                                sprintModeActive = false;
+                                challengeModeActive = false;
+                                sprintCompleted = false;
+                                sprintTimer = 0.0f;
+                                autoDropTimer = 0.0f;
+                                
+                                for (int i = 0; i < GRID_HEIGHT; ++i) {
+                                    for (int j = 0; j < GRID_WIDTH; ++j) {
+                                        grid[i][j] = Cell();
+                                    }
+                                }
+                                totalLinesCleared = 0;
+                                currentLevel = 0;
+                                totalScore = 0;
+                                currentCombo = 0;
+                                lastMoveScore = 0;
+                                totalHardDropScore = 0;
+                                totalLineScore = 0;
+                                totalComboScore = 0;
+                                RESET_SESSION_STATS();
+                                JigzterBag.reset();
+                                hasHeldPiece = false;
+                                canUseHold = true;
+                                linesSinceLastAbility = 0;
+                                bombAbilityAvailable = practiceInfiniteBombs ? true : debugMode;
+                                explosionEffects.clear();
+                                glowEffects.clear();
+                                leftHoldTime = 0.0f;
+                                rightHoldTime = 0.0f;
+                                dasTimer = 0.0f;
+                                leftPressed = false;
+                                rightPressed = false;
+                                
+                                PieceType startType = JigzterBag.getNextPiece();
+                                PieceShape startShape = getPieceShape(startType);
+                                int startX = (GRID_WIDTH - startShape.width) / 2;
+                                int firstFilledRow = findFirstFilledRow(startShape);
+                                int startY = -firstFilledRow;
+                                activePiece = Piece(startX, startY, startType);
+                                
+
+                                if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                    int randomIndex = rand() % currentConfig->colorPalette.size();
+                                    activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                                }
+                                
+                                std::cout << "Game started (Practice) - Difficulty: " << config->modeName << std::endl;
+                            }
+                            break;
+                        default: 
+                            break;
+                    }
                 } else if (gameState == GameState::AchievementsView) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
-                            gameState = GameState::Jigtrizopedia;
-                            std::cout << "Returned to JIGTRIZOPEDIA from ACHIEVEMENTS" << std::endl;
+                            audioManager.playMenuBackSound();
+                            gameState = GameState::Extras;
+                            std::cout << "Returned to EXTRAS from ACHIEVEMENTS" << std::endl;
                             break;
                         default: 
                             break;
@@ -2591,8 +3341,9 @@ int main(int argc, char* argv[]) {
                 } else if (gameState == GameState::StatisticsView) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
-                            gameState = GameState::Jigtrizopedia;
-                            std::cout << "Returned to JIGTRIZOPEDIA from STATISTICS" << std::endl;
+                            audioManager.playMenuBackSound();
+                            gameState = GameState::Extras;
+                            std::cout << "Returned to EXTRAS from STATISTICS" << std::endl;
                             break;
                         default: 
                             break;
@@ -2600,6 +3351,7 @@ int main(int argc, char* argv[]) {
                 } else if (gameState == GameState::Options) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
                             gameState = GameState::MainMenu;
                             selectedMenuOption = MenuOption::Options;
                             std::cout << "Returned to main menu from OPTIONS" << std::endl;
@@ -2623,10 +3375,12 @@ int main(int argc, char* argv[]) {
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
                             if (selectedOptionsOption == OptionsMenuOption::ClearScores) {
+                                audioManager.playMenuClickSound();
                                 gameState = GameState::ConfirmClearScores;
                                 selectedConfirmOption = ConfirmOption::No;
                                 std::cout << "Opening confirmation dialog for clearing scores" << std::endl;
                             } else if (selectedOptionsOption == OptionsMenuOption::RebindKeys) {
+                                audioManager.playMenuClickSound();
                                 gameState = GameState::Rebinding;
                                 std::cout << "Entering REBIND KEYS menu" << std::endl;
                             }
@@ -2674,6 +3428,7 @@ int main(int argc, char* argv[]) {
                     } else {
                         switch (keyPressed->code) {
                             case sf::Keyboard::Key::Escape:
+                                audioManager.playMenuBackSound();
                                 gameState = GameState::Options;
                                 selectedRebindingIndex = 0;
                                 std::cout << "Returned to OPTIONS menu" << std::endl;
@@ -2731,6 +3486,7 @@ int main(int argc, char* argv[]) {
                 } else if (gameState == GameState::ConfirmClearScores) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
                             gameState = GameState::Options;
                             std::cout << "Cancelled clearing scores" << std::endl;
                             break;
@@ -2744,6 +3500,7 @@ int main(int argc, char* argv[]) {
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
+                            audioManager.playMenuClickSound();
                             if (selectedConfirmOption == ConfirmOption::Yes) {
 
                                 saveData.highScore = 0;
@@ -2764,9 +3521,13 @@ int main(int argc, char* argv[]) {
                                 saveData.bestTimeChallengeTheForest = 0.0f;
                                 saveData.bestTimeChallengeRandomness = 0.0f;
                                 saveData.bestTimeChallengeNonStraight = 0.0f;
+                                saveData.bestTimeChallengeOneRot = 0.0f;
+                                saveData.bestTimeChallengeChristopherCurse = 0.0f;
+                                saveData.bestTimeChallengeVanishing = 0.0f;
+                                saveData.bestTimeChallengeAutoDrop = 0.0f;
                                 
 
-                                for (int i = 0; i < 6; i++) {
+                                for (int i = 0; i < TOTAL_ACHIEVEMENTS; i++) {
                                     saveData.achievements[i] = false;
                                 }
 
@@ -2788,7 +3549,7 @@ int main(int argc, char* argv[]) {
                                     saveData.topScoresHard[i].level = 0;
                                 }
                                 saveGameData(saveData);
-                                std::cout << "All scores cleared!" << std::endl;
+                                std::cout << "All data cleared (scores, times, achievements)!" << std::endl;
                                 gameState = GameState::Options;
                             } else {
 
@@ -2801,20 +3562,37 @@ int main(int argc, char* argv[]) {
                     }
                 } else if (gameState == GameState::Playing) {
                 
+
+                bool canRotate = true;
+                if (challengeModeActive && selectedChallengeMode == ChallengeMode::OneRot) {
+                    canRotate = (currentPieceRotations < 1);
+                }
+                
                 if (keyPressed->code == keyBindings.rotateLeft) {
-                    if (!gameOver) {
+                    if (!gameOver && canRotate) {
                         activePiece.rotateLeft(grid);
                         saveData.totalRotations++;
+                        if (challengeModeActive && selectedChallengeMode == ChallengeMode::OneRot) {
+                            currentPieceRotations++;
+                        }
                     }
                 } else if (keyPressed->code == keyBindings.rotateRight) {
-                    if (!gameOver) {
+                    if (!gameOver && canRotate) {
                         activePiece.rotateRight(grid);
                         saveData.totalRotations++;
+                        if (challengeModeActive && selectedChallengeMode == ChallengeMode::OneRot) {
+                            currentPieceRotations++;
+                        }
                     }
                 } else if (keyPressed->code == keyBindings.hold) {
                     if (!canUseHold || gameOver) {
                         
                     } else {
+
+                        if (challengeModeActive && selectedChallengeMode == ChallengeMode::AutoDrop) {
+                            autoDropTimer = 0.0f;
+                        }
+                        
                         if (!hasHeldPiece) {
 
                             heldPiece = activePiece.getType();
@@ -2824,17 +3602,23 @@ int main(int argc, char* argv[]) {
                             saveData.totalHolds++;
                             
 
-                            if (heldPiece == PieceType::A_Bomb) {
-                                unlockAchievement(saveData, Achievement::HoldBomb);
+                            if (heldPiece == PieceType::A_Bomb && !challengeModeActive && !practiceModeActive) {
+                                unlockAchievement(saveData, Achievement::HoldBomb, &achievementPopups, &audioManager);
                             }
                             
-                            PieceType newType = jigtrizBag.getNextPiece();
+                            PieceType newType = JigzterBag.getNextPiece();
                             std::cout << "HOLD: Stored " << pieceTypeToString(heldPiece) << ", spawning " << pieceTypeToString(newType) << std::endl;
                             PieceShape newShape = getPieceShape(newType);
                             int spawnX = (GRID_WIDTH - newShape.width) / 2;
                             int firstFilledRow = findFirstFilledRow(newShape);
                             int spawnY = -firstFilledRow;
                             activePiece = Piece(spawnX, spawnY, newType);
+                            
+
+                            if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                int randomIndex = rand() % currentConfig->colorPalette.size();
+                                activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                            }
                         } else {
 
                             PieceType currentType = activePiece.getType();
@@ -2845,8 +3629,8 @@ int main(int argc, char* argv[]) {
                             saveData.totalHolds++;
                             
 
-                            if (heldPiece == PieceType::A_Bomb) {
-                                unlockAchievement(saveData, Achievement::HoldBomb);
+                            if (heldPiece == PieceType::A_Bomb && !challengeModeActive && !practiceModeActive) {
+                                unlockAchievement(saveData, Achievement::HoldBomb, &achievementPopups, &audioManager);
                             }
                             
                             std::cout << "SWAP: " << pieceTypeToString(currentType) << " <-> " << pieceTypeToString(swapType) << std::endl;
@@ -2855,15 +3639,35 @@ int main(int argc, char* argv[]) {
                             int firstFilledRow = findFirstFilledRow(swapShape);
                             int spawnY = -firstFilledRow;
                             activePiece = Piece(spawnX, spawnY, swapType);
+                            
+
+                            if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                int randomIndex = rand() % currentConfig->colorPalette.size();
+                                activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                            }
                         }
                         
                         canUseHold = false;
                     }
                 } else if (keyPressed->code == keyBindings.drop) {
-                    if (!gameOver) {
+                    if (!gameOver && hardDropCooldown <= 0.0f) {
 
                         if (activePiece.getAbility() == AbilityType::Bomb) {
+
+                            if (challengeModeActive && selectedChallengeMode == ChallengeMode::AutoDrop) {
+                                autoDropTimer = 0.0f;
+                            }
+                            
                             std::cout << "BOMB EXPLOSION TRIGGERED!" << std::endl;
+                            
+
+                            consecutiveBombsUsed++;
+                            std::cout << "[BOMB] Consecutive explosions: " << consecutiveBombsUsed << "/3" << std::endl;
+                            
+                            if (consecutiveBombsUsed >= 3 && !challengeModeActive && !practiceModeActive) {
+                                std::cout << "[ACHIEVEMENT] UNLOCKING EXPLOSION!" << std::endl;
+                                unlockAchievement(saveData, Achievement::Explosion, &achievementPopups, &audioManager);
+                            }
                             
                             int bombCenterX = activePiece.getX();
                             int bombCenterY = activePiece.getY();
@@ -2877,14 +3681,19 @@ int main(int argc, char* argv[]) {
                                         sf::Color blockColor = grid[y][x].occupied ? grid[y][x].color : sf::Color(200, 200, 200);
                                         
                                         grid[y][x] = Cell();
-                                        explosionEffects.push_back(ExplosionEffect(x, y));
                                         
-                                        float baseWorldX = GRID_OFFSET_X + x * CELL_SIZE;
-                                        float baseWorldY = GRID_OFFSET_Y + y * CELL_SIZE;
+
+                                        float explosionX = GRID_OFFSET_X + x * CELL_SIZE;
+                                        float explosionY = GRID_OFFSET_Y + y * CELL_SIZE;
+                                        float explosionRotation = static_cast<float>(rand() % 360);
+                                        
+                                        explosionEffects.push_back(ExplosionEffect(explosionX, explosionY, explosionRotation, 0.0f));
+                                        
                                         float offsetX = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 20.0f;
                                         float offsetY = (static_cast<float>(rand()) / RAND_MAX - 0.5f) * 20.0f;
+                                        float glowRotation = static_cast<float>(rand() % 360);
                                         
-                                        glowEffects.push_back(GlowEffect(baseWorldX + offsetX, baseWorldY + offsetY, blockColor));
+                                        glowEffects.push_back(GlowEffect(explosionX + offsetX, explosionY + offsetY, blockColor, glowRotation));
                                     }
                                 }
                             }
@@ -2893,9 +3702,7 @@ int main(int argc, char* argv[]) {
                             shakeDuration = 0.4f;
                             shakeTimer = 0.0f;
                             
-                            if (bombSound) {
-                                bombSound->play();
-                            }
+                            audioManager.playBombSound();
                             
 
                             int minX = std::max(0, bombCenterX - 2);
@@ -2920,7 +3727,7 @@ int main(int argc, char* argv[]) {
                                 }
                             }
                             
-                            int clearedLines = clearFullLines(grid, laserSound, wowSounds, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer);
+                            int clearedLines = clearFullLines(grid, audioManager, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer);
                             if (clearedLines > 0) {
                                 totalLinesCleared += clearedLines;
                                 
@@ -2936,6 +3743,25 @@ int main(int argc, char* argv[]) {
                                 
                                 currentCombo += clearedLines;
                                 
+
+                                if (!challengeModeActive && !practiceModeActive) {
+                                    if (currentCombo >= 12) {
+                                        unlockAchievement(saveData, Achievement::Combo10, &achievementPopups, &audioManager);
+                                    }
+                                    
+                                    if (clearedLines >= 5) {
+                                        unlockAchievement(saveData, Achievement::Combo5OneClear, &achievementPopups, &audioManager);
+                                    }
+                                    
+                                    if (clearedLines >= 6) {
+                                        unlockAchievement(saveData, Achievement::Combo6OneClear, &achievementPopups, &audioManager);
+                                    }
+                                }
+                                
+                                if (currentCombo > maxComboThisGame) {
+                                    maxComboThisGame = currentCombo;
+                                }
+                                
                                 std::cout << "Bomb cleared " << clearedLines << " lines! Base: " << baseScore << " | Combo: x" << (currentCombo - clearedLines) << " (+" << comboBonus << ") | Total: +" << bombLineScore << std::endl;
                                 
                                 linesSinceLastAbility += clearedLines;
@@ -2948,13 +3774,19 @@ int main(int argc, char* argv[]) {
                             }
                             
 
-                            PieceType newType = jigtrizBag.getNextPiece();
+                            PieceType newType = JigzterBag.getNextPiece();
                             std::cout << "Spawning new piece after explosion: " << pieceTypeToString(newType) << std::endl;
                             PieceShape newShape = getPieceShape(newType);
                             int spawnX = (GRID_WIDTH - newShape.width) / 2;
                             int firstFilledRow = findFirstFilledRow(newShape);
                             int spawnY = -firstFilledRow;
                             activePiece = Piece(spawnX, spawnY, newType);
+                            
+
+                            if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                int randomIndex = rand() % currentConfig->colorPalette.size();
+                                activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                            }
                             canUseHold = true;
                         } else {
 
@@ -2963,9 +3795,7 @@ int main(int argc, char* argv[]) {
                             totalScore += dropPoints;
                             totalHardDropScore += dropPoints;
                             std::cout << "Hard drop: " << dropDistance << " cells = +" << dropPoints << " points" << std::endl;
-                            if (spaceSound) {
-                                spaceSound->play();
-                            }
+                            audioManager.playSpaceSound();
                         }
                     }
                 } else if (keyPressed->code == keyBindings.menu) {
@@ -2974,12 +3804,13 @@ int main(int argc, char* argv[]) {
                     } else {
 
                         gameState = GameState::Paused;
+                        showCustomCursor = true;
                         selectedPauseOption = PauseOption::Resume;
                         std::cout << "Game paused" << std::endl;
                     }
                 } else if (keyPressed->code == keyBindings.bomb) {
-                    if ((bombAbilityAvailable || debugMode) && !gameOver) {
-                        std::cout << "BOMB ABILITY ACTIVATED - Spawning bomb!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
+                    if ((bombAbilityAvailable || debugMode || practiceInfiniteBombs) && !gameOver) {
+                        std::cout << "BOMB ABILITY ACTIVATED - Spawning bomb!" << (debugMode ? " (DEBUG MODE)" : "") << (practiceInfiniteBombs ? " (INFINITE BOMBS)" : "") << std::endl;
                         
 
                         bombUsedThisGame = true;
@@ -2989,7 +3820,7 @@ int main(int argc, char* argv[]) {
                         
 
                         PieceType replacedPiece = activePiece.getType();
-                        jigtrizBag.returnPieceToBag(replacedPiece);
+                        JigzterBag.returnPieceToBag(replacedPiece);
                         std::cout << "Returned " << pieceTypeToString(replacedPiece) << " to bag" << std::endl;
                         
                         PieceType newType = PieceType::A_Bomb;
@@ -3000,11 +3831,11 @@ int main(int argc, char* argv[]) {
                         int spawnY = -firstFilledRow;
                         activePiece = Piece(spawnX, spawnY, newType);
                         
-                        if (!debugMode) {
+                        if (!debugMode && !practiceInfiniteBombs) {
                             bombAbilityAvailable = false;
                             linesSinceLastAbility = 0;
                         }
-                    } else if (!bombAbilityAvailable && !debugMode && !gameOver) {
+                    } else if (!bombAbilityAvailable && !debugMode && !practiceInfiniteBombs && !gameOver) {
                         int linesNeeded = LINES_FOR_ABILITY - linesSinceLastAbility;
                         std::cout << "Bomb ability not ready yet! Need " << linesNeeded << " more lines." << std::endl;
                     }
@@ -3015,9 +3846,12 @@ int main(int argc, char* argv[]) {
 
                         bombUsedThisGame = false;
                         maxComboThisGame = 0;
+                        consecutiveBombsUsed = 0;
+                        hardDropCooldown = 0.0f;
                         
-                        if (sprintModeActive) {
+                        if (sprintModeActive || challengeModeActive) {
                             sprintTimer = 0.0f;
+                            autoDropTimer = 0.0f;
                             sprintCompleted = false;
                         }
                         
@@ -3036,7 +3870,7 @@ int main(int argc, char* argv[]) {
                         totalComboScore = 0;
                         RESET_SESSION_STATS();
                         
-                        jigtrizBag.reset();
+                        JigzterBag.reset();
                         
                         hasHeldPiece = false;
                         canUseHold = true;
@@ -3052,12 +3886,18 @@ int main(int argc, char* argv[]) {
                         explosionEffects.clear();
                         glowEffects.clear();
                         
-                        PieceType startType = jigtrizBag.getNextPiece();
+                        PieceType startType = JigzterBag.getNextPiece();
                         PieceShape startShape = getPieceShape(startType);
                         int startX = (GRID_WIDTH - startShape.width) / 2;
                         int firstFilledRow = findFirstFilledRow(startShape);
                         int startY = -firstFilledRow;
                         activePiece = Piece(startX, startY, startType);
+                        
+
+                        if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                            int randomIndex = rand() % currentConfig->colorPalette.size();
+                            activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                        }
                         
                         std::cout << "Game restarted during play!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
                     }
@@ -3068,23 +3908,35 @@ int main(int argc, char* argv[]) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape: {
                             std::cout << "ESC pressed! Returning to main menu..." << std::endl;
+                            audioManager.switchToMenuMusic();
+                            
                             gameState = GameState::MainMenu;
                             gameOver = false;
+                            gameOverSoundPlayed = false;
+                            gameOverMusicTimer = 0.0f;
                             selectedMenuOption = MenuOption::Start;
                             break;
                         }
                         case sf::Keyboard::Key::R: {
                             std::cout << "R key pressed! Restarting game..." << std::endl;
+                            
+                            audioManager.switchToGameplayMusic();
+                            
                             gameState = GameState::Playing;
                             gameOver = false;
+                            gameOverSoundPlayed = false;
+                            gameOverMusicTimer = 0.0f;
                             
 
                             bombUsedThisGame = false;
                             maxComboThisGame = 0;
+                            consecutiveBombsUsed = 0;
+                            hardDropCooldown = 0.0f;
                             
 
-                            if (sprintModeActive) {
+                            if (sprintModeActive || challengeModeActive) {
                                 sprintTimer = 0.0f;
+                                autoDropTimer = 0.0f;
                                 sprintCompleted = false;
                             }
                             
@@ -3103,7 +3955,7 @@ int main(int argc, char* argv[]) {
                             totalComboScore = 0;
                             RESET_SESSION_STATS();
                             
-                            jigtrizBag.reset();
+                            JigzterBag.reset();
                             
                             hasHeldPiece = false;
                             canUseHold = true;
@@ -3120,12 +3972,18 @@ int main(int argc, char* argv[]) {
                             glowEffects.clear();
                             
 
-                            PieceType startType = jigtrizBag.getNextPiece();
+                            PieceType startType = JigzterBag.getNextPiece();
                             PieceShape startShape = getPieceShape(startType);
                             int startX = (GRID_WIDTH - startShape.width) / 2;
                             int firstFilledRow = findFirstFilledRow(startShape);
                             int startY = -firstFilledRow;
                             activePiece = Piece(startX, startY, startType);
+                            
+
+                            if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                int randomIndex = rand() % currentConfig->colorPalette.size();
+                                activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                            }
                             
                             std::cout << "Game restarted!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
                             
@@ -3141,10 +3999,10 @@ int main(int argc, char* argv[]) {
                         isFullscreen = !isFullscreen;
                         if (isFullscreen) {
                             auto desktopMode = sf::VideoMode::getDesktopMode();
-                            window.create(desktopMode, "Jigtriz", sf::Style::None);
+                            window.create(desktopMode, "Jigzter", sf::Style::None);
                             std::cout << "Switched to FULLSCREEN mode" << std::endl;
                         } else {
-                            window.create(sf::VideoMode(sf::Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT)), "Jigtriz", sf::Style::Default);
+                            window.create(sf::VideoMode(sf::Vector2u(WINDOW_WIDTH, WINDOW_HEIGHT)), "Jigzter", sf::Style::Default);
                             std::cout << "Switched to WINDOWED mode" << std::endl;
                         }
                         window.setFramerateLimit(144);
@@ -3165,7 +4023,8 @@ int main(int argc, char* argv[]) {
         }
         
         if (gameState == GameState::AchievementsView) {
-            auto mousePos = sf::Mouse::getPosition(window);
+            sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
+            sf::Vector2f mousePos = window.mapPixelToCoords(mousePixelPos);
             
 
             const int COLS = 5;
@@ -3200,6 +4059,14 @@ int main(int argc, char* argv[]) {
 
         if (!gameOver) {
             sessionPlayTime += deltaTime;
+            
+
+            if (hardDropCooldown > 0.0f) {
+                hardDropCooldown -= deltaTime;
+                if (hardDropCooldown < 0.0f) {
+                    hardDropCooldown = 0.0f;
+                }
+            }
         }
 
         bool currentLeftPressed = sf::Keyboard::isKeyPressed(keyBindings.moveLeft);
@@ -3263,42 +4130,67 @@ int main(int argc, char* argv[]) {
             activePiece.update(deltaTime, fastFall, grid);
             
 
+            if (challengeModeActive && selectedChallengeMode == ChallengeMode::Vanishing) {
+                for (int y = 0; y < GRID_HEIGHT; y++) {
+                    for (int x = 0; x < GRID_WIDTH; x++) {
+                        if (grid[y][x].occupied && grid[y][x].isVanishing) {
+                            grid[y][x].vanishTimer += deltaTime;
+                            
+
+
+                        }
+                    }
+                }
+            }
+            
+
             bool hasLineGoal = currentConfig && currentConfig->hasLineGoal;
             if (hasLineGoal) {
                 sprintTimer += deltaTime;
             }
-        }
-        
-        if (shakeTimer < shakeDuration) {
-            shakeTimer += deltaTime;
-        }
-        
-        for (auto it = explosionEffects.begin(); it != explosionEffects.end(); ) {
-            it->timer -= deltaTime;
-            if (it->timer <= 0.0f) {
-                it = explosionEffects.erase(it);
-            } else {
-                ++it;
-            }
-        }
-        
+            
 
-        for (auto it = glowEffects.begin(); it != glowEffects.end(); ) {
-            it->update(deltaTime);
-            if (it->isFinished()) {
-                it = glowEffects.erase(it);
-            } else {
-                ++it;
+            if (challengeModeActive && selectedChallengeMode == ChallengeMode::AutoDrop && !gameOver) {
+                autoDropTimer += deltaTime;
+                if (autoDropTimer >= AUTO_DROP_INTERVAL) {
+                    autoDropTimer = 0.0f;
+                    
+
+                    int dropDistance = activePiece.moveGround(grid);
+                    int dropPoints = dropDistance * HARD_DROP_POINTS_PER_CELL;
+                    totalScore += dropPoints;
+                    totalHardDropScore += dropPoints;
+                    std::cout << "Auto drop: " << dropDistance << " cells = +" << dropPoints << " points" << std::endl;
+                    audioManager.playSpaceSound();
+                }
             }
         }
         
         if (activePiece.hasStopped() && !gameOver) {
-            activePiece.ChangeToStatic(grid, activePiece.getAbility(), &bombSound, &explosionEffects, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer);
+
+            hardDropCooldown = HARD_DROP_COOLDOWN_TIME;
+            
+
+            if (challengeModeActive && selectedChallengeMode == ChallengeMode::AutoDrop) {
+                autoDropTimer = 0.0f;
+            }
+            
+            AbilityType usedAbility = activePiece.getAbility();
+            bool isVanishing = (challengeModeActive && selectedChallengeMode == ChallengeMode::Vanishing);
+            activePiece.ChangeToStatic(grid, usedAbility, &audioManager, &explosionEffects, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer, &consecutiveBombsUsed, &saveData, &achievementPopups, isVanishing);
+            
+
+            if (usedAbility != AbilityType::Bomb) {
+                if (consecutiveBombsUsed > 0) {
+                    std::cout << "[BOMB] Streak broken! Reset to 0" << std::endl;
+                }
+                consecutiveBombsUsed = 0;
+            }
             
 
             sessionPiecesPlaced++;
             
-            int clearedLines = clearFullLines(grid, laserSound, wowSounds, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer);
+            int clearedLines = clearFullLines(grid, audioManager, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer);
             totalLinesCleared += clearedLines;
             
 
@@ -3311,8 +4203,8 @@ int main(int argc, char* argv[]) {
                 std::cout << "MODE COMPLETED! Time: " << sprintTimer << " seconds | Lines: " << totalLinesCleared << "/" << lineGoal << std::endl;
                 
 
-                if (sprintModeActive && lineGoal == 48 && sprintTimer < 120.0f) {
-                    unlockAchievement(saveData, Achievement::Blitz48Under230);
+                if (sprintModeActive && lineGoal == 48 && sprintTimer < 133.7f && !challengeModeActive && !practiceModeActive) {
+                    unlockAchievement(saveData, Achievement::Blitz48Under230, &achievementPopups, &audioManager);
                 }
                 
 
@@ -3346,6 +4238,18 @@ int main(int argc, char* argv[]) {
                         case ChallengeMode::NonStraight:
                             bestTimePtr = &saveData.bestTimeChallengeNonStraight;
                             break;
+                        case ChallengeMode::OneRot:
+                            bestTimePtr = &saveData.bestTimeChallengeOneRot;
+                            break;
+                        case ChallengeMode::ChristopherCurse:
+                            bestTimePtr = &saveData.bestTimeChallengeChristopherCurse;
+                            break;
+                        case ChallengeMode::Vanishing:
+                            bestTimePtr = &saveData.bestTimeChallengeVanishing;
+                            break;
+                        case ChallengeMode::AutoDrop:
+                            bestTimePtr = &saveData.bestTimeChallengeAutoDrop;
+                            break;
                     }
                     
                     if (bestTimePtr && (*bestTimePtr == 0.0f || sprintTimer < *bestTimePtr)) {
@@ -3354,6 +4258,13 @@ int main(int argc, char* argv[]) {
                         saveGameData(saveData);
                     }
                 }
+                
+
+                audioManager.stopAllMusic();
+                audioManager.playGameWinSound();
+                gameOverSoundPlayed = true;
+                gameOverMusicTimer = 0.0f;
+                std::cout << "Playing GAME WIN music (challenge completed)!" << std::endl;
             }
             
             if (clearedLines > 0) {
@@ -3374,18 +4285,18 @@ int main(int argc, char* argv[]) {
                 currentCombo += clearedLines;
                 
 
-                if (currentCombo >= 10) {
-                    unlockAchievement(saveData, Achievement::Combo10);
+                if (currentCombo >= 12 && !challengeModeActive && !practiceModeActive) {
+                    unlockAchievement(saveData, Achievement::Combo10, &achievementPopups, &audioManager);
                 }
                 
 
-                if (clearedLines >= 5) {
-                    unlockAchievement(saveData, Achievement::Combo5OneClear);
+                if (clearedLines >= 5 && !challengeModeActive && !practiceModeActive) {
+                    unlockAchievement(saveData, Achievement::Combo5OneClear, &achievementPopups, &audioManager);
                 }
                 
 
-                if (clearedLines >= 6) {
-                    unlockAchievement(saveData, Achievement::Combo6OneClear);
+                if (clearedLines >= 6 && !challengeModeActive && !practiceModeActive) {
+                    unlockAchievement(saveData, Achievement::Combo6OneClear, &achievementPopups, &audioManager);
                 }
                 
 
@@ -3406,6 +4317,29 @@ int main(int argc, char* argv[]) {
                     bombAbilityAvailable = true;
                     std::cout << "BOMB ABILITY READY! Press 'I' to activate!" << std::endl;
                 }
+                
+
+                if (totalLinesCleared >= 100) {
+                    bool hasEmptyColumn = false;
+                    for (int x = 0; x < GRID_WIDTH; x++) {
+                        bool columnEmpty = true;
+                        for (int y = 0; y < GRID_HEIGHT; y++) {
+                            if (grid[y][x].occupied) {
+                                columnEmpty = false;
+                                break;
+                            }
+                        }
+                        if (columnEmpty) {
+                            hasEmptyColumn = true;
+                            break;
+                        }
+                    }
+                    
+                    if (hasEmptyColumn && !challengeModeActive && !practiceModeActive) {
+                        unlockAchievement(saveData, Achievement::PerfectClear, &achievementPopups, &audioManager);
+                        std::cout << "[ACHIEVEMENT] Perfect Clear! At least one column is empty to the floor with " << totalLinesCleared << " lines cleared!" << std::endl;
+                    }
+                }
             } else {
                 lastMoveScore = 0;
                 currentCombo = std::max(0, currentCombo - 2);
@@ -3415,11 +4349,11 @@ int main(int argc, char* argv[]) {
             int newLevel = calculateLevel(totalLinesCleared);
             if (newLevel != currentLevel) {
                 currentLevel = newLevel;
-                jigtrizBag.updateLevel(currentLevel);
+                JigzterBag.updateLevel(currentLevel);
                 std::cout << "LEVEL UP! Level " << currentLevel << " reached! (Lines: " << totalLinesCleared << ")" << std::endl;
             }
             
-            PieceType randomType = jigtrizBag.getNextPiece();
+            PieceType randomType = JigzterBag.getNextPiece();
             std::cout << "Respawn: " << pieceTypeToString(randomType) << " (Bag System)" << std::endl;
             PieceShape newShape = getPieceShape(randomType);
             int spawnX = (GRID_WIDTH - newShape.width) / 2;
@@ -3430,24 +4364,42 @@ int main(int argc, char* argv[]) {
             
             activePiece = Piece(spawnX, spawnY, randomType);
             
+
+            if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                int randomIndex = rand() % currentConfig->colorPalette.size();
+                activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+            }
+            
+
+            if (challengeModeActive && selectedChallengeMode == ChallengeMode::OneRot) {
+                currentPieceRotations = 0;
+            }
+            
             if (activePiece.collidesAt(grid, spawnX, spawnY)) {
                 gameOver = true;
-
+                
                 std::cout << "GAME OVER! New piece overlaps with existing blocks at spawn position (" << spawnX << ", " << spawnY << ")" << std::endl;
                 std::cout << "Final Score: " << totalScore << " | Lines: " << totalLinesCleared << " | Level: " << currentLevel << std::endl;
                 
+                bool playWinSound = false;
 
-                if (!debugMode && !sprintModeActive) {
-                    insertNewScore(saveData, totalScore, totalLinesCleared, currentLevel, selectedClassicDifficulty);
+                if (!debugMode && !sprintModeActive && !challengeModeActive) {
+                    bool madeTopThree = insertNewScore(saveData, totalScore, totalLinesCleared, currentLevel, selectedClassicDifficulty);
                     
 
-                    if (totalScore >= 200000 && !bombUsedThisGame) {
-                        unlockAchievement(saveData, Achievement::Score200kNoBomb);
+                    if (madeTopThree) {
+                        playWinSound = true;
+                        std::cout << "CONGRATULATIONS! You made it to the TOP 3!" << std::endl;
                     }
                     
 
-                    if (totalScore >= 400000 && (selectedClassicDifficulty == ClassicDifficulty::Medium || selectedClassicDifficulty == ClassicDifficulty::Hard)) {
-                        unlockAchievement(saveData, Achievement::Score400kMedHard);
+                    if (totalScore >= 200000 && !bombUsedThisGame && !challengeModeActive && !practiceModeActive) {
+                        unlockAchievement(saveData, Achievement::Score200kNoBomb, &achievementPopups, &audioManager);
+                    }
+                    
+
+                    if (totalScore >= 400000 && (selectedClassicDifficulty == ClassicDifficulty::Medium || selectedClassicDifficulty == ClassicDifficulty::Hard) && !challengeModeActive && !practiceModeActive) {
+                        unlockAchievement(saveData, Achievement::Score400kMedHard, &achievementPopups, &audioManager);
                     }
                     
                     bool recordsUpdated = false;
@@ -3478,8 +4430,8 @@ int main(int argc, char* argv[]) {
                     saveData.totalPlayTimeSeconds += sessionPlayTime;
                     std::cout << "Session stats saved: " << sessionPiecesPlaced << " pieces, " << totalLinesCleared << " lines, " << sessionPlayTime << "s playtime" << std::endl;
                     
-                    saveData.masterVolume = masterVolume;
-                    saveData.isMuted = isMuted;
+                    saveData.masterVolume = audioManager.getMasterVolume();
+                    saveData.isMuted = audioManager.isMutedStatus();
                     
                     saveGameData(saveData);
                     
@@ -3487,6 +4439,17 @@ int main(int argc, char* argv[]) {
                 } else {
                     std::cout << "Score not saved (DEBUG MODE)" << std::endl;
                 }
+                
+
+                audioManager.stopAllMusic();
+                if (playWinSound) {
+                    audioManager.playGameWinSound();
+                    std::cout << "Playing GAME WIN music!" << std::endl;
+                } else {
+                    audioManager.playGameOverSound();
+                }
+                gameOverSoundPlayed = true;
+                gameOverMusicTimer = 0.0f;
             }
             
             canUseHold = true;
@@ -3501,12 +4464,60 @@ int main(int argc, char* argv[]) {
         
         }
         
+
+        for (auto it = achievementPopups.begin(); it != achievementPopups.end(); ) {
+            it->update(deltaTime);
+            if (it->isFinished()) {
+                it = achievementPopups.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        
+
+        if (shakeTimer < shakeDuration) {
+            shakeTimer += deltaTime;
+        }
+        
+
+        for (auto it = explosionEffects.begin(); it != explosionEffects.end(); ) {
+            it->timer -= deltaTime;
+            if (it->timer <= 0.0f) {
+                it = explosionEffects.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        
+
+        for (auto it = glowEffects.begin(); it != glowEffects.end(); ) {
+            it->update(deltaTime);
+            if (it->isFinished()) {
+                it = glowEffects.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        
+
+        if (gameState != GameState::Playing && gameState != GameState::Paused && gameState != GameState::SplashScreen) {
+            updateBackgroundPieces(backgroundPieces, deltaTime);
+            
+            backgroundSpawnTimer += deltaTime;
+            if (backgroundSpawnTimer >= BACKGROUND_SPAWN_INTERVAL) {
+                spawnBackgroundPiece(backgroundPieces);
+                backgroundSpawnTimer = 0.0f;
+            }
+        }
+        
         window.clear(sf::Color::Black);
         
 
-        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-        float mouseX = static_cast<float>(mousePos.x);
-        float mouseY = static_cast<float>(mousePos.y);
+
+        sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
+        sf::Vector2f mousePosF = window.mapPixelToCoords(mousePixelPos);
+        float mouseX = mousePosF.x;
+        float mouseY = mousePosF.y;
         float centerX = WINDOW_WIDTH / 2.0f;
         float centerY = WINDOW_HEIGHT / 2.0f;
         
@@ -3518,23 +4529,24 @@ int main(int argc, char* argv[]) {
 
             
 
-            if (mouseX >= centerX - 150 && mouseX <= centerX + 150 &&
-                mouseY >= centerY - 90 && mouseY <= centerY - 30) {
+
+            if (mouseX >= centerX - 200 && mouseX <= centerX + 200 &&
+                mouseY >= centerY - 60 && mouseY <= centerY + 20) {
                 selectedMenuOption = MenuOption::Start;
             }
 
-            else if (mouseX >= centerX - 200 && mouseX <= centerX + 200 &&
-                     mouseY >= centerY + 10 && mouseY <= centerY + 70) {
-                selectedMenuOption = MenuOption::Jigtrizopedia;
+            else if (mouseX >= centerX - 250 && mouseX <= centerX + 250 &&
+                     mouseY >= centerY + 50 && mouseY <= centerY + 130) {
+                selectedMenuOption = MenuOption::Extras;
             }
 
-            else if (mouseX >= centerX - 150 && mouseX <= centerX + 150 &&
-                     mouseY >= centerY + 110 && mouseY <= centerY + 170) {
+            else if (mouseX >= centerX - 225 && mouseX <= centerX + 225 &&
+                     mouseY >= centerY + 160 && mouseY <= centerY + 240) {
                 selectedMenuOption = MenuOption::Options;
             }
 
-            else if (mouseX >= centerX - 150 && mouseX <= centerX + 150 &&
-                     mouseY >= centerY + 210 && mouseY <= centerY + 270) {
+            else if (mouseX >= centerX - 175 && mouseX <= centerX + 175 &&
+                     mouseY >= centerY + 270 && mouseY <= centerY + 350) {
                 selectedMenuOption = MenuOption::Exit;
             }
         } else if (gameState == GameState::GameModeSelect) {
@@ -3542,7 +4554,7 @@ int main(int argc, char* argv[]) {
             float startY = centerY - 80.0f;
             float spacing = 90.0f;
             
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 4; i++) {
                 float selectorY = startY + i * spacing - 5;
                 if (mouseX >= centerX - 200 && mouseX <= centerX + 200 &&
                     mouseY >= selectorY && mouseY <= selectorY + 60) {
@@ -3580,9 +4592,9 @@ int main(int argc, char* argv[]) {
             }
         } else if (gameState == GameState::ChallengeSelect) {
 
-            float startY = centerY - 80.0f;
+            float startY = centerY - 150.0f;
             float spacing = 90.0f;
-            int numOptions = debugMode ? 4 : 3;
+            int numOptions = debugMode ? 8 : 7;
             int startEnumValue = debugMode ? 0 : 1;
             
             for (int i = 0; i < numOptions; i++) {
@@ -3593,7 +4605,28 @@ int main(int argc, char* argv[]) {
                     break;
                 }
             }
-        } else if (gameState == GameState::Jigtrizopedia) {
+        } else if (gameState == GameState::PracticeSelect) {
+
+            float startY = centerY - 180.0f;
+            float spacing = 100.0f;
+            
+
+            for (int i = 0; i < 3; i++) {
+                float selectorY = startY + i * spacing - 5;
+                if (mouseX >= centerX - 350 && mouseX <= centerX + 350 &&
+                    mouseY >= selectorY && mouseY <= selectorY + 60) {
+                    selectedPracticeOption = i;
+                    break;
+                }
+            }
+            
+
+            float startButtonY = startY + spacing * 3 + 25;
+            if (mouseX >= centerX - 250 && mouseX <= centerX + 250 &&
+                mouseY >= startButtonY && mouseY <= startButtonY + 60) {
+                selectedPracticeOption = 3;
+            }
+        } else if (gameState == GameState::Extras) {
 
             float startY = centerY - 200.0f;
             float spacing = 70.0f;
@@ -3602,7 +4635,7 @@ int main(int argc, char* argv[]) {
                 float selectorY = startY + i * spacing - 5;
                 if (mouseX >= centerX - 225 && mouseX <= centerX + 225 &&
                     mouseY >= selectorY && mouseY <= selectorY + 55) {
-                    selectedJigtrizopediaOption = static_cast<JigtrizopediaOption>(i);
+                    selectedExtrasOption = static_cast<ExtrasOption>(i);
                     break;
                 }
             }
@@ -3644,8 +4677,11 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        sf::View view = window.getDefaultView();
-        if (shakeTimer < shakeDuration && gameState == GameState::Playing) {
+
+        sf::View view(sf::Vector2f(static_cast<float>(WINDOW_WIDTH) / 2.0f, static_cast<float>(WINDOW_HEIGHT) / 2.0f),
+                      sf::Vector2f(static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT)));
+        
+        if (shakeTimer < shakeDuration) {
             float progress = shakeTimer / shakeDuration;
             float currentIntensity = shakeIntensity * (1.0f - progress);
             
@@ -3660,16 +4696,97 @@ int main(int argc, char* argv[]) {
             }
             
             view.setCenter(sf::Vector2f(WINDOW_WIDTH / 2.0f + offsetX, WINDOW_HEIGHT / 2.0f + offsetY));
-            window.setView(view);
         } else {
             view.setCenter(sf::Vector2f(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f));
-            window.setView(view);
         }
+        window.setView(view);
         
-        if (gameState == GameState::MainMenu) {
-            drawMainMenu(window, titleFont, menuFont, fontLoaded, selectedMenuOption, debugMode);
+        if (gameState == GameState::SplashScreen) {
+            splashElapsedTime += deltaTime;
             
-            if (isMuted) {
+            switch (splashSequenceStep) {
+                case 0:
+                    blackScreenAlpha = 1.0f;
+                    if (splashElapsedTime >= 1.0f) {
+                        audioManager.playSplashMusic();
+                        splashElapsedTime = 0.0f;
+                        splashSequenceStep++;
+                    }
+                    break;
+                    
+                case 1:
+                    blackScreenAlpha = std::max(0.0f, 1.0f - (splashElapsedTime / FADE_DURATION));
+                    if (blackScreenAlpha <= 0.0f) {
+                        splashElapsedTime = 0.0f;
+                        splashSequenceStep++;
+                    }
+                    break;
+                    
+                case 2:
+                    blackScreenAlpha = 0.0f;
+                    if (splashElapsedTime >= 3.0f) {
+                        splashElapsedTime = 0.0f;
+                        splashSequenceStep++;
+                    }
+                    break;
+                    
+                case 3:
+                    blackScreenAlpha = std::min(1.0f, splashElapsedTime / FADE_DURATION);
+                    if (blackScreenAlpha >= 1.0f) {
+                        splashElapsedTime = 0.0f;
+                        splashSequenceStep++;
+                    }
+                    break;
+                    
+                case 4:
+                    blackScreenAlpha = 1.0f;
+                    if (splashElapsedTime >= 1.0f) {
+                        splashElapsedTime = 0.0f;
+                        splashSequenceStep++;
+                        audioManager.playMenuMusic();
+                    }
+                    break;
+                    
+                case 5:
+                    blackScreenAlpha = std::max(0.0f, 1.0f - (splashElapsedTime / FADE_DURATION));
+                    if (blackScreenAlpha <= 0.0f) {
+                        gameState = GameState::MainMenu;
+                        showCustomCursor = true;
+                        std::cout << "Splash sequence finished, transitioning to main menu" << std::endl;
+                    }
+                    break;
+            }
+            
+
+            if (splashLoaded && splashSequenceStep >= 1 && splashSequenceStep <= 3) {
+                sf::Sprite splashSprite(splashTexture);
+                
+
+                sf::Vector2u textureSize = splashTexture.getSize();
+                float scaleX = WINDOW_WIDTH / static_cast<float>(textureSize.x);
+                float scaleY = WINDOW_HEIGHT / static_cast<float>(textureSize.y);
+                float scale = std::min(scaleX, scaleY);
+                
+                splashSprite.setScale(sf::Vector2f(scale, scale));
+                
+                sf::Vector2f spriteSize(textureSize.x * scale, textureSize.y * scale);
+                sf::Vector2f position((WINDOW_WIDTH - spriteSize.x) / 2.0f, (WINDOW_HEIGHT - spriteSize.y) / 2.0f);
+                splashSprite.setPosition(position);
+                
+                window.draw(splashSprite);
+            }
+            
+
+            sf::RectangleShape blackScreen(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+            blackScreen.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(blackScreenAlpha * 255)));
+            window.draw(blackScreen);
+            
+        } else if (gameState == GameState::MainMenu) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
+            drawMainMenu(window, titleFont, menuFont, fontLoaded, selectedMenuOption, debugMode, textures, useTextures);
+            
+            if (audioManager.isMutedStatus()) {
                 if (textures.find(TextureType::MuteIcon) != textures.end()) {
                     sf::Sprite muteSprite(textures.at(TextureType::MuteIcon));
                     sf::Vector2u textureSize = textures.at(TextureType::MuteIcon).getSize();
@@ -3689,7 +4806,7 @@ int main(int argc, char* argv[]) {
             }
             
             if (showVolumeIndicator && fontLoaded) {
-                float displayVolume = isMuted ? lastMasterVolume : masterVolume;
+                float displayVolume = audioManager.getMasterVolume();
                 std::string volumeStr = "Volume: " + std::to_string(static_cast<int>(displayVolume)) + "%";
                 
                 sf::Text volumeText(menuFont);
@@ -3712,7 +4829,7 @@ int main(int argc, char* argv[]) {
                 float boxHeight = 55.0f;
                 
                 float posX = 1920.0f - boxWidth - 20.0f;
-                float posY = isMuted ? 80.0f : 20.0f;
+                float posY = audioManager.isMutedStatus() ? 80.0f : 20.0f;
                 
 
                 sf::RectangleShape volumeBg;
@@ -3756,23 +4873,43 @@ int main(int argc, char* argv[]) {
                 window.draw(volumeBarFill);
             }
         } else if (gameState == GameState::GameModeSelect) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
             drawGameModeMenu(window, titleFont, menuFont, fontLoaded, selectedGameModeOption);
         } else if (gameState == GameState::ClassicDifficultySelect) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
             drawClassicDifficultyMenu(window, titleFont, menuFont, fontLoaded, selectedClassicDifficulty, saveData);
         } else if (gameState == GameState::SprintLinesSelect) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
             drawSprintLinesMenu(window, titleFont, menuFont, fontLoaded, selectedSprintLines, saveData, debugMode);
         } else if (gameState == GameState::ChallengeSelect) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
             drawChallengeMenu(window, titleFont, menuFont, fontLoaded, selectedChallengeMode, debugMode, saveData);
-        } else if (gameState == GameState::Jigtrizopedia) {
-            drawJigtrizopediaMenu(window, titleFont, menuFont, fontLoaded, selectedJigtrizopediaOption);
+        } else if (gameState == GameState::PracticeSelect) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
+            drawPracticeMenu(window, titleFont, menuFont, fontLoaded, selectedPracticeDifficulty, selectedPracticeLineGoal, practiceInfiniteBombs, selectedPracticeOption);
+        } else if (gameState == GameState::Extras) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
+            drawExtrasMenu(window, titleFont, menuFont, fontLoaded, selectedExtrasOption);
         } else if (gameState == GameState::AchievementsView) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
             drawAchievementsScreen(window, titleFont, menuFont, fontLoaded, saveData, hoveredAchievement);
         } else if (gameState == GameState::StatisticsView) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
             drawStatisticsScreen(window, titleFont, menuFont, fontLoaded, saveData);
         } else if (gameState == GameState::Options) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
             drawOptionsMenu(window, menuFont, fontLoaded, debugMode, selectedOptionsOption);
             
-            if (isMuted) {
+            if (audioManager.isMutedStatus()) {
                 if (textures.find(TextureType::MuteIcon) != textures.end()) {
                     sf::Sprite muteSprite(textures.at(TextureType::MuteIcon));
                     sf::Vector2u textureSize = textures.at(TextureType::MuteIcon).getSize();
@@ -3795,7 +4932,7 @@ int main(int argc, char* argv[]) {
             }
 
             if (showVolumeIndicator && volumeIndicatorTimer > 0.0f && fontLoaded) {
-                float displayVolume = masterVolume;
+                float displayVolume = audioManager.getMasterVolume();
                 std::string volumeStr = "Volume: " + std::to_string((int)displayVolume) + "%";
                 
                 sf::Text volumeText(menuFont);
@@ -3808,7 +4945,7 @@ int main(int argc, char* argv[]) {
                 float volumeWidth = volumeBounds.size.x + 40.0f;
                 float volumeHeight = 100.0f;
                 float volumeX = 1920.0f - volumeWidth - 20.0f;
-                float volumeY = isMuted ? 80.0f : 20.0f;
+                float volumeY = audioManager.isMutedStatus() ? 80.0f : 20.0f;
 
                 sf::RectangleShape volumeBox;
                 volumeBox.setSize(sf::Vector2f(volumeWidth, volumeHeight));
@@ -3870,38 +5007,63 @@ int main(int argc, char* argv[]) {
             drawConfirmClearScores(window, menuFont, fontLoaded, selectedConfirmOption);
         } else if (gameState == GameState::Playing || gameState == GameState::Paused) {
         drawGridBackground(window);
+        
+
+        if (fontLoaded) {
+            std::string modeText = getGameModeText(selectedGameModeOption, selectedClassicDifficulty, selectedSprintLines, selectedChallengeMode);
+            sf::Text gameModeLabel(menuFont);
+            gameModeLabel.setString(modeText);
+            gameModeLabel.setCharacterSize(32);
+            gameModeLabel.setFillColor(sf::Color(200, 200, 220, 255));
+            gameModeLabel.setStyle(sf::Text::Bold);
+            
+            sf::FloatRect textBounds = gameModeLabel.getLocalBounds();
+            gameModeLabel.setPosition(sf::Vector2f(
+                (WINDOW_WIDTH - textBounds.size.x) / 2.0f,
+                20.0f
+            ));
+            window.draw(gameModeLabel);
+        }
+        
         for (int i = 0; i < GRID_HEIGHT; ++i) {
             for (int j = 0; j < GRID_WIDTH; ++j) {
                 float worldX = GRID_OFFSET_X + j * CELL_SIZE;
                 float worldY = GRID_OFFSET_Y + i * CELL_SIZE;
-                TextureType cellTextureType = grid[i][j].occupied ? grid[i][j].getTextureType() : TextureType::Empty;
                 
 
-                if (grid[i][j].occupied && textures.find(TextureType::GenericBlock) != textures.end()) {
-                    sf::Sprite cellSprite(textures.at(TextureType::GenericBlock));
-                    cellSprite.setPosition(sf::Vector2f(worldX, worldY));
-                    cellSprite.setColor(grid[i][j].color);
-                    sf::Vector2u textureSize = textures.at(TextureType::GenericBlock).getSize();
-                    cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
-                    window.draw(cellSprite);
-                } else if (textures.find(cellTextureType) != textures.end()) {
 
-                    sf::Sprite cellSprite(textures.at(cellTextureType));
-                    cellSprite.setPosition(sf::Vector2f(worldX, worldY));
-                    sf::Vector2u textureSize = textures.at(cellTextureType).getSize();
-                    cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
-                    window.draw(cellSprite);
+                bool isVanished = grid[i][j].isVanishing && grid[i][j].vanishTimer >= 8.0f;
+                
+                if (grid[i][j].occupied && !isVanished) {
+
+                    TextureType cellTextureType = grid[i][j].getTextureType();
+                    sf::Color cellColor = grid[i][j].color;
+                    
+
+                    if (grid[i][j].isVanishing && grid[i][j].vanishTimer >= 4.0f && grid[i][j].vanishTimer < 8.0f) {
+
+                        float fadeProgress = (grid[i][j].vanishTimer - 4.0f) / 4.0f;
+
+                        cellColor.a = static_cast<std::uint8_t>(255.0f * (1.0f - fadeProgress));
+                    }
+                    
+                    drawCell(window, worldX, worldY, CELL_SIZE, cellColor, cellTextureType, textures, useTextures);
                 } else {
 
-                    sf::RectangleShape cellShape;
-                    cellShape.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
-                    cellShape.setPosition(sf::Vector2f(worldX, worldY));
-                    if (grid[i][j].occupied) {
-                        cellShape.setFillColor(grid[i][j].color);
+                    if (useTextures && textures.find(TextureType::Empty) != textures.end()) {
+                        sf::Sprite cellSprite(textures.at(TextureType::Empty));
+                        cellSprite.setPosition(sf::Vector2f(worldX, worldY));
+                        sf::Vector2u textureSize = textures.at(TextureType::Empty).getSize();
+                        cellSprite.setScale(sf::Vector2f(CELL_SIZE / textureSize.x, CELL_SIZE / textureSize.y));
+                        window.draw(cellSprite);
                     } else {
+
+                        sf::RectangleShape cellShape;
+                        cellShape.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
+                        cellShape.setPosition(sf::Vector2f(worldX, worldY));
                         cellShape.setFillColor(sf::Color(50, 50, 60));
+                        window.draw(cellShape);
                     }
-                    window.draw(cellShape);
                 }
             }
         }
@@ -3910,9 +5072,9 @@ int main(int argc, char* argv[]) {
         activePiece.draw(window, textures, useTextures);
         drawExplosionEffects(window, explosionEffects);
         drawGlowEffects(window, glowEffects, textures);
-        drawNextPieces(window, jigtrizBag.getNextQueue(), textures, useTextures);
+        drawNextPieces(window, JigzterBag.getNextQueue(), textures, useTextures);
         drawHeldPiece(window, heldPiece, hasHeldPiece, textures, useTextures, menuFont, fontLoaded);
-        drawBombAbility(window, bombAbilityAvailable, linesSinceLastAbility, textures, useTextures, menuFont, fontLoaded);
+        drawBombAbility(window, bombAbilityAvailable, linesSinceLastAbility, textures, useTextures, menuFont, fontLoaded, practiceModeActive && practiceInfiniteBombs);
         
 
         bool useSprintUI = sprintModeActive || (currentConfig && currentConfig->hasLineGoal);
@@ -3922,7 +5084,7 @@ int main(int argc, char* argv[]) {
             drawCombo(window, currentCombo, lastMoveScore, menuFont, fontLoaded);
         }
         drawGridBorder(window);
-        drawJigtrizTitle(window, titleFont, fontLoaded);
+        drawJigzterTitle(window, titleFont, fontLoaded);
         
         if (gameOver) {
 
@@ -3945,7 +5107,7 @@ int main(int argc, char* argv[]) {
             window.draw(debugText);
         }
         
-        if (isMuted) {
+        if (audioManager.isMutedStatus()) {
             if (textures.find(TextureType::MuteIcon) != textures.end()) {
                 sf::Sprite muteSprite(textures.at(TextureType::MuteIcon));
                 sf::Vector2u textureSize = textures.at(TextureType::MuteIcon).getSize();
@@ -3965,7 +5127,7 @@ int main(int argc, char* argv[]) {
         }
         
         if (showVolumeIndicator && fontLoaded) {
-            float displayVolume = isMuted ? lastMasterVolume : masterVolume;
+            float displayVolume = audioManager.getMasterVolume();
             std::string volumeStr = "Volume: " + std::to_string(static_cast<int>(displayVolume)) + "%";
             
             sf::Text volumeText(menuFont);
@@ -3988,7 +5150,7 @@ int main(int argc, char* argv[]) {
             float boxHeight = 55.0f;
             
             float posX = 1920.0f - boxWidth - 20.0f;
-            float posY = isMuted ? 80.0f : 20.0f;
+            float posY = audioManager.isMutedStatus() ? 80.0f : 20.0f;
             
 
             sf::RectangleShape volumeBg;
@@ -4034,8 +5196,94 @@ int main(int argc, char* argv[]) {
         
         }
         
+
+        if (fontLoaded) {
+            float popupY = 1080.0f - 140.0f;
+            for (const auto& popup : achievementPopups) {
+                float offsetX = popup.getOffsetX(1920.0f);
+                
+
+                const float popupWidth = 400.0f;
+                const float popupHeight = 120.0f;
+                sf::RectangleShape bg;
+                bg.setSize(sf::Vector2f(popupWidth, popupHeight));
+                bg.setPosition(sf::Vector2f(offsetX, popupY));
+                bg.setFillColor(sf::Color(20, 20, 40, 230));
+                bg.setOutlineColor(sf::Color(255, 215, 0, 255));
+                bg.setOutlineThickness(3);
+                window.draw(bg);
+                
+
+                sf::RectangleShape icon;
+                icon.setSize(sf::Vector2f(80.0f, 80.0f));
+                icon.setPosition(sf::Vector2f(offsetX + 15.0f, popupY + 20.0f));
+                icon.setFillColor(sf::Color(60, 60, 80, 255));
+                icon.setOutlineColor(sf::Color(255, 215, 0, 255));
+                icon.setOutlineThickness(2);
+                window.draw(icon);
+                
+
+                sf::Text questionMark(menuFont);
+                questionMark.setString("?");
+                questionMark.setCharacterSize(60);
+                questionMark.setFillColor(sf::Color(255, 215, 0, 255));
+                questionMark.setStyle(sf::Text::Bold);
+                sf::FloatRect qBounds = questionMark.getLocalBounds();
+                questionMark.setPosition(sf::Vector2f(
+                    offsetX + 15.0f + (80.0f - qBounds.size.x) / 2.0f,
+                    popupY + 20.0f + (80.0f - qBounds.size.y) / 2.0f - 5.0f
+                ));
+                window.draw(questionMark);
+                
+
+                sf::Text headerText(menuFont);
+                headerText.setString("Achievement Unlocked!");
+                headerText.setCharacterSize(18);
+                headerText.setFillColor(sf::Color(200, 200, 200, 255));
+                headerText.setStyle(sf::Text::Bold);
+                headerText.setPosition(sf::Vector2f(offsetX + 110.0f, popupY + 15.0f));
+                window.draw(headerText);
+                
+
+                sf::Text titleText(menuFont);
+                titleText.setString(popup.title);
+                titleText.setCharacterSize(24);
+                titleText.setFillColor(sf::Color(255, 215, 0, 255));
+                titleText.setStyle(sf::Text::Bold);
+                titleText.setPosition(sf::Vector2f(offsetX + 110.0f, popupY + 45.0f));
+                window.draw(titleText);
+            }
+        }
+        
+
+        if (showCustomCursor) {
+            sf::Vector2i cursorPixelPos = sf::Mouse::getPosition(window);
+            sf::Vector2f cursorPos = window.mapPixelToCoords(cursorPixelPos);
+            float cursorSize = 24.0f;
+            
+            if (useTextures && textures.find(TextureType::GenericBlock) != textures.end()) {
+                sf::Sprite cursorSprite(textures.at(TextureType::GenericBlock));
+                sf::Vector2u textureSize = textures.at(TextureType::GenericBlock).getSize();
+                float scale = cursorSize / textureSize.x;
+                cursorSprite.setScale(sf::Vector2f(scale, scale));
+                cursorSprite.setPosition(sf::Vector2f(cursorPos.x - cursorSize/2, cursorPos.y - cursorSize/2));
+                cursorSprite.setColor(sf::Color(255, 255, 255, 255));
+                window.draw(cursorSprite);
+            } else {
+
+                sf::CircleShape cursorShape(8.0f);
+                cursorShape.setFillColor(sf::Color::White);
+                cursorShape.setOutlineColor(sf::Color::Black);
+                cursorShape.setOutlineThickness(2.0f);
+                cursorShape.setPosition(sf::Vector2f(cursorPos.x - 8.0f, cursorPos.y - 8.0f));
+                window.draw(cursorShape);
+            }
+        }
+        
         window.display();
     }
     return 0;
 }
+
+
 

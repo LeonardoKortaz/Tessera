@@ -1,16 +1,21 @@
 ﻿#include "menu_render.h"
+#include "piece_utils.h"
+#include "achievements.h"
 #include <algorithm>
 #include <iostream>
+#include <cstdlib>
+#include <cstdint>
+#include <cmath>
 
 void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData, int dropScore, int lineScore, int comboScore, ClassicDifficulty difficulty, bool isSprintMode, float sprintTime, int sprintTarget, bool sprintCompleted, bool isChallengeMode) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 180));
-    overlay.setSize(sf::Vector2f(1920, 1080));
+    overlay.setSize(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
     overlay.setPosition(sf::Vector2f(0, 0));
     window.draw(overlay);
     
-    float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
     
     if (isSprintMode) {
 
@@ -346,17 +351,17 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
     }
 }
 
-void drawJigtrizTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
+void drawJigzterTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigtriz 0.2.7");
+    sf::Text titleText(font, "Jigzter 0.3.0-beta.3");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
     titleText.setOutlineColor(sf::Color::Black);
     titleText.setOutlineThickness(2);
     
-    titleText.setPosition(sf::Vector2f(50, 1080 - 80));
+    titleText.setPosition(sf::Vector2f(50, SCREEN_HEIGHT - 80));
     
     window.draw(titleText);
 }
@@ -364,12 +369,12 @@ void drawJigtrizTitle(sf::RenderWindow& window, const sf::Font& font, bool fontL
 void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, PauseOption selectedOption) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 180));
-    overlay.setSize(sf::Vector2f(1920, 1080));
+    overlay.setSize(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
     overlay.setPosition(sf::Vector2f(0, 0));
     window.draw(overlay);
     
-    float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
     
     sf::RectangleShape menuBg;
     menuBg.setFillColor(sf::Color(40, 40, 50, 240));
@@ -380,7 +385,7 @@ void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool font
     window.draw(menuBg);
     
     if (fontLoaded) {
-        sf::Text pausedText(menuFont, "Jigtriz");
+        sf::Text pausedText(menuFont, "Jigzter");
         pausedText.setCharacterSize(48);
         pausedText.setFillColor(sf::Color(100, 150, 255));
         pausedText.setStyle(sf::Text::Bold);
@@ -447,13 +452,6 @@ void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool font
         sf::FloatRect quitBounds = quitText.getLocalBounds();
         quitText.setPosition(sf::Vector2f(centerX - quitBounds.size.x/2, centerY + 100));
         window.draw(quitText);
-        
-        sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE/ENTER to confirm | ESC to go back");
-        controlsText.setCharacterSize(14);
-        controlsText.setFillColor(sf::Color(150, 150, 150));
-        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
-        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 155));
-        window.draw(controlsText);
     } else {
         sf::RectangleShape titleBar;
         titleBar.setFillColor(sf::Color(100, 150, 255));
@@ -476,12 +474,12 @@ void drawConfirmClearScores(sf::RenderWindow& window, const sf::Font& menuFont, 
 
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 180));
-    overlay.setSize(sf::Vector2f(1920, 1080));
+    overlay.setSize(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
     overlay.setPosition(sf::Vector2f(0, 0));
     window.draw(overlay);
     
-    float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
     
 
     sf::RectangleShape dialogBg;
@@ -510,7 +508,7 @@ void drawConfirmClearScores(sf::RenderWindow& window, const sf::Font& menuFont, 
         questionText.setPosition(sf::Vector2f(centerX - q1Bounds.size.x/2, centerY - 50));
         window.draw(questionText);
         
-        sf::Text questionText2(menuFont, "all your scores?");
+        sf::Text questionText2(menuFont, "all your data (scores, times & achievements)?");
         questionText2.setCharacterSize(26);
         questionText2.setFillColor(sf::Color::White);
         sf::FloatRect q2Bounds = questionText2.getLocalBounds();
@@ -569,18 +567,27 @@ void drawConfirmClearScores(sf::RenderWindow& window, const sf::Font& menuFont, 
     }
 }
 
-void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption, bool debugMode) {
-    sf::RectangleShape overlay;
-    overlay.setFillColor(sf::Color(0, 0, 0, 230));
-    overlay.setSize(sf::Vector2f(1920, 1080));
-    overlay.setPosition(sf::Vector2f(0, 0));
-    window.draw(overlay);
+void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption, bool debugMode, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
     
-    float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
-    
-    if (fontLoaded) {
-        sf::Text titleText(titleFont, "JIGTRIZ");
+
+    if (useTextures && textures.find(TextureType::JigzterLogo) != textures.end()) {
+        sf::Sprite logoSprite(textures.at(TextureType::JigzterLogo));
+        sf::Vector2u logoSize = textures.at(TextureType::JigzterLogo).getSize();
+        
+
+        float logoScale = 1.0f;
+        logoSprite.setScale(sf::Vector2f(logoScale, logoScale));
+        
+
+        float scaledWidth = logoSize.x * logoScale;
+        float scaledHeight = logoSize.y * logoScale;
+        logoSprite.setPosition(sf::Vector2f(centerX - scaledWidth/2, centerY - 350));
+        window.draw(logoSprite);
+    } else if (fontLoaded) {
+
+        sf::Text titleText(titleFont, "JIGZTER");
         titleText.setCharacterSize(128);
         titleText.setFillColor(sf::Color(100, 255, 150));
         titleText.setStyle(sf::Text::Bold);
@@ -589,100 +596,95 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         sf::FloatRect titleBounds = titleText.getLocalBounds();
         titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 350));
         window.draw(titleText);
-        
-        sf::Text versionText(menuFont, "v0.2.7");
-        versionText.setCharacterSize(24);
+    }
+    
+    if (fontLoaded) {
+        sf::Text versionText(menuFont, "v0.3.0-beta.3");
+        versionText.setCharacterSize(28);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();
-        versionText.setPosition(sf::Vector2f(centerX - versionBounds.size.x/2, centerY - 200));
+        versionText.setPosition(sf::Vector2f(centerX - versionBounds.size.x/2, centerY - 140));
         window.draw(versionText);
         
         sf::Text startText(menuFont, "START");
-        startText.setCharacterSize(48);
+        startText.setCharacterSize(64);
         if (selectedOption == MenuOption::Start) {
             startText.setFillColor(sf::Color::Yellow);
             startText.setStyle(sf::Text::Bold);
             
             sf::RectangleShape selector;
-            selector.setSize(sf::Vector2f(300, 60));
+            selector.setSize(sf::Vector2f(400, 80));
             selector.setFillColor(sf::Color(255, 255, 0, 50));
             selector.setOutlineColor(sf::Color::Yellow);
             selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 150, centerY - 90));
+            selector.setPosition(sf::Vector2f(centerX - 200, centerY - 60));
             window.draw(selector);
         } else {
             startText.setFillColor(sf::Color::White);
         }
         sf::FloatRect startBounds = startText.getLocalBounds();
-        startText.setPosition(sf::Vector2f(centerX - startBounds.size.x/2, centerY - 90));
+        startText.setPosition(sf::Vector2f(centerX - startBounds.size.x/2, centerY - 60));
         window.draw(startText);
         
-        sf::Text jigtrizopediaText(menuFont, "JIGTRIZOPEDIA");
-        jigtrizopediaText.setCharacterSize(48);
-        if (selectedOption == MenuOption::Jigtrizopedia) {
-            jigtrizopediaText.setFillColor(sf::Color::Yellow);
-            jigtrizopediaText.setStyle(sf::Text::Bold);
+        sf::Text extrasText(menuFont, "EXTRAS");
+        extrasText.setCharacterSize(64);
+        if (selectedOption == MenuOption::Extras) {
+            extrasText.setFillColor(sf::Color::Yellow);
+            extrasText.setStyle(sf::Text::Bold);
             
             sf::RectangleShape selector;
-            selector.setSize(sf::Vector2f(400, 60));
+            selector.setSize(sf::Vector2f(500, 80));
             selector.setFillColor(sf::Color(255, 255, 0, 50));
             selector.setOutlineColor(sf::Color::Yellow);
             selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 200, centerY + 10));
+            selector.setPosition(sf::Vector2f(centerX - 250, centerY + 50));
             window.draw(selector);
         } else {
-            jigtrizopediaText.setFillColor(sf::Color::White);
+            extrasText.setFillColor(sf::Color::White);
         }
-        sf::FloatRect jigtrizopediaBounds = jigtrizopediaText.getLocalBounds();
-        jigtrizopediaText.setPosition(sf::Vector2f(centerX - jigtrizopediaBounds.size.x/2, centerY+10));
-        window.draw(jigtrizopediaText);
+        sf::FloatRect extrasBounds = extrasText.getLocalBounds();
+        extrasText.setPosition(sf::Vector2f(centerX - extrasBounds.size.x/2, centerY + 50));
+        window.draw(extrasText);
         
         sf::Text optionsText(menuFont, "OPTIONS");
-        optionsText.setCharacterSize(48);
+        optionsText.setCharacterSize(64);
         if (selectedOption == MenuOption::Options) {
             optionsText.setFillColor(sf::Color::Yellow);
             optionsText.setStyle(sf::Text::Bold);
             
             sf::RectangleShape selector;
-            selector.setSize(sf::Vector2f(300, 60));
+            selector.setSize(sf::Vector2f(450, 80));
             selector.setFillColor(sf::Color(255, 255, 0, 50));
             selector.setOutlineColor(sf::Color::Yellow);
             selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 150, centerY + 110));
+            selector.setPosition(sf::Vector2f(centerX - 225, centerY + 160));
             window.draw(selector);
         } else {
             optionsText.setFillColor(sf::Color::White);
         }
         sf::FloatRect optionsBounds = optionsText.getLocalBounds();
-        optionsText.setPosition(sf::Vector2f(centerX - optionsBounds.size.x/2, centerY + 110));
+        optionsText.setPosition(sf::Vector2f(centerX - optionsBounds.size.x/2, centerY + 160));
         window.draw(optionsText);
         
         sf::Text exitText(menuFont, "EXIT");
-        exitText.setCharacterSize(48);
+        exitText.setCharacterSize(64);
         if (selectedOption == MenuOption::Exit) {
             exitText.setFillColor(sf::Color::Yellow);
             exitText.setStyle(sf::Text::Bold);
             
             sf::RectangleShape selector;
-            selector.setSize(sf::Vector2f(300, 60));
+            selector.setSize(sf::Vector2f(350, 80));
             selector.setFillColor(sf::Color(255, 255, 0, 50));
             selector.setOutlineColor(sf::Color::Yellow);
             selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 150, centerY + 210));
+            selector.setPosition(sf::Vector2f(centerX - 175, centerY + 270));
             window.draw(selector);
         } else {
             exitText.setFillColor(sf::Color::White);
         }
         sf::FloatRect exitBounds = exitText.getLocalBounds();
-        exitText.setPosition(sf::Vector2f(centerX - exitBounds.size.x/2, centerY + 210));
+        exitText.setPosition(sf::Vector2f(centerX - exitBounds.size.x/2, centerY + 270));
         window.draw(exitText);
-        
-        sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE/ENTER to confirm | ESC to go back");
-        controlsText.setCharacterSize(20);
-        controlsText.setFillColor(sf::Color(150, 150, 150));
-        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
-        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 300));
-        window.draw(controlsText);
     } else {
         sf::RectangleShape titleBar;
         titleBar.setFillColor(sf::Color(100, 255, 150));
@@ -711,20 +713,14 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         debugText.setString("DEBUG MODE");
         debugText.setCharacterSize(24);
         debugText.setFillColor(sf::Color::Yellow);
-        debugText.setPosition(sf::Vector2f(1920.0f - 180.0f, 1080.0f - 40.0f));
+        debugText.setPosition(sf::Vector2f(SCREEN_WIDTH - 180.0f, SCREEN_HEIGHT - 40.0f));
         window.draw(debugText);
     }
 }
 
 void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, GameModeOption selectedOption) {
-    sf::RectangleShape overlay;
-    overlay.setFillColor(sf::Color(0, 0, 0, 230));
-    overlay.setSize(sf::Vector2f(1920, 1080));
-    overlay.setPosition(sf::Vector2f(0, 0));
-    window.draw(overlay);
-    
-    float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
     
     if (fontLoaded) {
         sf::Text titleText(titleFont, "SELECT GAME MODE");
@@ -740,7 +736,8 @@ void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
         std::vector<std::pair<std::string, GameModeOption>> options = {
             {"CLASSIC", GameModeOption::Classic},
             {"BLITZ", GameModeOption::Sprint},
-            {"CHALLENGE", GameModeOption::Challenge}
+            {"CHALLENGE", GameModeOption::Challenge},
+            {"PRACTICE", GameModeOption::Practice}
         };
         
         float startY = centerY - 80;
@@ -790,25 +787,12 @@ void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
                 window.draw(disabledText);
             }
         }
-        
-        sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE/ENTER to confirm | ESC to go back");
-        controlsText.setCharacterSize(20);
-        controlsText.setFillColor(sf::Color(150, 150, 150));
-        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
-        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 350));
-        window.draw(controlsText);
     }
 }
 
 void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ClassicDifficulty selectedOption, const SaveData& saveData) {
-    sf::RectangleShape overlay;
-    overlay.setFillColor(sf::Color(0, 0, 0, 230));
-    overlay.setSize(sf::Vector2f(1920, 1080));
-    overlay.setPosition(sf::Vector2f(0, 0));
-    window.draw(overlay);
-    
-    float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
     
     if (fontLoaded) {
         sf::Text titleText(titleFont, "CLASSIC MODE");
@@ -862,24 +846,12 @@ void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFo
             window.draw(scoreText);
         }
         
-        sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE/ENTER to confirm | ESC to go back");
-        controlsText.setCharacterSize(20);
-        controlsText.setFillColor(sf::Color(150, 150, 150));
-        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
-        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 350));
-        window.draw(controlsText);
     }
 }
 
 void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, SprintLines selectedOption, const SaveData& saveData, bool debugMode) {
-    sf::RectangleShape overlay;
-    overlay.setFillColor(sf::Color(0, 0, 0, 230));
-    overlay.setSize(sf::Vector2f(1920, 1080));
-    overlay.setPosition(sf::Vector2f(0, 0));
-    window.draw(overlay);
-    
-    float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
     
     if (fontLoaded) {
         sf::Text titleText(titleFont, "BLITZ MODE");
@@ -947,25 +919,12 @@ void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, co
             timeText.setPosition(sf::Vector2f(centerX + 80, startY + i * spacing + 8));
             window.draw(timeText);
         }
-        
-        sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE/ENTER to confirm | ESC to go back");
-        controlsText.setCharacterSize(20);
-        controlsText.setFillColor(sf::Color(150, 150, 150));
-        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
-        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 350));
-        window.draw(controlsText);
     }
 }
 
 void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ChallengeMode selectedOption, bool debugMode, const SaveData& saveData) {
-    sf::RectangleShape overlay;
-    overlay.setFillColor(sf::Color(0, 0, 0, 230));
-    overlay.setSize(sf::Vector2f(1920, 1080));
-    overlay.setPosition(sf::Vector2f(0, 0));
-    window.draw(overlay);
-    
-    float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
     
     if (fontLoaded) {
         sf::Text titleText(titleFont, "CHALLENGE MODE");
@@ -988,8 +947,12 @@ void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, cons
         options.push_back({"THE FOREST (96 LINES)", ChallengeMode::TheForest});
         options.push_back({"RANDOMNESS (96 LINES)", ChallengeMode::Randomness});
         options.push_back({"NON STRAIGHT (24 LINES)", ChallengeMode::NonStraight});
+        options.push_back({"ONE ROTATION (48 LINES)", ChallengeMode::OneRot});
+        options.push_back({"THE CURSE (48 LINES)", ChallengeMode::ChristopherCurse});
+        options.push_back({"VANISHING (48 LINES)", ChallengeMode::Vanishing});
+        options.push_back({"AUTO DROP (48 LINES)", ChallengeMode::AutoDrop});
         
-        float startY = centerY - 80;
+        float startY = centerY - 150;
         float spacing = 90;
         
         for (size_t i = 0; i < options.size(); ++i) {
@@ -1010,6 +973,18 @@ void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, cons
                     break;
                 case ChallengeMode::NonStraight:
                     isCompleted = saveData.bestTimeChallengeNonStraight > 0.0f;
+                    break;
+                case ChallengeMode::OneRot:
+                    isCompleted = saveData.bestTimeChallengeOneRot > 0.0f;
+                    break;
+                case ChallengeMode::ChristopherCurse:
+                    isCompleted = saveData.bestTimeChallengeChristopherCurse > 0.0f;
+                    break;
+                case ChallengeMode::Vanishing:
+                    isCompleted = saveData.bestTimeChallengeVanishing > 0.0f;
+                    break;
+                case ChallengeMode::AutoDrop:
+                    isCompleted = saveData.bestTimeChallengeAutoDrop > 0.0f;
                     break;
             }
             
@@ -1036,24 +1011,164 @@ void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, cons
             window.draw(optionText);
         }
         
-        sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE/ENTER to confirm | ESC to go back");
-        controlsText.setCharacterSize(20);
-        controlsText.setFillColor(sf::Color(150, 150, 150));
-        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
-        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 350));
-        window.draw(controlsText);
+    }
+}
+
+void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, PracticeDifficulty selectedDifficulty, PracticeLineGoal selectedLineGoal, bool infiniteBombs, int selectedOption) {
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
+    
+    if (fontLoaded) {
+        sf::Text titleText(titleFont, "PRACTICE MODE");
+        titleText.setCharacterSize(80);
+        titleText.setFillColor(sf::Color(150, 200, 255));
+        titleText.setStyle(sf::Text::Bold);
+        titleText.setOutlineColor(sf::Color::Black);
+        titleText.setOutlineThickness(4);
+        sf::FloatRect titleBounds = titleText.getLocalBounds();
+        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 350));
+        window.draw(titleText);
+        
+
+        float startY = centerY - 180;
+        float spacing = 100;
+        
+
+        {
+            sf::Text label(menuFont, "DIFFICULTY:");
+            label.setCharacterSize(36);
+            label.setFillColor(selectedOption == 0 ? sf::Color::Yellow : sf::Color(180, 180, 180));
+            sf::FloatRect labelBounds = label.getLocalBounds();
+            label.setPosition(sf::Vector2f(centerX - 300, startY));
+            window.draw(label);
+            
+            std::string diffText;
+            switch (selectedDifficulty) {
+                case PracticeDifficulty::VeryEasy: diffText = "VERY EASY"; break;
+                case PracticeDifficulty::Easy: diffText = "EASY"; break;
+                case PracticeDifficulty::Medium: diffText = "MEDIUM"; break;
+                case PracticeDifficulty::Hard: diffText = "HARD"; break;
+            }
+            
+            sf::Text value(menuFont, diffText);
+            value.setCharacterSize(40);
+            value.setFillColor(selectedOption == 0 ? sf::Color::Yellow : sf::Color::White);
+            value.setStyle(selectedOption == 0 ? sf::Text::Bold : sf::Text::Regular);
+            sf::FloatRect valueBounds = value.getLocalBounds();
+            value.setPosition(sf::Vector2f(centerX + 100, startY - 5));
+            window.draw(value);
+            
+            if (selectedOption == 0) {
+                sf::RectangleShape selector;
+                selector.setSize(sf::Vector2f(700, 60));
+                selector.setFillColor(sf::Color(255, 255, 0, 50));
+                selector.setOutlineColor(sf::Color::Yellow);
+                selector.setOutlineThickness(3);
+                selector.setPosition(sf::Vector2f(centerX - 350, startY - 5));
+                window.draw(selector);
+            }
+        }
+        
+
+        {
+            sf::Text label(menuFont, "LINE GOAL:");
+            label.setCharacterSize(36);
+            label.setFillColor(selectedOption == 1 ? sf::Color::Yellow : sf::Color(180, 180, 180));
+            sf::FloatRect labelBounds = label.getLocalBounds();
+            label.setPosition(sf::Vector2f(centerX - 300, startY + spacing));
+            window.draw(label);
+            
+            std::string goalText;
+            switch (selectedLineGoal) {
+                case PracticeLineGoal::Infinite: goalText = "INFINITE"; break;
+                case PracticeLineGoal::Lines24: goalText = "24 LINES"; break;
+                case PracticeLineGoal::Lines48: goalText = "48 LINES"; break;
+                case PracticeLineGoal::Lines96: goalText = "96 LINES"; break;
+            }
+            
+            sf::Text value(menuFont, goalText);
+            value.setCharacterSize(40);
+            value.setFillColor(selectedOption == 1 ? sf::Color::Yellow : sf::Color::White);
+            value.setStyle(selectedOption == 1 ? sf::Text::Bold : sf::Text::Regular);
+            sf::FloatRect valueBounds = value.getLocalBounds();
+            value.setPosition(sf::Vector2f(centerX + 100, startY + spacing - 5));
+            window.draw(value);
+            
+            if (selectedOption == 1) {
+                sf::RectangleShape selector;
+                selector.setSize(sf::Vector2f(700, 60));
+                selector.setFillColor(sf::Color(255, 255, 0, 50));
+                selector.setOutlineColor(sf::Color::Yellow);
+                selector.setOutlineThickness(3);
+                selector.setPosition(sf::Vector2f(centerX - 350, startY + spacing - 5));
+                window.draw(selector);
+            }
+        }
+        
+
+        {
+            sf::Text label(menuFont, "INFINITE BOMBS:");
+            label.setCharacterSize(36);
+            label.setFillColor(selectedOption == 2 ? sf::Color::Yellow : sf::Color(180, 180, 180));
+            sf::FloatRect labelBounds = label.getLocalBounds();
+            label.setPosition(sf::Vector2f(centerX - 300, startY + spacing * 2));
+            window.draw(label);
+            
+            std::string bombText = infiniteBombs ? "YES" : "NO";
+            
+            sf::Text value(menuFont, bombText);
+            value.setCharacterSize(40);
+            value.setFillColor(selectedOption == 2 ? sf::Color::Yellow : sf::Color::White);
+            value.setStyle(selectedOption == 2 ? sf::Text::Bold : sf::Text::Regular);
+            sf::FloatRect valueBounds = value.getLocalBounds();
+            value.setPosition(sf::Vector2f(centerX + 100, startY + spacing * 2 - 5));
+            window.draw(value);
+            
+            if (selectedOption == 2) {
+                sf::RectangleShape selector;
+                selector.setSize(sf::Vector2f(700, 60));
+                selector.setFillColor(sf::Color(255, 255, 0, 50));
+                selector.setOutlineColor(sf::Color::Yellow);
+                selector.setOutlineThickness(3);
+                selector.setPosition(sf::Vector2f(centerX - 350, startY + spacing * 2 - 5));
+                window.draw(selector);
+            }
+        }
+        
+
+        {
+            sf::Text startButton(menuFont, "START PRACTICE");
+            startButton.setCharacterSize(48);
+            startButton.setFillColor(selectedOption == 3 ? sf::Color::Yellow : sf::Color(100, 255, 100));
+            startButton.setStyle(selectedOption == 3 ? sf::Text::Bold : sf::Text::Regular);
+            sf::FloatRect startBounds = startButton.getLocalBounds();
+            startButton.setPosition(sf::Vector2f(centerX - startBounds.size.x/2, startY + spacing * 3 + 30));
+            window.draw(startButton);
+            
+            if (selectedOption == 3) {
+                sf::RectangleShape selector;
+                selector.setSize(sf::Vector2f(500, 60));
+                selector.setFillColor(sf::Color(255, 255, 0, 50));
+                selector.setOutlineColor(sf::Color::Yellow);
+                selector.setOutlineThickness(3);
+                selector.setPosition(sf::Vector2f(centerX - 250, startY + spacing * 3 + 25));
+                window.draw(selector);
+            }
+        }
+        
+
+        sf::Text instructions(menuFont, "Use LEFT/RIGHT to change values, UP/DOWN to navigate, ENTER to start");
+        instructions.setCharacterSize(24);
+        instructions.setFillColor(sf::Color(150, 150, 150));
+        sf::FloatRect instrBounds = instructions.getLocalBounds();
+        instructions.setPosition(sf::Vector2f(centerX - instrBounds.size.x/2, startY + spacing * 4 + 50));
+        window.draw(instructions);
     }
 }
 
 void drawOptionsMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, bool debugMode, OptionsMenuOption selectedOption) {
-    sf::RectangleShape overlay;
-    overlay.setFillColor(sf::Color(0, 0, 0, 230));
-    overlay.setSize(sf::Vector2f(1920, 1080));
-    overlay.setPosition(sf::Vector2f(0, 0));
-    window.draw(overlay);
-    
-    float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
     
     if (fontLoaded) {
         sf::Text titleText(menuFont, "OPTIONS");
@@ -1073,7 +1188,7 @@ void drawOptionsMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fo
         versionText.setPosition(sf::Vector2f(centerX - versionBounds.size.x/2, centerY - 170));
         window.draw(versionText);
         
-        sf::Text clearText(menuFont, "CLEAR SCORES");
+        sf::Text clearText(menuFont, "CLEAR ALL DATA");
         clearText.setCharacterSize(48);
         if (selectedOption == OptionsMenuOption::ClearScores) {
             clearText.setFillColor(sf::Color::Yellow);
@@ -1112,13 +1227,6 @@ void drawOptionsMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fo
         sf::FloatRect rebindBounds = rebindText.getLocalBounds();
         rebindText.setPosition(sf::Vector2f(centerX - rebindBounds.size.x/2, centerY + 10));
         window.draw(rebindText);
-        
-        sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE/ENTER to confirm | ESC to go back");
-        controlsText.setCharacterSize(20);
-        controlsText.setFillColor(sf::Color(150, 150, 150));
-        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
-        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 230));
-        window.draw(controlsText);
     } else {
         sf::RectangleShape titleBar;
         titleBar.setFillColor(sf::Color(100, 255, 150));
@@ -1146,7 +1254,7 @@ void drawOptionsMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fo
         debugText.setString("DEBUG MODE");
         debugText.setCharacterSize(24);
         debugText.setFillColor(sf::Color::Yellow);
-        debugText.setPosition(sf::Vector2f(1920.0f - 180.0f, 1080.0f - 40.0f));
+        debugText.setPosition(sf::Vector2f(SCREEN_WIDTH - 180.0f, SCREEN_HEIGHT - 40.0f));
         window.draw(debugText);
     }
 }
@@ -1201,7 +1309,7 @@ std::string getKeyName(sf::Keyboard::Key key) {
 }
 
 void drawRebindingScreen(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, const KeyBindings& bindings, int selectedBinding, bool waitingForKey) {
-    const float centerX = 1920.0f / 2.0f;
+    const float centerX = SCREEN_WIDTH / 2.0f;
     const float startY = 150.0f;
     const float lineHeight = 50.0f;
     
@@ -1306,12 +1414,17 @@ void drawRebindingScreen(sf::RenderWindow& window, const sf::Font& menuFont, boo
 
 void drawExplosionEffects(sf::RenderWindow& window, const std::vector<ExplosionEffect>& explosions) {
     for (const auto& explosion : explosions) {
-        float worldX = GRID_OFFSET_X + explosion.x * CELL_SIZE;
-        float worldY = GRID_OFFSET_Y + explosion.y * CELL_SIZE;
+
+        float worldX = explosion.x;
+        float worldY = explosion.y;
         
         sf::RectangleShape explosionBox;
         explosionBox.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
-        explosionBox.setPosition(sf::Vector2f(worldX, worldY));
+        
+
+        explosionBox.setOrigin(sf::Vector2f(CELL_SIZE / 2.0f, CELL_SIZE / 2.0f));
+        explosionBox.setPosition(sf::Vector2f(worldX + CELL_SIZE / 2.0f, worldY + CELL_SIZE / 2.0f));
+        explosionBox.setRotation(sf::degrees(explosion.rotation));
         explosionBox.setFillColor(sf::Color::White);
         
         window.draw(explosionBox);
@@ -1322,11 +1435,15 @@ void drawGlowEffects(sf::RenderWindow& window, const std::vector<GlowEffect>& gl
     for (const auto& glow : glowEffects) {
         if (textures.find(TextureType::GenericBlock) != textures.end()) {
             sf::Sprite glowSprite(textures.at(TextureType::GenericBlock));
-            glowSprite.setPosition(sf::Vector2f(glow.worldX, glow.worldY));
             
             sf::Vector2u textureSize = textures.at(TextureType::GenericBlock).getSize();
             float scale = (CELL_SIZE * 1.0f) / textureSize.x;
+            
+
+            glowSprite.setOrigin(sf::Vector2f(textureSize.x / 2.0f, textureSize.y / 2.0f));
+            glowSprite.setPosition(sf::Vector2f(glow.worldX + CELL_SIZE / 2.0f, glow.worldY + CELL_SIZE / 2.0f));
             glowSprite.setScale(sf::Vector2f(scale, scale));
+            glowSprite.setRotation(sf::degrees(glow.rotation));
             
             sf::Color glowColor = glow.color;
             glowColor.r = std::min(255, static_cast<int>(glowColor.r + (255 - glowColor.r) * 0.66f));
@@ -1339,7 +1456,11 @@ void drawGlowEffects(sf::RenderWindow& window, const std::vector<GlowEffect>& gl
         } else {
             sf::RectangleShape glowBox;
             glowBox.setSize(sf::Vector2f(CELL_SIZE * 1.0f, CELL_SIZE * 1.0f));
-            glowBox.setPosition(sf::Vector2f(glow.worldX, glow.worldY));
+            
+
+            glowBox.setOrigin(sf::Vector2f(CELL_SIZE / 2.0f, CELL_SIZE / 2.0f));
+            glowBox.setPosition(sf::Vector2f(glow.worldX + CELL_SIZE / 2.0f, glow.worldY + CELL_SIZE / 2.0f));
+            glowBox.setRotation(sf::degrees(glow.rotation));
             
             sf::Color glowColor = glow.color;
             glowColor.a = static_cast<std::uint8_t>(glow.alpha);
@@ -1350,18 +1471,12 @@ void drawGlowEffects(sf::RenderWindow& window, const std::vector<GlowEffect>& gl
     }
 }
 
-void drawJigtrizopediaMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, JigtrizopediaOption selectedOption) {
-    sf::RectangleShape overlay;
-    overlay.setFillColor(sf::Color(0, 0, 0, 230));
-    overlay.setSize(sf::Vector2f(1920, 1080));
-    overlay.setPosition(sf::Vector2f(0, 0));
-    window.draw(overlay);
-    
-    float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
+void drawExtrasMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ExtrasOption selectedOption) {
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
     
     if (fontLoaded) {
-        sf::Text titleText(titleFont, "JIGTRIZOPEDIA");
+        sf::Text titleText(titleFont, "EXTRAS");
         titleText.setCharacterSize(96);
         titleText.setFillColor(sf::Color(150, 200, 255));
         titleText.setStyle(sf::Text::Bold);
@@ -1371,10 +1486,10 @@ void drawJigtrizopediaMenu(sf::RenderWindow& window, const sf::Font& titleFont, 
         titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 380));
         window.draw(titleText);
         
-        std::vector<std::pair<std::string, JigtrizopediaOption>> options = {
-            {"JIGTRIZ PIECES", JigtrizopediaOption::JigtrizPieces},
-            {"ACHIEVEMENTS", JigtrizopediaOption::Achievements},
-            {"STATISTICS", JigtrizopediaOption::Statistics}
+        std::vector<std::pair<std::string, ExtrasOption>> options = {
+            {"JIGZTER PIECES (coming soon)", ExtrasOption::JigzterPieces},
+            {"ACHIEVEMENTS", ExtrasOption::Achievements},
+            {"STATISTICS", ExtrasOption::Statistics}
         };
         
         float startY = centerY - 200;
@@ -1404,24 +1519,11 @@ void drawJigtrizopediaMenu(sf::RenderWindow& window, const sf::Font& titleFont, 
             optionText.setPosition(sf::Vector2f(centerX - optionBounds.size.x/2, startY + i * spacing));
             window.draw(optionText);
         }
-        
-        sf::Text controlsText(menuFont, "W/S or UP/DOWN to select | SPACE/ENTER to confirm | ESC to go back");
-        controlsText.setCharacterSize(20);
-        controlsText.setFillColor(sf::Color(150, 150, 150));
-        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
-        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, centerY + 380));
-        window.draw(controlsText);
     }
 }
 
 void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, const SaveData& saveData, int hoveredAchievement) {
-    sf::RectangleShape overlay;
-    overlay.setFillColor(sf::Color(0, 0, 0, 230));
-    overlay.setSize(sf::Vector2f(1920, 1080));
-    overlay.setPosition(sf::Vector2f(0, 0));
-    window.draw(overlay);
-    
-    float centerX = 1920 / 2.0f;
+    float centerX = SCREEN_WIDTH / 2.0f;
     
     if (fontLoaded) {
         sf::Text titleText(titleFont, "ACHIEVEMENTS");
@@ -1435,33 +1537,7 @@ void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont,
         window.draw(titleText);
         
 
-        std::vector<std::pair<std::string, std::string>> achievements = {
-            {"Combo Master", "Reach a combo of 10"},
-            {"Line Clearer", "Clear 5 lines in one move"},
-            {"Bomb-Free Score", "Score 200,000 in Classic without using bomb"},
-            {"Speed Runner", "Complete Blitz 48 under 2:00"},
-            {"High Difficulty Score", "Score 400,000 in Classic Medium or Hard"},
-            {"Bomb Holder", "Hold a bomb piece"},
-            {"Hexaclear", "Clear 6 lines in one move"},
-            {"ACH8", "Coming soon..."},
-            {"ACH9", "Coming soon..."},
-            {"ACH10", "Coming soon..."},
-            {"ACH11", "Coming soon..."},
-            {"ACH12", "Coming soon..."},
-            {"ACH13", "Coming soon..."},
-            {"ACH14", "Coming soon..."},
-            {"ACH15", "Coming soon..."},
-            {"ACH16", "Coming soon..."},
-            {"ACH17", "Coming soon..."},
-            {"ACH18", "Coming soon..."},
-            {"ACH19", "Coming soon..."},
-            {"ACH20", "Coming soon..."},
-            {"ACH21", "Coming soon..."},
-            {"ACH22", "Coming soon..."},
-            {"ACH23", "Coming soon..."},
-            {"ACH24", "Coming soon..."},
-            {"ACH25", "Coming soon..."}
-        };
+        std::vector<AchievementInfo> achievements = getAllAchievementsInfo();
         
 
         const int COLS = 5;
@@ -1485,25 +1561,39 @@ void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont,
                 achievementBox.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
                 achievementBox.setPosition(sf::Vector2f(x, y));
                 
-                bool unlocked = (achievementId < 7) ? saveData.achievements[achievementId] : false;
+
+                bool isImplemented = (achievementId < TOTAL_ACHIEVEMENTS);
+                bool isUnlocked = isImplemented ? saveData.achievements[achievementId] : false;
                 
 
                 if (achievementId == hoveredAchievement) {
-                    if (unlocked) {
+                    if (isUnlocked) {
+
                         achievementBox.setFillColor(sf::Color(80, 120, 80, 220));
                         achievementBox.setOutlineColor(sf::Color(100, 255, 100));
-                    } else {
-                        achievementBox.setFillColor(sf::Color(80, 80, 120, 220));
+                    } else if (isImplemented) {
+
+                        achievementBox.setFillColor(sf::Color(80, 80, 90, 220));
                         achievementBox.setOutlineColor(sf::Color(255, 215, 0));
+                    } else {
+
+                        achievementBox.setFillColor(sf::Color(50, 50, 55, 220));
+                        achievementBox.setOutlineColor(sf::Color(100, 100, 110));
                     }
                     achievementBox.setOutlineThickness(4);
                 } else {
-                    if (unlocked) {
+                    if (isUnlocked) {
+
                         achievementBox.setFillColor(sf::Color(40, 60, 40, 200));
                         achievementBox.setOutlineColor(sf::Color(80, 200, 80));
+                    } else if (isImplemented) {
+
+                        achievementBox.setFillColor(sf::Color(60, 60, 70, 200));
+                        achievementBox.setOutlineColor(sf::Color(120, 120, 130));
                     } else {
-                        achievementBox.setFillColor(sf::Color(40, 40, 60, 200));
-                        achievementBox.setOutlineColor(sf::Color(100, 100, 140));
+
+                        achievementBox.setFillColor(sf::Color(30, 30, 35, 200));
+                        achievementBox.setOutlineColor(sf::Color(50, 50, 60));
                     }
                     achievementBox.setOutlineThickness(2);
                 }
@@ -1511,23 +1601,33 @@ void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont,
                 window.draw(achievementBox);
                 
 
-                if (unlocked) {
+                if (isUnlocked) {
 
-                    sf::Text checkText(menuFont, "✓");
-                    checkText.setCharacterSize(60);
-                    checkText.setFillColor(sf::Color(100, 255, 100));
-                    checkText.setStyle(sf::Text::Bold);
-                    sf::FloatRect checkBounds = checkText.getLocalBounds();
-                    checkText.setPosition(sf::Vector2f(x + CELL_SIZE/2 - checkBounds.size.x/2, y + CELL_SIZE/2 - checkBounds.size.y/2 - 15));
-                    window.draw(checkText);
+                    sf::Text wonText(menuFont, "W");
+                    wonText.setCharacterSize(60);
+                    wonText.setFillColor(sf::Color(100, 255, 100));
+                    wonText.setStyle(sf::Text::Bold);
+                    sf::FloatRect wonBounds = wonText.getLocalBounds();
+                    wonText.setPosition(sf::Vector2f(x + CELL_SIZE/2 - wonBounds.size.x/2, y + CELL_SIZE/2 - wonBounds.size.y/2 - 15));
+                    window.draw(wonText);
+                } else if (isImplemented) {
+
+                    sf::Text lockedText(menuFont, "L");
+                    lockedText.setCharacterSize(60);
+                    lockedText.setFillColor(sf::Color(180, 180, 190));
+                    lockedText.setStyle(sf::Text::Bold);
+                    sf::FloatRect lockedBounds = lockedText.getLocalBounds();
+                    lockedText.setPosition(sf::Vector2f(x + CELL_SIZE/2 - lockedBounds.size.x/2, y + CELL_SIZE/2 - lockedBounds.size.y/2 - 15));
+                    window.draw(lockedText);
                 } else {
 
-                    sf::Text lockText(menuFont, "🔒");
-                    lockText.setCharacterSize(50);
-                    lockText.setFillColor(sf::Color(120, 120, 120));
-                    sf::FloatRect lockBounds = lockText.getLocalBounds();
-                    lockText.setPosition(sf::Vector2f(x + CELL_SIZE/2 - lockBounds.size.x/2, y + CELL_SIZE/2 - lockBounds.size.y/2 - 15));
-                    window.draw(lockText);
+                    sf::Text emptyText(menuFont, "X");
+                    emptyText.setCharacterSize(70);
+                    emptyText.setFillColor(sf::Color(80, 80, 85));
+                    emptyText.setStyle(sf::Text::Bold);
+                    sf::FloatRect emptyBounds = emptyText.getLocalBounds();
+                    emptyText.setPosition(sf::Vector2f(x + CELL_SIZE/2 - emptyBounds.size.x/2, y + CELL_SIZE/2 - emptyBounds.size.y/2 - 15));
+                    window.draw(emptyText);
                 }
             }
         }
@@ -1548,72 +1648,103 @@ void drawAchievementsScreen(sf::RenderWindow& window, const sf::Font& titleFont,
             infoBg.setPosition(sf::Vector2f(PANEL_X, PANEL_Y));
             window.draw(infoBg);
             
-            bool unlocked = (hoveredAchievement < 7) ? saveData.achievements[hoveredAchievement] : false;
+
+            bool isImplemented = (hoveredAchievement < TOTAL_ACHIEVEMENTS);
+            bool isUnlocked = isImplemented ? saveData.achievements[hoveredAchievement] : false;
             
 
-            float iconY = PANEL_Y + 80;
-            if (unlocked) {
-                sf::Text bigCheck(menuFont, "✓");
-                bigCheck.setCharacterSize(100);
-                bigCheck.setFillColor(sf::Color(100, 255, 100));
-                bigCheck.setStyle(sf::Text::Bold);
-                sf::FloatRect bigCheckBounds = bigCheck.getLocalBounds();
-                bigCheck.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - bigCheckBounds.size.x/2, iconY - bigCheckBounds.size.y/2 - 20));
-                window.draw(bigCheck);
+            AchievementInfo achInfo;
+            if (isImplemented) {
+                achInfo = getAchievementInfo(static_cast<Achievement>(hoveredAchievement), isUnlocked);
             } else {
-                sf::Text bigLock(menuFont, "🔒");
-                bigLock.setCharacterSize(80);
-                bigLock.setFillColor(sf::Color(120, 120, 120));
-                sf::FloatRect bigLockBounds = bigLock.getLocalBounds();
-                bigLock.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - bigLockBounds.size.x/2, iconY - bigLockBounds.size.y/2 - 20));
-                window.draw(bigLock);
+                achInfo = achievements[hoveredAchievement];
             }
             
 
-            sf::Text nameText(menuFont, achievements[hoveredAchievement].first);
+            float iconY = PANEL_Y + 80;
+            if (isUnlocked) {
+
+                sf::Text bigWon(menuFont, "W");
+                bigWon.setCharacterSize(100);
+                bigWon.setFillColor(sf::Color(100, 255, 100));
+                bigWon.setStyle(sf::Text::Bold);
+                sf::FloatRect bigWonBounds = bigWon.getLocalBounds();
+                bigWon.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - bigWonBounds.size.x/2, iconY - bigWonBounds.size.y/2 - 20));
+                window.draw(bigWon);
+            } else if (isImplemented) {
+
+                sf::Text bigLocked(menuFont, "L");
+                bigLocked.setCharacterSize(100);
+                bigLocked.setFillColor(sf::Color(180, 180, 190));
+                bigLocked.setStyle(sf::Text::Bold);
+                sf::FloatRect bigLockedBounds = bigLocked.getLocalBounds();
+                bigLocked.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - bigLockedBounds.size.x/2, iconY - bigLockedBounds.size.y/2 - 20));
+                window.draw(bigLocked);
+            } else {
+
+                sf::Text bigEmpty(menuFont, "X");
+                bigEmpty.setCharacterSize(120);
+                bigEmpty.setFillColor(sf::Color(80, 80, 85));
+                bigEmpty.setStyle(sf::Text::Bold);
+                sf::FloatRect bigEmptyBounds = bigEmpty.getLocalBounds();
+                bigEmpty.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - bigEmptyBounds.size.x/2, iconY - bigEmptyBounds.size.y/2 - 20));
+                window.draw(bigEmpty);
+            }
+            
+
+            sf::Text nameText(menuFont, achInfo.title);
             nameText.setCharacterSize(36);
-            nameText.setFillColor(unlocked ? sf::Color(255, 215, 0) : sf::Color(180, 180, 180));
+            nameText.setFillColor(isUnlocked ? sf::Color(255, 215, 0) : sf::Color(120, 120, 120));
             nameText.setStyle(sf::Text::Bold);
             sf::FloatRect nameBounds = nameText.getLocalBounds();
-            nameText.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - nameBounds.size.x/2, PANEL_Y + 220));
+            nameText.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - nameBounds.size.x/2, PANEL_Y + 200));
             window.draw(nameText);
             
 
-            sf::Text descText(menuFont, achievements[hoveredAchievement].second);
+            sf::Text subtitleText(menuFont, achInfo.subtitle);
+            subtitleText.setCharacterSize(22);
+            subtitleText.setFillColor(isUnlocked ? sf::Color(150, 200, 255) : sf::Color(80, 80, 80));
+            subtitleText.setStyle(sf::Text::Italic);
+            sf::FloatRect subtitleBounds = subtitleText.getLocalBounds();
+            subtitleText.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - subtitleBounds.size.x/2, PANEL_Y + 250));
+            window.draw(subtitleText);
+            
+
+            sf::Text descText(menuFont, achInfo.description);
             descText.setCharacterSize(26);
-            descText.setFillColor(unlocked ? sf::Color(200, 200, 200) : sf::Color(150, 150, 150));
+            descText.setFillColor(isUnlocked ? sf::Color(200, 200, 200) : sf::Color(100, 100, 100));
             sf::FloatRect descBounds = descText.getLocalBounds();
-            descText.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - descBounds.size.x/2, PANEL_Y + 280));
+            descText.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - descBounds.size.x/2, PANEL_Y + 300));
             window.draw(descText);
             
 
-            sf::Text statusText(menuFont, unlocked ? "UNLOCKED" : "LOCKED");
+            std::string statusStr;
+            sf::Color statusColor;
+            if (isUnlocked) {
+                statusStr = "UNLOCKED";
+                statusColor = sf::Color(100, 255, 100);
+            } else if (isImplemented) {
+                statusStr = "LOCKED";
+                statusColor = sf::Color(255, 100, 100);
+            } else {
+                statusStr = "NOT IMPLEMENTED";
+                statusColor = sf::Color(120, 120, 120);
+            }
+            
+            sf::Text statusText(menuFont, statusStr);
             statusText.setCharacterSize(28);
-            statusText.setFillColor(unlocked ? sf::Color(100, 255, 100) : sf::Color(255, 100, 100));
+            statusText.setFillColor(statusColor);
             statusText.setStyle(sf::Text::Bold);
             sf::FloatRect statusBounds = statusText.getLocalBounds();
             statusText.setPosition(sf::Vector2f(PANEL_X + PANEL_WIDTH/2 - statusBounds.size.x/2, PANEL_Y + 360));
             window.draw(statusText);
         }
-        
-        sf::Text controlsText(menuFont, "Hover over achievements to see details | ESC to go back");
-        controlsText.setCharacterSize(20);
-        controlsText.setFillColor(sf::Color(150, 150, 150));
-        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
-        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, 1020));
-        window.draw(controlsText);
     }
 }
 
 void drawStatisticsScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, const SaveData& saveData) {
-    sf::RectangleShape overlay;
-    overlay.setFillColor(sf::Color(0, 0, 0, 230));
-    overlay.setSize(sf::Vector2f(1920, 1080));
-    overlay.setPosition(sf::Vector2f(0, 0));
-    window.draw(overlay);
-    
-    float centerX = 1920 / 2.0f;
-    float centerY = 1080 / 2.0f;
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
     
     if (fontLoaded) {
 
@@ -1675,10 +1806,14 @@ void drawStatisticsScreen(sf::RenderWindow& window, const sf::Font& titleFont, c
         
 
         int challengesCompleted = 0;
-        int totalChallenges = 3;
+        int totalChallenges = 7;
         if (saveData.bestTimeChallengeTheForest > 0.0f) challengesCompleted++;
         if (saveData.bestTimeChallengeRandomness > 0.0f) challengesCompleted++;
         if (saveData.bestTimeChallengeNonStraight > 0.0f) challengesCompleted++;
+        if (saveData.bestTimeChallengeOneRot > 0.0f) challengesCompleted++;
+        if (saveData.bestTimeChallengeChristopherCurse > 0.0f) challengesCompleted++;
+        if (saveData.bestTimeChallengeVanishing > 0.0f) challengesCompleted++;
+        if (saveData.bestTimeChallengeAutoDrop > 0.0f) challengesCompleted++;
         
         std::string challengesText = std::to_string(challengesCompleted) + "/" + std::to_string(totalChallenges);
         
@@ -1722,11 +1857,245 @@ void drawStatisticsScreen(sf::RenderWindow& window, const sf::Font& titleFont, c
         }
         
 
-        sf::Text controlsText(menuFont, "ESC to go back");
-        controlsText.setCharacterSize(22);
-        controlsText.setFillColor(sf::Color(150, 150, 150));
-        sf::FloatRect controlsBounds = controlsText.getLocalBounds();
-        controlsText.setPosition(sf::Vector2f(centerX - controlsBounds.size.x/2, 980));
-        window.draw(controlsText);
     }
 }
+
+
+void updateBackgroundPieces(std::vector<BackgroundPiece>& pieces, float deltaTime) {
+    for (auto& piece : pieces) {
+        piece.update(deltaTime);
+    }
+    
+    pieces.erase(
+        std::remove_if(pieces.begin(), pieces.end(),
+            [](const BackgroundPiece& p) { return p.isOffScreen(); }),
+        pieces.end()
+    );
+}
+
+
+void drawBackgroundPieces(sf::RenderWindow& window, const std::vector<BackgroundPiece>& pieces, 
+                         const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
+    for (const auto& piece : pieces) {
+        PieceShape shape = getPieceShape(piece.type);
+        
+        sf::Transform transform;
+        transform.translate(sf::Vector2f(piece.x, piece.y));
+        transform.rotate(sf::degrees(piece.rotation));
+        
+        float cellSize = 32.0f;
+        
+        for (int i = 0; i < shape.height; ++i) {
+            for (int j = 0; j < shape.width; ++j) {
+                if (shape.blocks[i][j]) {
+                    float localX = j * cellSize - (shape.width * cellSize) / 2.0f;
+                    float localY = i * cellSize - (shape.height * cellSize) / 2.0f;
+                    
+
+                    sf::Color tintColor = shape.color;
+                    tintColor.r = static_cast<std::uint8_t>(std::min(255.0f, tintColor.r * piece.brightness));
+                    tintColor.g = static_cast<std::uint8_t>(std::min(255.0f, tintColor.g * piece.brightness));
+                    tintColor.b = static_cast<std::uint8_t>(std::min(255.0f, tintColor.b * piece.brightness));
+                    tintColor.a = static_cast<std::uint8_t>(piece.opacity * 255);
+
+
+                    TextureType textureToUse = getTextureType(piece.type);
+                    
+                    if (useTextures && textures.find(textureToUse) != textures.end()) {
+                        sf::Sprite sprite(textures.at(textureToUse));
+                        sprite.setPosition(sf::Vector2f(localX, localY));
+                        
+
+                        if (piece.type == PieceType::A_Bomb) {
+
+                            std::uint8_t brightnessValue = static_cast<std::uint8_t>(255.0f * piece.brightness);
+                            sprite.setColor(sf::Color(brightnessValue, brightnessValue, brightnessValue, static_cast<std::uint8_t>(piece.opacity * 255)));
+                        } else {
+                            sprite.setColor(tintColor);
+                        }
+                        
+                        sf::Vector2u textureSize = textures.at(textureToUse).getSize();
+                        sprite.setScale(sf::Vector2f(cellSize / textureSize.x, cellSize / textureSize.y));
+                        window.draw(sprite, transform);
+                    } else {
+
+                        sf::RectangleShape block(sf::Vector2f(cellSize - 2, cellSize - 2));
+                        block.setPosition(sf::Vector2f(localX + 1, localY + 1));
+                        block.setFillColor(tintColor);
+                        window.draw(block, transform);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+void drawBackgroundPiecesWithExplosions(sf::RenderWindow& window, const std::vector<BackgroundPiece>& pieces, 
+                                        const std::vector<ExplosionEffect>& explosions,
+                                        const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
+
+    for (const auto& piece : pieces) {
+        PieceShape shape = getPieceShape(piece.type);
+        
+
+        for (const auto& explosion : explosions) {
+            if (explosion.zDepth > 0 && explosion.zDepth < piece.y) {
+
+                float worldX, worldY;
+                if (explosion.x > 50 || explosion.y > 50) {
+                    worldX = explosion.x;
+                    worldY = explosion.y;
+                } else {
+                    continue;
+                }
+                
+                sf::RectangleShape explosionBox;
+                explosionBox.setSize(sf::Vector2f(32.0f, 32.0f));
+                explosionBox.setOrigin(sf::Vector2f(16.0f, 16.0f));
+                explosionBox.setPosition(sf::Vector2f(worldX + 16.0f, worldY + 16.0f));
+                explosionBox.setRotation(sf::degrees(explosion.rotation));
+                explosionBox.setFillColor(sf::Color::White);
+                window.draw(explosionBox);
+            }
+        }
+        
+
+        sf::Transform transform;
+        transform.translate(sf::Vector2f(piece.x, piece.y));
+        transform.rotate(sf::degrees(piece.rotation));
+        
+        float cellSize = 32.0f;
+        
+        for (int i = 0; i < shape.height; ++i) {
+            for (int j = 0; j < shape.width; ++j) {
+                if (shape.blocks[i][j]) {
+                    float localX = j * cellSize - (shape.width * cellSize) / 2.0f;
+                    float localY = i * cellSize - (shape.height * cellSize) / 2.0f;
+                    
+                    sf::Color tintColor = shape.color;
+                    tintColor.r = static_cast<std::uint8_t>(std::min(255.0f, tintColor.r * piece.brightness));
+                    tintColor.g = static_cast<std::uint8_t>(std::min(255.0f, tintColor.g * piece.brightness));
+                    tintColor.b = static_cast<std::uint8_t>(std::min(255.0f, tintColor.b * piece.brightness));
+                    tintColor.a = static_cast<std::uint8_t>(piece.opacity * 255);
+
+
+                    TextureType textureToUse = getTextureType(piece.type);
+                    
+                    if (useTextures && textures.find(textureToUse) != textures.end()) {
+                        sf::Sprite sprite(textures.at(textureToUse));
+                        sprite.setPosition(sf::Vector2f(localX, localY));
+                        
+
+                        if (piece.type == PieceType::A_Bomb) {
+
+                            std::uint8_t brightnessValue = static_cast<std::uint8_t>(255.0f * piece.brightness);
+                            sprite.setColor(sf::Color(brightnessValue, brightnessValue, brightnessValue, static_cast<std::uint8_t>(piece.opacity * 255)));
+                        } else {
+                            sprite.setColor(tintColor);
+                        }
+                        
+                        sf::Vector2u textureSize = textures.at(textureToUse).getSize();
+                        sprite.setScale(sf::Vector2f(cellSize / textureSize.x, cellSize / textureSize.y));
+                        window.draw(sprite, transform);
+                    } else {
+                        sf::RectangleShape block(sf::Vector2f(cellSize - 2, cellSize - 2));
+                        block.setPosition(sf::Vector2f(localX + 1, localY + 1));
+                        block.setFillColor(tintColor);
+                        window.draw(block, transform);
+                    }
+                }
+            }
+        }
+    }
+    
+
+    for (const auto& explosion : explosions) {
+        if (explosion.zDepth == 0 || explosion.zDepth >= (pieces.empty() ? 0 : pieces.back().y)) {
+            float worldX, worldY;
+            if (explosion.x > 50 || explosion.y > 50) {
+                worldX = explosion.x;
+                worldY = explosion.y;
+            } else {
+                continue;
+            }
+            
+            sf::RectangleShape explosionBox;
+            explosionBox.setSize(sf::Vector2f(32.0f, 32.0f));
+            explosionBox.setOrigin(sf::Vector2f(16.0f, 16.0f));
+            explosionBox.setPosition(sf::Vector2f(worldX + 16.0f, worldY + 16.0f));
+            explosionBox.setRotation(sf::degrees(explosion.rotation));
+            explosionBox.setFillColor(sf::Color::White);
+            window.draw(explosionBox);
+        }
+    }
+}
+
+
+int checkBombClick(const std::vector<BackgroundPiece>& pieces, float mouseX, float mouseY) {
+
+    for (int i = pieces.size() - 1; i >= 0; --i) {
+        const auto& piece = pieces[i];
+        
+
+        if (piece.type != PieceType::A_Bomb) continue;
+        
+        PieceShape shape = getPieceShape(piece.type);
+        float cellSize = 32.0f;
+        
+
+
+        float pieceWidth = shape.width * cellSize;
+        float pieceHeight = shape.height * cellSize;
+        float radius = std::max(pieceWidth, pieceHeight) / 2.0f;
+        
+        float dx = mouseX - piece.x;
+        float dy = mouseY - piece.y;
+        float distanceSquared = dx * dx + dy * dy;
+        
+        if (distanceSquared <= radius * radius) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+
+void spawnBackgroundPiece(std::vector<BackgroundPiece>& pieces) {
+    float x = static_cast<float>(rand() % static_cast<int>(SCREEN_WIDTH));
+    float y = -100.0f;
+    float speed = 16.0f + (rand() % 256);
+    
+
+    int rarityRoll = rand() % 100;
+    std::cout<< "Rarity Roll: " << rarityRoll << std::endl;
+    PieceType randomType;
+    if (rarityRoll < 1) {
+
+        randomType = PieceType::A_Bomb;
+    } else if (rarityRoll < 10) {
+
+        PieceType hardTypes[] = {
+            PieceType::I_Hard, PieceType::O_Hard, PieceType::T_Hard, PieceType::S_Hard, 
+            PieceType::Z_Hard, PieceType::J_Hard, PieceType::L_Hard
+        };
+        randomType = hardTypes[rand() % 7];
+    } else if (rarityRoll < 30) {
+
+        PieceType mediumTypes[] = {
+            PieceType::I_Medium, PieceType::O_Medium, PieceType::T_Medium, PieceType::S_Medium, 
+            PieceType::Z_Medium, PieceType::J_Medium, PieceType::L_Medium
+        };
+        randomType = mediumTypes[rand() % 7];
+    } else {
+
+        PieceType basicTypes[] = {
+            PieceType::I_Basic, PieceType::O_Basic, PieceType::T_Basic, PieceType::S_Basic, 
+            PieceType::Z_Basic, PieceType::J_Basic, PieceType::L_Basic
+        };
+        randomType = basicTypes[rand() % 7];
+    }
+    
+    pieces.emplace_back(x, y, speed, randomType);
+}
+

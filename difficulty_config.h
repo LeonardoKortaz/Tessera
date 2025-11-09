@@ -39,13 +39,90 @@ struct DifficultyConfig {
     std::vector<PieceType> allowedHardPieces;
     
 
+    bool useRandomColorPalette;
+    std::vector<sf::Color> colorPalette;
+    
+
     DifficultyConfig() 
         : modeName("Unknown"), maxLevels(0), hasLineGoal(false), 
           lineGoal(0), bombEnabled(false), bombInterval(10), holdEnabled(true),
-          useCustomPieceFilter(false) {}
+          useCustomPieceFilter(false), useRandomColorPalette(false) {}
 };
 
 
+
+inline DifficultyConfig getPracticeConfig(PracticeDifficulty difficulty, PracticeLineGoal lineGoal, bool infiniteBombs) {
+    DifficultyConfig config;
+    config.modeName = "Practice";
+    config.maxLevels = 5;
+    config.hasLineGoal = (lineGoal != PracticeLineGoal::Infinite);
+    
+
+    switch (lineGoal) {
+        case PracticeLineGoal::Infinite:
+            config.lineGoal = 0;
+            break;
+        case PracticeLineGoal::Lines24:
+            config.lineGoal = 24;
+            break;
+        case PracticeLineGoal::Lines48:
+            config.lineGoal = 48;
+            break;
+        case PracticeLineGoal::Lines96:
+            config.lineGoal = 96;
+            break;
+    }
+    
+    config.bombEnabled = true;
+    config.bombInterval = infiniteBombs ? 0 : 10;
+    config.holdEnabled = true;
+    
+
+    switch (difficulty) {
+        case PracticeDifficulty::VeryEasy:
+            config.levelThresholds = {
+                {0,   {7, 0, 0}},
+                {9,   {7, 0, 0}},
+                {25,  {7, 0, 0}},
+                {49,  {7, 0, 0}},
+                {81,  {7, 0, 0}},
+                {121, {7, 0, 0}}
+            };
+            break;
+        case PracticeDifficulty::Easy:
+            config.levelThresholds = {
+                {0,   {7, 0, 0}},
+                {9,   {7, 0, 0}},
+                {25,  {7, 1, 0}},
+                {49,  {7, 1, 0}},
+                {81,  {7, 0, 1}},
+                {121, {7, 1, 1}}
+            };
+            break;
+        case PracticeDifficulty::Medium:
+            config.levelThresholds = {
+                {0,   {7, 0, 0}},
+                {9,   {7, 1, 0}},
+                {25,  {7, 0, 1}},
+                {49,  {7, 1, 1}},
+                {81,  {7, 2, 1}},
+                {121, {7, 2, 2}}
+            };
+            break;
+        case PracticeDifficulty::Hard:
+            config.levelThresholds = {
+                {0,   {7, 0, 0}},
+                {9,   {7, 1, 0}},
+                {25,  {7, 1, 1}},
+                {49,  {7, 2, 1}},
+                {81,  {7, 2, 2}},
+                {121, {7, 3, 3}}
+            };
+            break;
+    }
+    
+    return config;
+}
 
 inline DifficultyConfig getClassicEasyConfig() {
     DifficultyConfig config;
@@ -245,33 +322,42 @@ inline DifficultyConfig getChallengeTheForestConfig() {
     config.holdEnabled = true;
     
 
+
     config.useCustomPieceFilter = true;
     config.allowedBasicPieces = {
         PieceType::L_Basic, 
         PieceType::J_Basic, 
-        PieceType::T_Basic, 
         PieceType::I_Basic
     };
     config.allowedMediumPieces = {
-        PieceType::L_Medium, 
-        PieceType::J_Medium, 
-        PieceType::T_Medium, 
-        PieceType::I_Medium
+        PieceType::I_Medium,
+        PieceType::T_Medium
     };
     config.allowedHardPieces = {
         PieceType::L_Hard, 
         PieceType::J_Hard, 
-        PieceType::T_Hard, 
         PieceType::I_Hard
     };
 
+
+    config.useRandomColorPalette = true;
+    config.colorPalette = {
+        sf::Color(0x27, 0x4f, 0x00),
+        sf::Color(0x4b, 0x82, 0x15),
+        sf::Color(0x38, 0xb7, 0x55),
+        sf::Color(0x86, 0x3c, 0x00),
+        sf::Color(0xb4, 0x82, 0x2b),
+        sf::Color(0xd3, 0xe5, 0x3e)
+    };
+
+
     config.levelThresholds = {
-        {0,  {4, 0, 0}},
-        {10, {4, 0, 0}},
-        {25, {4, 1, 0}},
-        {50, {4, 1, 1}},
-        {75, {4, 2, 1}},
-        {100, {4, 2, 2}}
+        {0,  {3, 2, 3}},
+        {10, {3, 2, 3}},
+        {25, {3, 2, 3}},
+        {50, {3, 2, 3}},
+        {75, {3, 2, 3}},
+        {100, {3, 2, 3}}
     };
     
     return config;
@@ -358,9 +444,131 @@ inline DifficultyConfig getChallengeNonStraightConfig() {
     return config;
 }
 
+inline DifficultyConfig getChallengeOneRotConfig() {
+    DifficultyConfig config;
+    config.modeName = "OneRot";
+    config.maxLevels = 5;
+    config.hasLineGoal = true;
+    config.lineGoal = 48;
+    config.bombEnabled = true;
+    config.bombInterval = 10;
+    config.holdEnabled = true;
+    
+
+    config.useCustomPieceFilter = true;
+    config.allowedBasicPieces = {
+        PieceType::I_Basic, PieceType::T_Basic, PieceType::L_Basic, 
+        PieceType::J_Basic, PieceType::O_Basic, PieceType::S_Basic, PieceType::Z_Basic
+    };
+    config.allowedMediumPieces = {};
+    config.allowedHardPieces = {};
+
+    config.levelThresholds = {
+        {0,  {7, 0, 0}},
+        {10, {7, 0, 0}},
+        {20, {7, 0, 0}},
+        {30, {7, 0, 0}},
+        {40, {7, 0, 0}}
+    };
+    
+    return config;
+}
+
+inline DifficultyConfig getChallengeChristopherCurseConfig() {
+    DifficultyConfig config;
+    config.modeName = "Christopher Curse";
+    config.maxLevels = 5;
+    config.hasLineGoal = true;
+    config.lineGoal = 48;
+    config.bombEnabled = true;
+    config.bombInterval = 10;
+    config.holdEnabled = true;
+    
+
+    config.useCustomPieceFilter = true;
+    config.allowedBasicPieces = {
+        PieceType::I_Basic, PieceType::T_Basic, PieceType::L_Basic, 
+        PieceType::J_Basic, PieceType::O_Basic, PieceType::S_Basic, PieceType::Z_Basic
+    };
+    config.allowedMediumPieces = {};
+    config.allowedHardPieces = {
+        PieceType::T_Hard
+    };
+
+    config.levelThresholds = {
+        {0,  {7, 0, 3}},
+        {10, {7, 0, 3}},
+        {20, {7, 0, 3}},
+        {30, {7, 0, 3}},
+        {40, {7, 0, 3}}
+    };
+    
+    return config;
+}
+
+inline DifficultyConfig getChallengeVanishingConfig() {
+    DifficultyConfig config;
+    config.modeName = "Vanishing";
+    config.maxLevels = 5;
+    config.hasLineGoal = true;
+    config.lineGoal = 48;
+    config.bombEnabled = true;
+    config.bombInterval = 10;
+    config.holdEnabled = true;
+    
+
+    config.useCustomPieceFilter = true;
+    config.allowedBasicPieces = {
+        PieceType::I_Basic, PieceType::T_Basic, PieceType::L_Basic, 
+        PieceType::J_Basic, PieceType::O_Basic, PieceType::S_Basic, PieceType::Z_Basic
+    };
+    config.allowedMediumPieces = {};
+    config.allowedHardPieces = {};
 
 
-inline const DifficultyConfig* getDifficultyConfig(GameModeOption mode, ClassicDifficulty classic, SprintLines sprint, ChallengeMode challenge) {
+    config.levelThresholds = {
+        {0,  {7, 0, 0}},
+        {9,  {7, 1, 0}},
+        {25, {7, 0, 1}},
+        {40, {7, 1, 1}}
+    };
+    
+    return config;
+}
+
+inline DifficultyConfig getChallengeAutoDropConfig() {
+    DifficultyConfig config;
+    config.modeName = "Auto Drop";
+    config.maxLevels = 5;
+    config.hasLineGoal = true;
+    config.lineGoal = 48;
+    config.bombEnabled = true;
+    config.bombInterval = 10;
+    config.holdEnabled = true;
+    
+
+    config.useCustomPieceFilter = true;
+    config.allowedBasicPieces = {
+        PieceType::I_Basic, PieceType::T_Basic, PieceType::L_Basic, 
+        PieceType::J_Basic, PieceType::O_Basic, PieceType::S_Basic, PieceType::Z_Basic
+    };
+    config.allowedMediumPieces = {};
+    config.allowedHardPieces = {};
+
+
+    config.levelThresholds = {
+        {0,  {7, 0, 0}},
+        {9,  {7, 1, 0}},
+        {25, {7, 0, 1}},
+        {40, {7, 1, 1}}
+    };
+    
+    return config;
+}
+
+
+
+inline const DifficultyConfig* getDifficultyConfig(GameModeOption mode, ClassicDifficulty classic, SprintLines sprint, ChallengeMode challenge, PracticeDifficulty practiceDiff = PracticeDifficulty::Easy, PracticeLineGoal practiceGoal = PracticeLineGoal::Infinite, bool practiceInfBombs = false) {
     switch (mode) {
         case GameModeOption::Classic:
             switch (classic) {
@@ -424,11 +632,33 @@ inline const DifficultyConfig* getDifficultyConfig(GameModeOption mode, ClassicD
                     static const DifficultyConfig config = getChallengeNonStraightConfig();
                     return &config;
                 }
+                case ChallengeMode::OneRot: {
+                    static const DifficultyConfig config = getChallengeOneRotConfig();
+                    return &config;
+                }
+                case ChallengeMode::ChristopherCurse: {
+                    static const DifficultyConfig config = getChallengeChristopherCurseConfig();
+                    return &config;
+                }
+                case ChallengeMode::Vanishing: {
+                    static const DifficultyConfig config = getChallengeVanishingConfig();
+                    return &config;
+                }
+                case ChallengeMode::AutoDrop: {
+                    static const DifficultyConfig config = getChallengeAutoDropConfig();
+                    return &config;
+                }
                 default: {
                     static const DifficultyConfig config = getChallengeDebugConfig();
                     return &config;
                 }
             }
+        
+        case GameModeOption::Practice: {
+            static DifficultyConfig config = getPracticeConfig(practiceDiff, practiceGoal, practiceInfBombs);
+            config = getPracticeConfig(practiceDiff, practiceGoal, practiceInfBombs);
+            return &config;
+        }
         
         default: {
             static const DifficultyConfig config = getClassicMediumConfig();
