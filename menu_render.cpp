@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <cmath>
 
-void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData, int dropScore, int lineScore, int comboScore, ClassicDifficulty difficulty, bool isSprintMode, float sprintTime, int sprintTarget, bool sprintCompleted, bool isChallengeMode) {
+void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData, int dropScore, int lineScore, int comboScore, ClassicDifficulty difficulty, bool isSprintMode, float sprintTime, int sprintTarget, bool sprintCompleted, bool isChallengeMode, bool isPracticeMode) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 180));
     overlay.setSize(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
@@ -289,50 +289,53 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
         window.draw(restartText);
         
 
-        const SaveData::ScoreEntry* topScoresArray = nullptr;
-        switch (difficulty) {
-            case ClassicDifficulty::Easy:
-                topScoresArray = saveData.topScoresEasy;
-                break;
-            case ClassicDifficulty::Medium:
-                topScoresArray = saveData.topScoresMedium;
-                break;
-            case ClassicDifficulty::Hard:
-                topScoresArray = saveData.topScoresHard;
-                break;
-        }
-        
-        sf::Text topScoresTitle(font, "TOP 3 SCORES");
-        topScoresTitle.setCharacterSize(36);
-        topScoresTitle.setFillColor(sf::Color(100, 255, 150));
-        topScoresTitle.setStyle(sf::Text::Bold);
-        topScoresTitle.setPosition(sf::Vector2f(centerX + 120, centerY - 120));
-        window.draw(topScoresTitle);
-        
-        for (int i = 0; i < 3; i++) {
-            if (topScoresArray[i].score > 0) {
-                sf::Color scoreColor = sf::Color::White;
-                if (i == 0) scoreColor = sf::Color(255, 215, 0);
-                else if (i == 1) scoreColor = sf::Color(192, 192, 192);
-                else if (i == 2) scoreColor = sf::Color(205, 127, 50);
-                
-                sf::Text rankText(font, "#" + std::to_string(i + 1) + ": " + std::to_string(topScoresArray[i].score));
-                rankText.setCharacterSize(24);
-                rankText.setFillColor(scoreColor);
-                rankText.setPosition(sf::Vector2f(centerX + 120, centerY - 70 + i * 60));
-                window.draw(rankText);
-                
-                sf::Text detailText(font, "L" + std::to_string(topScoresArray[i].lines) + " Lv" + std::to_string(topScoresArray[i].level));
-                detailText.setCharacterSize(18);
-                detailText.setFillColor(sf::Color(180, 180, 180));
-                detailText.setPosition(sf::Vector2f(centerX + 130, centerY - 50 + i * 60));
-                window.draw(detailText);
-            } else {
-                sf::Text emptyText(font, "#" + std::to_string(i + 1) + ": ---");
-                emptyText.setCharacterSize(24);
-                emptyText.setFillColor(sf::Color(100, 100, 100));
-                emptyText.setPosition(sf::Vector2f(centerX + 120, centerY - 70 + i * 60));
-                window.draw(emptyText);
+
+        if (!isPracticeMode) {
+            const SaveData::ScoreEntry* topScoresArray = nullptr;
+            switch (difficulty) {
+                case ClassicDifficulty::Easy:
+                    topScoresArray = saveData.topScoresEasy;
+                    break;
+                case ClassicDifficulty::Medium:
+                    topScoresArray = saveData.topScoresMedium;
+                    break;
+                case ClassicDifficulty::Hard:
+                    topScoresArray = saveData.topScoresHard;
+                    break;
+            }
+            
+            sf::Text topScoresTitle(font, "TOP 3 SCORES");
+            topScoresTitle.setCharacterSize(36);
+            topScoresTitle.setFillColor(sf::Color(100, 255, 150));
+            topScoresTitle.setStyle(sf::Text::Bold);
+            topScoresTitle.setPosition(sf::Vector2f(centerX + 120, centerY - 120));
+            window.draw(topScoresTitle);
+            
+            for (int i = 0; i < 3; i++) {
+                if (topScoresArray[i].score > 0) {
+                    sf::Color scoreColor = sf::Color::White;
+                    if (i == 0) scoreColor = sf::Color(255, 215, 0);
+                    else if (i == 1) scoreColor = sf::Color(192, 192, 192);
+                    else if (i == 2) scoreColor = sf::Color(205, 127, 50);
+                    
+                    sf::Text rankText(font, "#" + std::to_string(i + 1) + ": " + std::to_string(topScoresArray[i].score));
+                    rankText.setCharacterSize(24);
+                    rankText.setFillColor(scoreColor);
+                    rankText.setPosition(sf::Vector2f(centerX + 120, centerY - 70 + i * 60));
+                    window.draw(rankText);
+                    
+                    sf::Text detailText(font, "L" + std::to_string(topScoresArray[i].lines) + " Lv" + std::to_string(topScoresArray[i].level));
+                    detailText.setCharacterSize(18);
+                    detailText.setFillColor(sf::Color(180, 180, 180));
+                    detailText.setPosition(sf::Vector2f(centerX + 130, centerY - 50 + i * 60));
+                    window.draw(detailText);
+                } else {
+                    sf::Text emptyText(font, "#" + std::to_string(i + 1) + ": ---");
+                    emptyText.setCharacterSize(24);
+                    emptyText.setFillColor(sf::Color(100, 100, 100));
+                    emptyText.setPosition(sf::Vector2f(centerX + 120, centerY - 70 + i * 60));
+                    window.draw(emptyText);
+                }
             }
         }
         } else {
@@ -354,7 +357,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawJigzterTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigzter 0.3.0-beta.3");
+    sf::Text titleText(font, "Jigzter 0.3.0-beta.4");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -599,7 +602,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
     }
     
     if (fontLoaded) {
-        sf::Text versionText(menuFont, "v0.3.0-beta.3");
+        sf::Text versionText(menuFont, "v0.3.0-beta.4");
         versionText.setCharacterSize(28);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();
@@ -1014,7 +1017,7 @@ void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, cons
     }
 }
 
-void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, PracticeDifficulty selectedDifficulty, PracticeLineGoal selectedLineGoal, bool infiniteBombs, int selectedOption) {
+void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, PracticeDifficulty selectedDifficulty, PracticeLineGoal selectedLineGoal, bool infiniteBombs, PracticeStartLevel selectedStartLevel, int selectedOption) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
     
@@ -1026,12 +1029,12 @@ void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
         titleText.setOutlineColor(sf::Color::Black);
         titleText.setOutlineThickness(4);
         sf::FloatRect titleBounds = titleText.getLocalBounds();
-        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 350));
+        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 380));
         window.draw(titleText);
         
 
-        float startY = centerY - 180;
-        float spacing = 100;
+        float startY = centerY - 220;
+        float spacing = 85;
         
 
         {
@@ -1137,21 +1140,51 @@ void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
         
 
         {
-            sf::Text startButton(menuFont, "START PRACTICE");
-            startButton.setCharacterSize(48);
-            startButton.setFillColor(selectedOption == 3 ? sf::Color::Yellow : sf::Color(100, 255, 100));
-            startButton.setStyle(selectedOption == 3 ? sf::Text::Bold : sf::Text::Regular);
-            sf::FloatRect startBounds = startButton.getLocalBounds();
-            startButton.setPosition(sf::Vector2f(centerX - startBounds.size.x/2, startY + spacing * 3 + 30));
-            window.draw(startButton);
+            sf::Text label(menuFont, "START LEVEL:");
+            label.setCharacterSize(36);
+            label.setFillColor(selectedOption == 3 ? sf::Color::Yellow : sf::Color(180, 180, 180));
+            sf::FloatRect labelBounds = label.getLocalBounds();
+            label.setPosition(sf::Vector2f(centerX - 300, startY + spacing * 3));
+            window.draw(label);
+            
+            std::string levelText = "LEVEL " + std::to_string(static_cast<int>(selectedStartLevel));
+            
+            sf::Text value(menuFont, levelText);
+            value.setCharacterSize(40);
+            value.setFillColor(selectedOption == 3 ? sf::Color::Yellow : sf::Color::White);
+            value.setStyle(selectedOption == 3 ? sf::Text::Bold : sf::Text::Regular);
+            sf::FloatRect valueBounds = value.getLocalBounds();
+            value.setPosition(sf::Vector2f(centerX + 100, startY + spacing * 3 - 5));
+            window.draw(value);
             
             if (selectedOption == 3) {
+                sf::RectangleShape selector;
+                selector.setSize(sf::Vector2f(700, 60));
+                selector.setFillColor(sf::Color(255, 255, 0, 50));
+                selector.setOutlineColor(sf::Color::Yellow);
+                selector.setOutlineThickness(3);
+                selector.setPosition(sf::Vector2f(centerX - 350, startY + spacing * 3 - 5));
+                window.draw(selector);
+            }
+        }
+        
+
+        {
+            sf::Text startButton(menuFont, "START PRACTICE");
+            startButton.setCharacterSize(48);
+            startButton.setFillColor(selectedOption == 4 ? sf::Color::Yellow : sf::Color(100, 255, 100));
+            startButton.setStyle(selectedOption == 4 ? sf::Text::Bold : sf::Text::Regular);
+            sf::FloatRect startBounds = startButton.getLocalBounds();
+            startButton.setPosition(sf::Vector2f(centerX - startBounds.size.x/2, startY + spacing * 4 + 30));
+            window.draw(startButton);
+            
+            if (selectedOption == 4) {
                 sf::RectangleShape selector;
                 selector.setSize(sf::Vector2f(500, 60));
                 selector.setFillColor(sf::Color(255, 255, 0, 50));
                 selector.setOutlineColor(sf::Color::Yellow);
                 selector.setOutlineThickness(3);
-                selector.setPosition(sf::Vector2f(centerX - 250, startY + spacing * 3 + 25));
+                selector.setPosition(sf::Vector2f(centerX - 250, startY + spacing * 4 + 25));
                 window.draw(selector);
             }
         }
@@ -1489,7 +1522,8 @@ void drawExtrasMenu(sf::RenderWindow& window, const sf::Font& titleFont, const s
         std::vector<std::pair<std::string, ExtrasOption>> options = {
             {"JIGZTER PIECES (coming soon)", ExtrasOption::JigzterPieces},
             {"ACHIEVEMENTS", ExtrasOption::Achievements},
-            {"STATISTICS", ExtrasOption::Statistics}
+            {"STATISTICS", ExtrasOption::Statistics},
+            {"BEST SCORES", ExtrasOption::BestScores}
         };
         
         float startY = centerY - 200;
@@ -1861,6 +1895,172 @@ void drawStatisticsScreen(sf::RenderWindow& window, const sf::Font& titleFont, c
 }
 
 
+void drawBestScoresScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, const SaveData& saveData) {
+    if (!fontLoaded) return;
+    
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
+    
+
+    sf::Text titleText(titleFont, "BEST SCORES");
+    titleText.setCharacterSize(100);
+    titleText.setFillColor(sf::Color(255, 215, 0));
+    titleText.setStyle(sf::Text::Bold);
+    titleText.setPosition(sf::Vector2f(centerX - 300, 80));
+    window.draw(titleText);
+    
+
+    auto formatTime = [](float seconds) -> std::string {
+        if (seconds <= 0.0f) return "-";
+        int minutes = static_cast<int>(seconds) / 60;
+        int secs = static_cast<int>(seconds) % 60;
+        int millis = static_cast<int>((seconds - static_cast<int>(seconds)) * 100);
+        char buffer[32];
+        snprintf(buffer, sizeof(buffer), "%d:%02d.%02d", minutes, secs, millis);
+        return std::string(buffer);
+    };
+    
+
+    auto formatScore = [](int score) -> std::string {
+        if (score <= 0) return "-";
+        std::string str = std::to_string(score);
+        std::string formatted;
+        int count = 0;
+        for (int i = str.length() - 1; i >= 0; i--) {
+            if (count > 0 && count % 3 == 0) formatted = "," + formatted;
+            formatted = str[i] + formatted;
+            count++;
+        }
+        return formatted;
+    };
+    
+
+    float leftX = 550;
+    float leftStartY = 220;
+    float lineHeight = 45;
+    
+
+    float rightX = 1050;
+    float rightStartY = 220;
+    
+
+    sf::Text classicHeader(menuFont, "=== CLASSIC ===");
+    classicHeader.setCharacterSize(48);
+    classicHeader.setFillColor(sf::Color(100, 200, 255));
+    classicHeader.setStyle(sf::Text::Bold);
+    classicHeader.setPosition(sf::Vector2f(leftX, leftStartY));
+    window.draw(classicHeader);
+    leftStartY += lineHeight + 10;
+    
+    struct ScoreEntry {
+        std::string mode;
+        std::string value1;
+        std::string value2;
+        sf::Color color;
+    };
+    
+    std::vector<ScoreEntry> entries = {
+        {"Easy", formatScore(saveData.highScoreClassicEasy) + " (Lv " + std::to_string(saveData.topScoresEasy[0].level) + ")", "", sf::Color(150, 255, 150)},
+        {"Medium", formatScore(saveData.highScoreClassicMedium) + " (Lv " + std::to_string(saveData.topScoresMedium[0].level) + ")", "", sf::Color(255, 200, 100)},
+        {"Hard", formatScore(saveData.highScoreClassicHard) + " (Lv " + std::to_string(saveData.topScoresHard[0].level) + ")", "", sf::Color(255, 100, 100)}
+    };
+    
+    for (const auto& entry : entries) {
+        sf::Text modeText(menuFont, entry.mode);
+        modeText.setCharacterSize(36);
+        modeText.setFillColor(sf::Color::White);
+        modeText.setPosition(sf::Vector2f(leftX + 30, leftStartY));
+        window.draw(modeText);
+        
+        sf::Text value1Text(menuFont, entry.value1);
+        value1Text.setCharacterSize(36);
+        value1Text.setFillColor(entry.color);
+        value1Text.setStyle(sf::Text::Bold);
+        value1Text.setPosition(sf::Vector2f(leftX + 200, leftStartY));
+        window.draw(value1Text);
+        
+        leftStartY += lineHeight;
+    }
+    
+
+    leftStartY += 20;
+    sf::Text sprintHeader(menuFont, "=== SPRINT ===");
+    sprintHeader.setCharacterSize(48);
+    sprintHeader.setFillColor(sf::Color(255, 150, 255));
+    sprintHeader.setStyle(sf::Text::Bold);
+    sprintHeader.setPosition(sf::Vector2f(leftX, leftStartY));
+    window.draw(sprintHeader);
+    leftStartY += lineHeight + 10;
+    
+    entries = {
+        {"Sprint 1", formatTime(saveData.bestTimeSprint1), "", sf::Color(200, 255, 200)},
+        {"Sprint 24", formatTime(saveData.bestTimeSprint24), "", sf::Color(200, 255, 200)},
+        {"Sprint 48", formatTime(saveData.bestTimeSprint48), "", sf::Color(200, 255, 200)},
+        {"Sprint 96", formatTime(saveData.bestTimeSprint96), "", sf::Color(200, 255, 200)}
+    };
+    
+    for (const auto& entry : entries) {
+        sf::Text modeText(menuFont, entry.mode);
+        modeText.setCharacterSize(36);
+        modeText.setFillColor(sf::Color::White);
+        modeText.setPosition(sf::Vector2f(leftX + 30, leftStartY));
+        window.draw(modeText);
+        
+        sf::Text value1Text(menuFont, entry.value1);
+        value1Text.setCharacterSize(36);
+        value1Text.setFillColor(entry.color);
+        value1Text.setStyle(sf::Text::Bold);
+        value1Text.setPosition(sf::Vector2f(leftX + 240, leftStartY));
+        window.draw(value1Text);
+        
+        leftStartY += lineHeight;
+    }
+    
+
+    sf::Text challengeHeader(menuFont, "=== CHALLENGES ===");
+    challengeHeader.setCharacterSize(48);
+    challengeHeader.setFillColor(sf::Color(255, 200, 100));
+    challengeHeader.setStyle(sf::Text::Bold);
+    challengeHeader.setPosition(sf::Vector2f(rightX, rightStartY));
+    window.draw(challengeHeader);
+    rightStartY += lineHeight + 10;
+    
+    entries = {
+        {"The Forest", formatTime(saveData.bestTimeChallengeTheForest), "", sf::Color(150, 255, 150)},
+        {"Randomness", formatTime(saveData.bestTimeChallengeRandomness), "", sf::Color(150, 255, 150)},
+        {"Non-Straight", formatTime(saveData.bestTimeChallengeNonStraight), "", sf::Color(150, 255, 150)},
+        {"One Rotation", formatTime(saveData.bestTimeChallengeOneRot), "", sf::Color(150, 255, 150)},
+        {"The Curse", formatTime(saveData.bestTimeChallengeChristopherCurse), "", sf::Color(150, 255, 150)},
+        {"Vanishing", formatTime(saveData.bestTimeChallengeVanishing), "", sf::Color(150, 255, 150)},
+        {"Auto Drop", formatTime(saveData.bestTimeChallengeAutoDrop), "", sf::Color(150, 255, 150)}
+    };
+    
+    for (const auto& entry : entries) {
+        sf::Text modeText(menuFont, entry.mode);
+        modeText.setCharacterSize(36);
+        modeText.setFillColor(sf::Color::White);
+        modeText.setPosition(sf::Vector2f(rightX + 30, rightStartY));
+        window.draw(modeText);
+        
+        sf::Text value1Text(menuFont, entry.value1);
+        value1Text.setCharacterSize(36);
+        value1Text.setFillColor(entry.color);
+        value1Text.setStyle(sf::Text::Bold);
+        value1Text.setPosition(sf::Vector2f(rightX + 330, rightStartY));
+        window.draw(value1Text);
+        
+        rightStartY += lineHeight;
+    }
+    
+
+    sf::Text escText(menuFont, "Press ESC to go back");
+    escText.setCharacterSize(32);
+    escText.setFillColor(sf::Color(150, 150, 150));
+    escText.setPosition(sf::Vector2f(centerX - 150, SCREEN_HEIGHT - 80));
+    window.draw(escText);
+}
+
+
 void updateBackgroundPieces(std::vector<BackgroundPiece>& pieces, float deltaTime) {
     for (auto& piece : pieces) {
         piece.update(deltaTime);
@@ -2068,7 +2268,6 @@ void spawnBackgroundPiece(std::vector<BackgroundPiece>& pieces) {
     
 
     int rarityRoll = rand() % 100;
-    std::cout<< "Rarity Roll: " << rarityRoll << std::endl;
     PieceType randomType;
     if (rarityRoll < 1) {
 

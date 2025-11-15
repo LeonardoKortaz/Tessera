@@ -54,7 +54,7 @@ struct DifficultyConfig {
 inline DifficultyConfig getPracticeConfig(PracticeDifficulty difficulty, PracticeLineGoal lineGoal, bool infiniteBombs) {
     DifficultyConfig config;
     config.modeName = "Practice";
-    config.maxLevels = 5;
+    config.maxLevels = 10;
     config.hasLineGoal = (lineGoal != PracticeLineGoal::Infinite);
     
 
@@ -86,7 +86,12 @@ inline DifficultyConfig getPracticeConfig(PracticeDifficulty difficulty, Practic
                 {25,  {7, 0, 0}},
                 {49,  {7, 0, 0}},
                 {81,  {7, 0, 0}},
-                {121, {7, 0, 0}}
+                {121, {7, 0, 0}},
+                {169, {7, 0, 0}},
+                {225, {7, 0, 0}},
+                {289, {7, 0, 0}},
+                {361, {7, 0, 0}},
+                {441, {7, 0, 0}}
             };
             break;
         case PracticeDifficulty::Easy:
@@ -96,7 +101,12 @@ inline DifficultyConfig getPracticeConfig(PracticeDifficulty difficulty, Practic
                 {25,  {7, 1, 0}},
                 {49,  {7, 1, 0}},
                 {81,  {7, 0, 1}},
-                {121, {7, 1, 1}}
+                {121, {7, 1, 1}},
+                {169, {7, 1, 1}},
+                {225, {7, 1, 1}},
+                {289, {7, 1, 1}},
+                {361, {7, 1, 1}},
+                {441, {7, 1, 1}}
             };
             break;
         case PracticeDifficulty::Medium:
@@ -106,7 +116,12 @@ inline DifficultyConfig getPracticeConfig(PracticeDifficulty difficulty, Practic
                 {25,  {7, 0, 1}},
                 {49,  {7, 1, 1}},
                 {81,  {7, 2, 1}},
-                {121, {7, 2, 2}}
+                {121, {7, 2, 2}},
+                {169, {7, 2, 2}},
+                {225, {7, 2, 2}},
+                {289, {7, 2, 2}},
+                {361, {7, 2, 2}},
+                {441, {7, 2, 2}}
             };
             break;
         case PracticeDifficulty::Hard:
@@ -116,7 +131,12 @@ inline DifficultyConfig getPracticeConfig(PracticeDifficulty difficulty, Practic
                 {25,  {7, 1, 1}},
                 {49,  {7, 2, 1}},
                 {81,  {7, 2, 2}},
-                {121, {7, 3, 3}}
+                {121, {7, 3, 3}},
+                {169, {7, 3, 3}},
+                {225, {7, 3, 3}},
+                {289, {7, 3, 3}},
+                {361, {7, 3, 3}},
+                {441, {7, 3, 3}}
             };
             break;
     }
@@ -127,7 +147,7 @@ inline DifficultyConfig getPracticeConfig(PracticeDifficulty difficulty, Practic
 inline DifficultyConfig getClassicEasyConfig() {
     DifficultyConfig config;
     config.modeName = "Classic Easy";
-    config.maxLevels = 5;
+    config.maxLevels = 10;
     config.hasLineGoal = false;
     config.lineGoal = 0;
     config.bombEnabled = true;
@@ -140,7 +160,12 @@ inline DifficultyConfig getClassicEasyConfig() {
         {25,  {7, 1, 0}},
         {49,  {7, 1, 0}},
         {81,  {7, 0, 1}},
-        {121, {7, 1, 1}}
+        {121, {7, 1, 1}},
+        {169, {7, 1, 1}},
+        {225, {7, 1, 1}},
+        {289, {7, 1, 1}},
+        {361, {7, 1, 1}},
+        {441, {7, 1, 1}}
     };
     
     return config;
@@ -149,7 +174,7 @@ inline DifficultyConfig getClassicEasyConfig() {
 inline DifficultyConfig getClassicMediumConfig() {
     DifficultyConfig config;
     config.modeName = "Classic Medium";
-    config.maxLevels = 5;
+    config.maxLevels = 10;
     config.hasLineGoal = false;
     config.lineGoal = 0;
     config.bombEnabled = true;
@@ -162,7 +187,12 @@ inline DifficultyConfig getClassicMediumConfig() {
         {25,  {7, 0, 1}},
         {49,  {7, 1, 1}},
         {81,  {7, 2, 1}},
-        {121, {7, 2, 2}}
+        {121, {7, 2, 2}},
+        {169, {7, 2, 2}},
+        {225, {7, 2, 2}},
+        {289, {7, 2, 2}},
+        {361, {7, 2, 2}},
+        {441, {7, 2, 2}}
     };
     
     return config;
@@ -171,7 +201,7 @@ inline DifficultyConfig getClassicMediumConfig() {
 inline DifficultyConfig getClassicHardConfig() {
     DifficultyConfig config;
     config.modeName = "Classic Hard";
-    config.maxLevels = 5;
+    config.maxLevels = 10;
     config.hasLineGoal = false;
     config.lineGoal = 0;
     config.bombEnabled = true;
@@ -184,7 +214,12 @@ inline DifficultyConfig getClassicHardConfig() {
         {25,  {7, 1, 1}},
         {49,  {7, 2, 1}},
         {81,  {7, 2, 2}},
-        {121, {7, 3, 3}}
+        {121, {7, 3, 3}},
+        {169, {7, 3, 3}},
+        {225, {7, 3, 3}},
+        {289, {7, 3, 3}},
+        {361, {7, 3, 3}},
+        {441, {7, 3, 3}}
     };
     
     return config;
@@ -352,12 +387,17 @@ inline DifficultyConfig getChallengeTheForestConfig() {
 
 
     config.levelThresholds = {
-        {0,  {3, 2, 3}},
-        {10, {3, 2, 3}},
-        {25, {3, 2, 3}},
-        {50, {3, 2, 3}},
-        {75, {3, 2, 3}},
-        {100, {3, 2, 3}}
+        {0,   {3, 2, 3}},
+        {9,   {3, 2, 3}},
+        {25,  {3, 2, 3}},
+        {49,  {3, 2, 3}},
+        {81,  {3, 2, 3}},
+        {121, {3, 2, 3}},
+        {169, {3, 2, 3}},
+        {225, {3, 2, 3}},
+        {289, {3, 2, 3}},
+        {361, {3, 2, 3}},
+        {441, {3, 2, 3}}
     };
     
     return config;
@@ -390,12 +430,17 @@ inline DifficultyConfig getChallengeRandomnessConfig() {
     };
 
     config.levelThresholds = {
-        {0,  {5, 2, 2}},
-        {10, {5, 2, 2}},
-        {25, {5, 3, 2}},
-        {50, {5, 3, 3}},
-        {75, {5, 4, 3}},
-        {100, {5, 4, 4}}
+        {0,   {5, 2, 2}},
+        {9,   {5, 2, 2}},
+        {25,  {5, 3, 2}},
+        {49,  {5, 3, 3}},
+        {81,  {5, 4, 3}},
+        {121, {5, 4, 4}},
+        {169, {5, 4, 4}},
+        {225, {5, 4, 4}},
+        {289, {5, 4, 4}},
+        {361, {5, 4, 4}},
+        {441, {5, 4, 4}}
     };
     
     return config;
@@ -433,12 +478,17 @@ inline DifficultyConfig getChallengeNonStraightConfig() {
     };
 
     config.levelThresholds = {
-        {0,  {4, 0, 0}},
-        {10, {4, 0, 0}},
-        {25, {4, 1, 0}},
-        {50, {4, 1, 1}},
-        {75, {4, 2, 1}},
-        {100, {4, 2, 2}}
+        {0,   {4, 0, 0}},
+        {9,   {4, 0, 0}},
+        {25,  {4, 1, 0}},
+        {49,  {4, 1, 0}},
+        {81,  {4, 1, 0}},
+        {121, {4, 1, 0}},
+        {169, {4, 1, 0}},
+        {225, {4, 1, 0}},
+        {289, {4, 1, 0}},
+        {361, {4, 1, 0}},
+        {441, {4, 1, 0}}
     };
     
     return config;
@@ -464,11 +514,17 @@ inline DifficultyConfig getChallengeOneRotConfig() {
     config.allowedHardPieces = {};
 
     config.levelThresholds = {
-        {0,  {7, 0, 0}},
-        {10, {7, 0, 0}},
-        {20, {7, 0, 0}},
-        {30, {7, 0, 0}},
-        {40, {7, 0, 0}}
+        {0,   {7, 0, 0}},
+        {9,   {7, 0, 0}},
+        {25,  {7, 0, 0}},
+        {49,  {7, 0, 0}},
+        {81,  {7, 0, 0}},
+        {121, {7, 0, 0}},
+        {169, {7, 0, 0}},
+        {225, {7, 0, 0}},
+        {289, {7, 0, 0}},
+        {361, {7, 0, 0}},
+        {441, {7, 0, 0}}
     };
     
     return config;
@@ -496,11 +552,17 @@ inline DifficultyConfig getChallengeChristopherCurseConfig() {
     };
 
     config.levelThresholds = {
-        {0,  {7, 0, 3}},
-        {10, {7, 0, 3}},
-        {20, {7, 0, 3}},
-        {30, {7, 0, 3}},
-        {40, {7, 0, 3}}
+        {0,   {7, 0, 3}},
+        {9,   {7, 0, 3}},
+        {25,  {7, 0, 3}},
+        {49,  {7, 0, 3}},
+        {81,  {7, 0, 3}},
+        {121, {7, 0, 3}},
+        {169, {7, 0, 3}},
+        {225, {7, 0, 3}},
+        {289, {7, 0, 3}},
+        {361, {7, 0, 3}},
+        {441, {7, 0, 3}}
     };
     
     return config;
@@ -509,7 +571,7 @@ inline DifficultyConfig getChallengeChristopherCurseConfig() {
 inline DifficultyConfig getChallengeVanishingConfig() {
     DifficultyConfig config;
     config.modeName = "Vanishing";
-    config.maxLevels = 5;
+    config.maxLevels = 10;
     config.hasLineGoal = true;
     config.lineGoal = 48;
     config.bombEnabled = true;
@@ -527,10 +589,17 @@ inline DifficultyConfig getChallengeVanishingConfig() {
 
 
     config.levelThresholds = {
-        {0,  {7, 0, 0}},
-        {9,  {7, 1, 0}},
-        {25, {7, 0, 1}},
-        {40, {7, 1, 1}}
+        {0,   {7, 0, 0}},
+        {9,   {7, 1, 0}},
+        {25,  {7, 0, 1}},
+        {49,  {7, 1, 1}},
+        {81,  {7, 1, 1}},
+        {121, {7, 1, 1}},
+        {169, {7, 1, 1}},
+        {225, {7, 1, 1}},
+        {289, {7, 1, 1}},
+        {361, {7, 1, 1}},
+        {441, {7, 1, 1}}
     };
     
     return config;
@@ -539,7 +608,7 @@ inline DifficultyConfig getChallengeVanishingConfig() {
 inline DifficultyConfig getChallengeAutoDropConfig() {
     DifficultyConfig config;
     config.modeName = "Auto Drop";
-    config.maxLevels = 5;
+    config.maxLevels = 10;
     config.hasLineGoal = true;
     config.lineGoal = 48;
     config.bombEnabled = true;
@@ -557,10 +626,17 @@ inline DifficultyConfig getChallengeAutoDropConfig() {
 
 
     config.levelThresholds = {
-        {0,  {7, 0, 0}},
-        {9,  {7, 1, 0}},
-        {25, {7, 0, 1}},
-        {40, {7, 1, 1}}
+        {0,   {7, 0, 0}},
+        {9,   {7, 1, 0}},
+        {25,  {7, 0, 1}},
+        {49,  {7, 1, 1}},
+        {81,  {7, 1, 1}},
+        {121, {7, 1, 1}},
+        {169, {7, 1, 1}},
+        {225, {7, 1, 1}},
+        {289, {7, 1, 1}},
+        {361, {7, 1, 1}},
+        {441, {7, 1, 1}}
     };
     
     return config;

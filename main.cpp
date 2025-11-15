@@ -5,7 +5,9 @@
 #include "difficulty_config.h"
 #include "achievements.h"
 #include "audio_manager.h"
+#include "save_system.h"
 #include <iostream>
+#include <iomanip>
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
@@ -19,299 +21,6 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
-
-std::string getSaveFilePath() {
-    
-    std::filesystem::path saveDataPath;
-    
-#ifdef _WIN32
-    
-    char* appData = std::getenv("APPDATA");
-    if (appData) {
-        saveDataPath = std::filesystem::path(appData) / "Jigzter";
-    } else {
-        saveDataPath = std::filesystem::current_path() / "Jigzter_Saves";
-    }
-#else
-    
-    char* homePath = std::getenv("HOME");
-    if (homePath) {
-        saveDataPath = std::filesystem::path(homePath) / ".jigz";
-    } else {
-        saveDataPath = std::filesystem::current_path() / "Jigzter_Saves";
-    }
-#endif
-    
-    
-    std::filesystem::path gameFolder = saveDataPath;
-    if (!std::filesystem::exists(gameFolder)) {
-        std::filesystem::create_directories(gameFolder);
-    }
-    
-    return (gameFolder / "save_data.txt").string();
-}
-
-void saveGameData(const SaveData& data) {
-    std::string filePath = getSaveFilePath();
-    std::ofstream file(filePath);
-    
-    if (file.is_open()) {
-        file << "HIGH_SCORE=" << data.highScore << std::endl;
-        file << "HIGH_SCORE_CLASSIC_EASY=" << data.highScoreClassicEasy << std::endl;
-        file << "HIGH_SCORE_CLASSIC_MEDIUM=" << data.highScoreClassicMedium << std::endl;
-        file << "HIGH_SCORE_CLASSIC_HARD=" << data.highScoreClassicHard << std::endl;
-        file << "BEST_TIME_SPRINT_1=" << data.bestTimeSprint1 << std::endl;
-        file << "BEST_TIME_SPRINT_24=" << data.bestTimeSprint24 << std::endl;
-        file << "BEST_TIME_SPRINT_48=" << data.bestTimeSprint48 << std::endl;
-        file << "BEST_TIME_SPRINT_96=" << data.bestTimeSprint96 << std::endl;
-        file << "BEST_TIME_CHALLENGE_DEBUG=" << data.bestTimeChallengeDebug << std::endl;
-        file << "BEST_TIME_CHALLENGE_THE_FOREST=" << data.bestTimeChallengeTheForest << std::endl;
-        file << "BEST_TIME_CHALLENGE_RANDOMNESS=" << data.bestTimeChallengeRandomness << std::endl;
-        file << "BEST_TIME_CHALLENGE_NON_STRAIGHT=" << data.bestTimeChallengeNonStraight << std::endl;
-        file << "BEST_TIME_CHALLENGE_ONE_ROT=" << data.bestTimeChallengeOneRot << std::endl;
-        file << "BEST_TIME_CHALLENGE_CHRISTOPHER_CURSE=" << data.bestTimeChallengeChristopherCurse << std::endl;
-        file << "BEST_TIME_CHALLENGE_VANISHING=" << data.bestTimeChallengeVanishing << std::endl;
-        file << "BEST_TIME_CHALLENGE_AUTO_DROP=" << data.bestTimeChallengeAutoDrop << std::endl;
-        file << "BEST_LINES=" << data.bestLines << std::endl;
-        file << "BEST_LEVEL=" << data.bestLevel << std::endl;
-        
-
-        file << "STAT_TOTAL_LINES=" << data.totalLinesCleared << std::endl;
-        file << "STAT_TOTAL_PIECES=" << data.totalPiecesPlaced << std::endl;
-        file << "STAT_TOTAL_GAMES=" << data.totalGamesPlayed << std::endl;
-        file << "STAT_TOTAL_SCORE=" << data.totalScore << std::endl;
-        file << "STAT_MAX_COMBO=" << data.maxComboEver << std::endl;
-        file << "STAT_TOTAL_BOMBS=" << data.totalBombsUsed << std::endl;
-        file << "STAT_TOTAL_PLAYTIME=" << data.totalPlayTimeSeconds << std::endl;
-        file << "STAT_TOTAL_ROTATIONS=" << data.totalRotations << std::endl;
-        file << "STAT_TOTAL_HOLDS=" << data.totalHolds << std::endl;
-        file << "STAT_TOTAL_PERFECT_CLEARS=" << data.totalPerfectClears << std::endl;
-        
-        file << "MASTER_VOLUME=" << data.masterVolume << std::endl;
-        file << "IS_MUTED=" << (data.isMuted ? 1 : 0) << std::endl;
-        
-
-        for (int i = 0; i < 3; i++) {
-            file << "TOP" << (i+1) << "_SCORE=" << data.topScores[i].score << std::endl;
-            file << "TOP" << (i+1) << "_LINES=" << data.topScores[i].lines << std::endl;
-            file << "TOP" << (i+1) << "_LEVEL=" << data.topScores[i].level << std::endl;
-        }
-        
-
-        for (int i = 0; i < 3; i++) {
-            file << "TOP_EASY_" << (i+1) << "_SCORE=" << data.topScoresEasy[i].score << std::endl;
-            file << "TOP_EASY_" << (i+1) << "_LINES=" << data.topScoresEasy[i].lines << std::endl;
-            file << "TOP_EASY_" << (i+1) << "_LEVEL=" << data.topScoresEasy[i].level << std::endl;
-        }
-        
-
-        for (int i = 0; i < 3; i++) {
-            file << "TOP_MEDIUM_" << (i+1) << "_SCORE=" << data.topScoresMedium[i].score << std::endl;
-            file << "TOP_MEDIUM_" << (i+1) << "_LINES=" << data.topScoresMedium[i].lines << std::endl;
-            file << "TOP_MEDIUM_" << (i+1) << "_LEVEL=" << data.topScoresMedium[i].level << std::endl;
-        }
-        
-
-        for (int i = 0; i < 3; i++) {
-            file << "TOP_HARD_" << (i+1) << "_SCORE=" << data.topScoresHard[i].score << std::endl;
-            file << "TOP_HARD_" << (i+1) << "_LINES=" << data.topScoresHard[i].lines << std::endl;
-            file << "TOP_HARD_" << (i+1) << "_LEVEL=" << data.topScoresHard[i].level << std::endl;
-        }
-        
-
-        for (int i = 0; i < 10; i++) {
-            file << "ACHIEVEMENT_" << i << "=" << (data.achievements[i] ? 1 : 0) << std::endl;
-        }
-        
-
-        file << "KEY_MOVE_LEFT=" << data.moveLeft << std::endl;
-        file << "KEY_MOVE_RIGHT=" << data.moveRight << std::endl;
-        file << "KEY_ROTATE_LEFT=" << data.rotateLeft << std::endl;
-        file << "KEY_ROTATE_RIGHT=" << data.rotateRight << std::endl;
-        file << "KEY_QUICK_FALL=" << data.quickFall << std::endl;
-        file << "KEY_DROP=" << data.drop << std::endl;
-        file << "KEY_HOLD=" << data.hold << std::endl;
-        file << "KEY_BOMB=" << data.bomb << std::endl;
-        file << "KEY_MUTE=" << data.mute << std::endl;
-        file << "KEY_VOLUME_DOWN=" << data.volumeDown << std::endl;
-        file << "KEY_VOLUME_UP=" << data.volumeUp << std::endl;
-        file << "KEY_MENU=" << data.menu << std::endl;
-        
-        file.close();
-        std::cout << "Game data saved to: " << filePath << std::endl;
-    } else {
-        std::cout << "Failed to save game data to: " << filePath << std::endl;
-    }
-}
-
-SaveData loadGameData() {
-    SaveData data;
-    std::string filePath = getSaveFilePath();
-    std::ifstream file(filePath);
-    
-    if (file.is_open()) {
-        std::string line;
-        while (std::getline(file, line)) {
-            std::size_t pos = line.find('=');
-            if (pos != std::string::npos) {
-                std::string key = line.substr(0, pos);
-                std::string value = line.substr(pos + 1);
-                
-                if (key == "HIGH_SCORE") {
-                    data.highScore = std::stoi(value);
-                } else if (key == "HIGH_SCORE_CLASSIC_EASY") {
-                    data.highScoreClassicEasy = std::stoi(value);
-                } else if (key == "HIGH_SCORE_CLASSIC_MEDIUM") {
-                    data.highScoreClassicMedium = std::stoi(value);
-                } else if (key == "HIGH_SCORE_CLASSIC_HARD") {
-                    data.highScoreClassicHard = std::stoi(value);
-                } else if (key == "BEST_TIME_SPRINT_1") {
-                    data.bestTimeSprint1 = std::stof(value);
-                } else if (key == "BEST_TIME_SPRINT_24") {
-                    data.bestTimeSprint24 = std::stof(value);
-                } else if (key == "BEST_TIME_SPRINT_48") {
-                    data.bestTimeSprint48 = std::stof(value);
-                } else if (key == "BEST_TIME_SPRINT_96") {
-                    data.bestTimeSprint96 = std::stof(value);
-                } else if (key == "BEST_TIME_CHALLENGE_DEBUG") {
-                    data.bestTimeChallengeDebug = std::stof(value);
-                } else if (key == "BEST_TIME_CHALLENGE_THE_FOREST") {
-                    data.bestTimeChallengeTheForest = std::stof(value);
-                } else if (key == "BEST_TIME_CHALLENGE_RANDOMNESS") {
-                    data.bestTimeChallengeRandomness = std::stof(value);
-                } else if (key == "BEST_TIME_CHALLENGE_NON_STRAIGHT") {
-                    data.bestTimeChallengeNonStraight = std::stof(value);
-                } else if (key == "BEST_TIME_CHALLENGE_ONE_ROT") {
-                    data.bestTimeChallengeOneRot = std::stof(value);
-                } else if (key == "BEST_TIME_CHALLENGE_CHRISTOPHER_CURSE") {
-                    data.bestTimeChallengeChristopherCurse = std::stof(value);
-                } else if (key == "BEST_TIME_CHALLENGE_VANISHING") {
-                    data.bestTimeChallengeVanishing = std::stof(value);
-                } else if (key == "BEST_TIME_CHALLENGE_AUTO_DROP") {
-                    data.bestTimeChallengeAutoDrop = std::stof(value);
-                } else if (key == "BEST_LINES") {
-                    data.bestLines = std::stoi(value);
-                } else if (key == "BEST_LEVEL") {
-                    data.bestLevel = std::stoi(value);
-                } else if (key == "STAT_TOTAL_LINES") {
-                    data.totalLinesCleared = std::stoi(value);
-                } else if (key == "STAT_TOTAL_PIECES") {
-                    data.totalPiecesPlaced = std::stoi(value);
-                } else if (key == "STAT_TOTAL_GAMES") {
-                    data.totalGamesPlayed = std::stoi(value);
-                } else if (key == "STAT_TOTAL_SCORE") {
-                    data.totalScore = std::stoi(value);
-                } else if (key == "STAT_MAX_COMBO") {
-                    data.maxComboEver = std::stoi(value);
-                } else if (key == "STAT_TOTAL_BOMBS") {
-                    data.totalBombsUsed = std::stoi(value);
-                } else if (key == "STAT_TOTAL_PLAYTIME") {
-                    data.totalPlayTimeSeconds = std::stof(value);
-                } else if (key == "STAT_TOTAL_ROTATIONS") {
-                    data.totalRotations = std::stoi(value);
-                } else if (key == "STAT_TOTAL_HOLDS") {
-                    data.totalHolds = std::stoi(value);
-                } else if (key == "STAT_TOTAL_PERFECT_CLEARS") {
-                    data.totalPerfectClears = std::stoi(value);
-                } else if (key == "MASTER_VOLUME") {
-                    data.masterVolume = std::stof(value);
-                } else if (key == "IS_MUTED") {
-                    data.isMuted = (std::stoi(value) == 1);
-                } else if (key.rfind("ACHIEVEMENT_", 0) == 0) {
-
-                    int achievementId = std::stoi(key.substr(12));
-                    if (achievementId >= 0 && achievementId < 10) {
-                        data.achievements[achievementId] = (std::stoi(value) == 1);
-                    }
-                } else if (key == "KEY_MOVE_LEFT") {
-                    data.moveLeft = std::stoi(value);
-                } else if (key == "KEY_MOVE_RIGHT") {
-                    data.moveRight = std::stoi(value);
-                } else if (key == "KEY_ROTATE_LEFT") {
-                    data.rotateLeft = std::stoi(value);
-                } else if (key == "KEY_ROTATE_RIGHT") {
-                    data.rotateRight = std::stoi(value);
-                } else if (key == "KEY_QUICK_FALL") {
-                    data.quickFall = std::stoi(value);
-                } else if (key == "KEY_DROP") {
-                    data.drop = std::stoi(value);
-                } else if (key == "KEY_HOLD") {
-                    data.hold = std::stoi(value);
-                } else if (key == "KEY_BOMB") {
-                    data.bomb = std::stoi(value);
-                } else if (key == "KEY_MUTE") {
-                    data.mute = std::stoi(value);
-                } else if (key == "KEY_VOLUME_DOWN") {
-                    data.volumeDown = std::stoi(value);
-                } else if (key == "KEY_VOLUME_UP") {
-                    data.volumeUp = std::stoi(value);
-                } else if (key == "KEY_MENU") {
-                    data.menu = std::stoi(value);
-                } else if (key.find("TOP") == 0) {
-
-                    if (key.find("TOP_EASY_") == 0) {
-                        char topNum = key[9];
-                        int index = topNum - '1';
-                        if (index >= 0 && index < 3) {
-                            if (key.find("_SCORE") != std::string::npos) {
-                                data.topScoresEasy[index].score = std::stoi(value);
-                            } else if (key.find("_LINES") != std::string::npos) {
-                                data.topScoresEasy[index].lines = std::stoi(value);
-                            } else if (key.find("_LEVEL") != std::string::npos) {
-                                data.topScoresEasy[index].level = std::stoi(value);
-                            }
-                        }
-                    } else if (key.find("TOP_MEDIUM_") == 0) {
-                        char topNum = key[11];
-                        int index = topNum - '1';
-                        if (index >= 0 && index < 3) {
-                            if (key.find("_SCORE") != std::string::npos) {
-                                data.topScoresMedium[index].score = std::stoi(value);
-                            } else if (key.find("_LINES") != std::string::npos) {
-                                data.topScoresMedium[index].lines = std::stoi(value);
-                            } else if (key.find("_LEVEL") != std::string::npos) {
-                                data.topScoresMedium[index].level = std::stoi(value);
-                            }
-                        }
-                    } else if (key.find("TOP_HARD_") == 0) {
-                        char topNum = key[9];
-                        int index = topNum - '1';
-                        if (index >= 0 && index < 3) {
-                            if (key.find("_SCORE") != std::string::npos) {
-                                data.topScoresHard[index].score = std::stoi(value);
-                            } else if (key.find("_LINES") != std::string::npos) {
-                                data.topScoresHard[index].lines = std::stoi(value);
-                            } else if (key.find("_LEVEL") != std::string::npos) {
-                                data.topScoresHard[index].level = std::stoi(value);
-                            }
-                        }
-                    } else {
-
-                        char topNum = key[3];
-                        int index = topNum - '1';
-                        if (index >= 0 && index < 3) {
-                            if (key.find("_SCORE") != std::string::npos) {
-                                data.topScores[index].score = std::stoi(value);
-                            } else if (key.find("_LINES") != std::string::npos) {
-                                data.topScores[index].lines = std::stoi(value);
-                            } else if (key.find("_LEVEL") != std::string::npos) {
-                                data.topScores[index].level = std::stoi(value);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        file.close();
-        std::cout << "Game data loaded from: " << filePath << std::endl;
-        std::cout << "High Score: " << data.highScore << " | Best Lines: " << data.bestLines << " | Best Level: " << data.bestLevel << std::endl;
-    } else {
-        std::cout << "No save file found, using default values" << std::endl;
-    }
-    
-    return data;
-}
-
 
 void unlockAchievement(SaveData& saveData, Achievement ach, std::vector<AchievementPopup>* popups = nullptr, AudioManager* audioManager = nullptr) {
     if (tryUnlockAchievement(saveData, ach)) {
@@ -738,7 +447,11 @@ bool PieceBag::isNextBagReady() const {
 }
 
 void PieceBag::reset() {
-    currentLevel = 0;
+    reset(0);
+}
+
+void PieceBag::reset(int startLevel) {
+    currentLevel = startLevel;
     bagIndex = 0;
     nextBagReady = false;
     refillMediumBag();
@@ -747,7 +460,7 @@ void PieceBag::reset() {
     nextBag.clear();
     nextQueue.clear();
     fillNextQueue();
-    std::cout << "Bag system reset to level 0!" << std::endl;
+    std::cout << "Bag system reset to level " << currentLevel << "!" << std::endl;
 }
 
 void PieceBag::setDifficultyConfig(const DifficultyConfig* config) {
@@ -967,7 +680,7 @@ void drawCombo(sf::RenderWindow& window, int currentCombo, int lastMoveScore, co
     }
 }
 
-void drawLevelInfo(sf::RenderWindow& window, int totalLinesCleared, int currentLevel, int totalScore, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, bool sprintMode = false, float sprintTime = 0.0f, int sprintTarget = 0) {
+void drawLevelInfo(sf::RenderWindow& window, int totalLinesCleared, int currentLevel, int totalScore, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, bool sprintMode = false, float sprintTime = 0.0f, int sprintTarget = 0, float gameTime = 0.0f) {
     float panelX = 50;
     float panelY = GRID_OFFSET_Y + 50;
     
@@ -1066,47 +779,69 @@ void drawLevelInfo(sf::RenderWindow& window, int totalLinesCleared, int currentL
         bg.setOutlineColor(sf::Color(255, 200, 100, 255));
         bg.setOutlineThickness(2);
         bg.setPosition(sf::Vector2f(panelX - 10, panelY - 10));
-        bg.setSize(sf::Vector2f(140, 130));
+        bg.setSize(sf::Vector2f(140, 170));
         window.draw(bg);
         
         if (fontLoaded) {
+
+            sf::Text timeLabel(font, "TIME");
+            timeLabel.setCharacterSize(14);
+            timeLabel.setFillColor(sf::Color(200, 150, 255));
+            timeLabel.setStyle(sf::Text::Bold);
+            timeLabel.setPosition(sf::Vector2f(panelX + 5, panelY));
+            window.draw(timeLabel);
+            
+            int minutes = static_cast<int>(gameTime) / 60;
+            int seconds = static_cast<int>(gameTime) % 60;
+            std::string timeStr = std::to_string(minutes) + ":" + 
+                                 (seconds < 10 ? "0" : "") + std::to_string(seconds);
+            
+            sf::Text timeValue(font, timeStr);
+            timeValue.setCharacterSize(18);
+            timeValue.setFillColor(sf::Color::White);
+            timeValue.setPosition(sf::Vector2f(panelX + 55, panelY));
+            window.draw(timeValue);
+            
+
             sf::Text scoreLabel(font, "SCORE");
             scoreLabel.setCharacterSize(14);
             scoreLabel.setFillColor(sf::Color::Yellow);
             scoreLabel.setStyle(sf::Text::Bold);
-            scoreLabel.setPosition(sf::Vector2f(panelX + 5, panelY));
+            scoreLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 40));
             window.draw(scoreLabel);
             
             sf::Text scoreValue(font, std::to_string(totalScore));
             scoreValue.setCharacterSize(18);
             scoreValue.setFillColor(sf::Color::White);
-            scoreValue.setPosition(sf::Vector2f(panelX + 45, panelY));
+            scoreValue.setPosition(sf::Vector2f(panelX + 45, panelY + 40));
             window.draw(scoreValue);
             
+
             sf::Text linesLabel(font, "LINES");
             linesLabel.setCharacterSize(14);
             linesLabel.setFillColor(sf::Color::Green);
             linesLabel.setStyle(sf::Text::Bold);
-            linesLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 40));
+            linesLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 80));
             window.draw(linesLabel);
             
             sf::Text linesValue(font, std::to_string(totalLinesCleared));
             linesValue.setCharacterSize(18);
             linesValue.setFillColor(sf::Color::White);
-            linesValue.setPosition(sf::Vector2f(panelX + 45, panelY + 40));
+            linesValue.setPosition(sf::Vector2f(panelX + 45, panelY + 80));
             window.draw(linesValue);
             
+
             sf::Text levelLabel(font, "LEVEL");
             levelLabel.setCharacterSize(14);
             levelLabel.setFillColor(sf::Color::Cyan);
             levelLabel.setStyle(sf::Text::Bold);
-            levelLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 80));
+            levelLabel.setPosition(sf::Vector2f(panelX + 5, panelY + 120));
             window.draw(levelLabel);
             
             sf::Text levelValue(font, std::to_string(currentLevel));
             levelValue.setCharacterSize(18);
             levelValue.setFillColor(sf::Color::White);
-            levelValue.setPosition(sf::Vector2f(panelX + 45, panelY + 80));
+            levelValue.setPosition(sf::Vector2f(panelX + 45, panelY + 120));
             window.draw(levelValue);
         }
     }
@@ -1160,7 +895,10 @@ private:
     float fallTimer = 0.0f;
     bool touchingGround = false;
     float lockDelayTimer = 0.0f;
+    int lockResetCount = 0;
+    int lowestY = 0;
     static constexpr float LOCK_DELAY_TIME = 2.0f;
+    static constexpr int MAX_LOCK_RESETS = 15;
     AbilityType ability;
     void updatePosition() {
         float worldX = GRID_OFFSET_X + x * CELL_SIZE;
@@ -1168,7 +906,7 @@ private:
     }
 public:
     Piece(int x, int y, PieceType pieceType, bool isStatic = false)
-    : isStatic(isStatic), x(x), y(y), type(pieceType), touchingGround(false), lockDelayTimer(0.0f)
+    : isStatic(isStatic), x(x), y(y), type(pieceType), touchingGround(false), lockDelayTimer(0.0f), lockResetCount(0), lowestY(y)
     {
         shape = getPieceShape(pieceType);
         ability = getAbilityType(pieceType);
@@ -1193,11 +931,17 @@ public:
         }
         return false;
     }
-    void update(float deltaTime, bool fastFall, std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid) {
+    void update(float deltaTime, bool fastFall, std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, int currentLevel) {
         if (isStatic) return;
 
         fallTimer += deltaTime;
         bool isGrounded = collidesAt(grid, x, y + 1);
+
+
+        if (y > lowestY) {
+            lowestY = y;
+            lockResetCount = 0;
+        }
 
         if (isGrounded) {
             if (!touchingGround) {
@@ -1206,16 +950,33 @@ public:
             }
             
             lockDelayTimer += deltaTime;
+            
 
-            if (lockDelayTimer >= LOCK_DELAY_TIME) {
+            float timeRemaining = LOCK_DELAY_TIME - lockDelayTimer;
+            if (timeRemaining > 0) {
+                std::cout << "[LOCK DELAY] Time: " << std::fixed << std::setprecision(2) << timeRemaining 
+                          << "s | Resets: " << lockResetCount << "/" << MAX_LOCK_RESETS 
+                          << " | Y: " << y << " | LowestY: " << lowestY << std::endl;
+            }
+
+            if (lockDelayTimer >= LOCK_DELAY_TIME || lockResetCount >= MAX_LOCK_RESETS) {
                 isStatic = true;
-
+                if (lockResetCount >= MAX_LOCK_RESETS) {
+                    std::cout << "[LOCK DELAY] Piece locked! (max resets reached)" << std::endl;
+                } else {
+                    std::cout << "[LOCK DELAY] Piece locked! (timeout)" << std::endl;
+                }
             }
         } else {
             touchingGround = false;
             lockDelayTimer = 0.0f;
 
-            if (fallTimer >= (fastFall ? 0.03f : 0.5f)) {
+
+
+            float gravity = LEVEL_GRAVITY[std::min(currentLevel, MAX_LEVEL)];
+            float fallInterval = 1.0f / gravity;
+            
+            if (fallTimer >= (fastFall ? 0.03f : fallInterval)) {
                 y++;
                 fallTimer = 0.0f;
                 updatePosition();
@@ -1406,7 +1167,10 @@ public:
             if (!collidesAt(grid, testX, testY)) {
                 x = testX;
                 y = testY;
-                if (touchingGround) lockDelayTimer = 0.0f;
+                if (touchingGround && lockResetCount < MAX_LOCK_RESETS) {
+                    lockDelayTimer = 0.0f;
+                    lockResetCount++;
+                }
                 return;
             }
             shape = originalShape;
@@ -1425,7 +1189,10 @@ public:
             if (!collidesAt(grid, testX, testY)) {
                 x = testX;
                 y = testY;
-                if (touchingGround) lockDelayTimer = 0.0f;
+                if (touchingGround && lockResetCount < MAX_LOCK_RESETS) {
+                    lockDelayTimer = 0.0f;
+                    lockResetCount++;
+                }
                 return;
             }
             shape = originalShape;
@@ -1435,13 +1202,19 @@ public:
     void moveLeft(const std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid) { 
         if (!isStatic && !collidesAt(grid, x - 1, y)) {
             --x;
-            if (touchingGround) lockDelayTimer = 0.0f;
+            if (touchingGround && lockResetCount < MAX_LOCK_RESETS) {
+                lockDelayTimer = 0.0f;
+                lockResetCount++;
+            }
         }
     }
     void moveRight(const std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid) { 
         if (!isStatic && !collidesAt(grid, x + 1, y)) {
             ++x;
-            if (touchingGround) lockDelayTimer = 0.0f;
+            if (touchingGround && lockResetCount < MAX_LOCK_RESETS) {
+                lockDelayTimer = 0.0f;
+                lockResetCount++;
+            }
         }
     }
     int moveGround(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid) {
@@ -1622,93 +1395,6 @@ void switchMusic(sf::Music& fromMusic, sf::Music& toMusic, sf::Music*& currentMu
     currentMusic = &toMusic;
 }
 
-bool insertNewScore(SaveData& saveData, int score, int lines, int level, ClassicDifficulty difficulty) {
-    SaveData::ScoreEntry newEntry = {score, lines, level};
-    
-
-    SaveData::ScoreEntry* topScoresArray = nullptr;
-    switch (difficulty) {
-        case ClassicDifficulty::Easy:
-            topScoresArray = saveData.topScoresEasy;
-            break;
-        case ClassicDifficulty::Medium:
-            topScoresArray = saveData.topScoresMedium;
-            break;
-        case ClassicDifficulty::Hard:
-            topScoresArray = saveData.topScoresHard;
-            break;
-    }
-    
-
-    int insertPos = -1;
-    for (int i = 0; i < 3; i++) {
-        if (score > topScoresArray[i].score) {
-            insertPos = i;
-            break;
-        }
-    }
-    
-    bool madeTopThree = (insertPos >= 0);
-    
-    if (insertPos >= 0) {
-
-        for (int i = 2; i > insertPos; i--) {
-            topScoresArray[i] = topScoresArray[i-1];
-        }
-        topScoresArray[insertPos] = newEntry;
-        
-        std::cout << "NEW TOP SCORE #" << (insertPos + 1) << " for difficulty " << static_cast<int>(difficulty) << ": " << score << " points!" << std::endl;
-    }
-    
-
-    int legacyInsertPos = -1;
-    for (int i = 0; i < 3; i++) {
-        if (score > saveData.topScores[i].score) {
-            legacyInsertPos = i;
-            break;
-        }
-    }
-    
-    if (legacyInsertPos >= 0) {
-        for (int i = 2; i > legacyInsertPos; i--) {
-            saveData.topScores[i] = saveData.topScores[i-1];
-        }
-        saveData.topScores[legacyInsertPos] = newEntry;
-        
-        if (legacyInsertPos == 0) {
-            saveData.highScore = score;
-        }
-    }
-    
-
-    switch (difficulty) {
-        case ClassicDifficulty::Easy:
-            if (score > saveData.highScoreClassicEasy) {
-                saveData.highScoreClassicEasy = score;
-                std::cout << "New Classic Easy high score: " << score << std::endl;
-            }
-            break;
-        case ClassicDifficulty::Medium:
-            if (score > saveData.highScoreClassicMedium) {
-                saveData.highScoreClassicMedium = score;
-                std::cout << "New Classic Medium high score: " << score << std::endl;
-            }
-            break;
-        case ClassicDifficulty::Hard:
-            if (score > saveData.highScoreClassicHard) {
-                saveData.highScoreClassicHard = score;
-                std::cout << "New Classic Hard high score: " << score << std::endl;
-            }
-            break;
-    }
-    
-    if (score > saveData.highScore) {
-        saveData.highScore = score;
-    }
-    
-    return madeTopThree;
-}
-
 #ifdef _WIN32
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     int argc = __argc;
@@ -1860,6 +1546,7 @@ int main(int argc, char* argv[]) {
     PracticeDifficulty selectedPracticeDifficulty = PracticeDifficulty::Easy;
     PracticeLineGoal selectedPracticeLineGoal = PracticeLineGoal::Infinite;
     bool practiceInfiniteBombs = false;
+    PracticeStartLevel selectedPracticeStartLevel = PracticeStartLevel::Level0;
     int selectedPracticeOption = 0;
     ExtrasOption selectedExtrasOption = ExtrasOption::JigzterPieces;
     OptionsMenuOption selectedOptionsOption = OptionsMenuOption::ClearScores;
@@ -2093,9 +1780,6 @@ int main(int argc, char* argv[]) {
                                         std::cout << "Entered CHALLENGE selection (mouse)" << std::endl;
                                     } else if (clickedMode == GameModeOption::Practice) {
                                         gameState = GameState::PracticeSelect;
-                                        selectedPracticeDifficulty = PracticeDifficulty::Easy;
-                                        selectedPracticeLineGoal = PracticeLineGoal::Infinite;
-                                        practiceInfiniteBombs = false;
                                         selectedPracticeOption = 0;
                                         std::cout << "Entered PRACTICE selection (mouse)" << std::endl;
                                     }
@@ -2113,13 +1797,13 @@ int main(int argc, char* argv[]) {
                         float centerX = WINDOW_WIDTH / 2.0f;
                         float centerY = WINDOW_HEIGHT / 2.0f;
                         
-                        float startY = centerY - 180.0f;
-                        float spacing = 100.0f;
-                        float startButtonY = startY + spacing * 3 + 25;
+                        float startY = centerY - 220.0f;
+                        float spacing = 85.0f;
+                        float startButtonY = startY + spacing * 4 + 25;
                         
 
                         bool clickedOption = false;
-                        for (int i = 0; i < 3; i++) {
+                        for (int i = 0; i < 4; i++) {
                             float selectorY = startY + i * spacing - 5;
                             if (clickX >= centerX - 350 && clickX <= centerX + 350 &&
                                 clickY >= selectorY && clickY <= selectorY + 60) {
@@ -2135,6 +1819,10 @@ int main(int argc, char* argv[]) {
                                     );
                                 } else if (i == 2) {
                                     practiceInfiniteBombs = !practiceInfiniteBombs;
+                                } else if (i == 3) {
+                                    selectedPracticeStartLevel = static_cast<PracticeStartLevel>(
+                                        (static_cast<int>(selectedPracticeStartLevel) + 1) % 11
+                                    );
                                 }
                                 clickedOption = true;
                                 break;
@@ -2142,7 +1830,7 @@ int main(int argc, char* argv[]) {
                         }
                         
 
-                        if (!clickedOption && selectedPracticeOption == 3 &&
+                        if (!clickedOption && selectedPracticeOption == 4 &&
                             clickX >= centerX - 250 && clickX <= centerX + 250 &&
                             clickY >= startButtonY && clickY <= startButtonY + 60) {
                             
@@ -2184,8 +1872,11 @@ int main(int argc, char* argv[]) {
                                     grid[i][j] = Cell();
                                 }
                             }
+                            
+
+                            currentLevel = static_cast<int>(selectedPracticeStartLevel);
                             totalLinesCleared = 0;
-                            currentLevel = 0;
+                            
                             totalScore = 0;
                             currentCombo = 0;
                             lastMoveScore = 0;
@@ -2193,7 +1884,7 @@ int main(int argc, char* argv[]) {
                             totalLineScore = 0;
                             totalComboScore = 0;
                             RESET_SESSION_STATS();
-                            JigzterBag.reset();
+                            JigzterBag.reset(currentLevel);
                             hasHeldPiece = false;
                             canUseHold = true;
                             linesSinceLastAbility = 0;
@@ -2362,7 +2053,7 @@ int main(int argc, char* argv[]) {
                             float spacing = 70.0f;
                             
 
-                            for (int i = 0; i < 3; i++) {
+                            for (int i = 0; i < 4; i++) {
                                 float selectorY = startY + i * spacing - 5;
                                 if (clickX >= centerX - 225 && clickX <= centerX + 225 &&
                                     clickY >= selectorY && clickY <= selectorY + 55) {
@@ -2376,6 +2067,10 @@ int main(int argc, char* argv[]) {
                                         audioManager.playMenuClickSound();
                                         gameState = GameState::StatisticsView;
                                         std::cout << "Entered STATISTICS view (mouse)" << std::endl;
+                                    } else if (clickedOption == ExtrasOption::BestScores) {
+                                        audioManager.playMenuClickSound();
+                                        gameState = GameState::BestScoresView;
+                                        std::cout << "Entered BEST SCORES view (mouse)" << std::endl;
                                     } else {
                                         std::cout << "Other Extras buttons are currently disabled" << std::endl;
                                     }
@@ -2436,6 +2131,23 @@ int main(int argc, char* argv[]) {
                         }
 
                     } else if (gameState == GameState::StatisticsView) {
+
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        
+
+                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
+                        if (clickedBombIndex >= 0) {
+                            const auto& bomb = backgroundPieces[clickedBombIndex];
+                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
+                                          shakeIntensity, shakeDuration, shakeTimer, 
+                                          saveData, achievementPopups);
+                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
+                        }
+
+                    } else if (gameState == GameState::BestScoresView) {
 
                         sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
                         sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
@@ -2781,11 +2493,11 @@ int main(int argc, char* argv[]) {
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
-                            selectedExtrasOption = static_cast<ExtrasOption>((static_cast<int>(selectedExtrasOption) + 2) % 3);
+                            selectedExtrasOption = static_cast<ExtrasOption>((static_cast<int>(selectedExtrasOption) + 3) % 4);
                             break;
                         case sf::Keyboard::Key::Down:
                         case sf::Keyboard::Key::S:
-                            selectedExtrasOption = static_cast<ExtrasOption>((static_cast<int>(selectedExtrasOption) + 1) % 3);
+                            selectedExtrasOption = static_cast<ExtrasOption>((static_cast<int>(selectedExtrasOption) + 1) % 4);
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
@@ -2797,6 +2509,10 @@ int main(int argc, char* argv[]) {
                                 audioManager.playMenuClickSound();
                                 gameState = GameState::StatisticsView;
                                 std::cout << "Entered STATISTICS view (keyboard)" << std::endl;
+                            } else if (selectedExtrasOption == ExtrasOption::BestScores) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::BestScoresView;
+                                std::cout << "Entered BEST SCORES view (keyboard)" << std::endl;
                             } else {
                                 std::cout << "Other Extras buttons are currently disabled" << std::endl;
                             }
@@ -2836,9 +2552,6 @@ int main(int argc, char* argv[]) {
                                 std::cout << "Entered CHALLENGE selection" << std::endl;
                             } else if (selectedGameModeOption == GameModeOption::Practice) {
                                 gameState = GameState::PracticeSelect;
-                                selectedPracticeDifficulty = PracticeDifficulty::Easy;
-                                selectedPracticeLineGoal = PracticeLineGoal::Infinite;
-                                practiceInfiniteBombs = false;
                                 selectedPracticeOption = 0;
                                 std::cout << "Entered PRACTICE selection" << std::endl;
                             }
@@ -3208,11 +2921,11 @@ int main(int argc, char* argv[]) {
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
-                            selectedPracticeOption = (selectedPracticeOption + 3) % 4;
+                            selectedPracticeOption = (selectedPracticeOption + 4) % 5;
                             break;
                         case sf::Keyboard::Key::Down:
                         case sf::Keyboard::Key::S:
-                            selectedPracticeOption = (selectedPracticeOption + 1) % 4;
+                            selectedPracticeOption = (selectedPracticeOption + 1) % 5;
                             break;
                         case sf::Keyboard::Key::Left:
                         case sf::Keyboard::Key::A:
@@ -3227,6 +2940,10 @@ int main(int argc, char* argv[]) {
                             } else if (selectedPracticeOption == 2) {
 
                                 practiceInfiniteBombs = !practiceInfiniteBombs;
+                            } else if (selectedPracticeOption == 3) {
+
+                                int current = static_cast<int>(selectedPracticeStartLevel);
+                                selectedPracticeStartLevel = static_cast<PracticeStartLevel>((current + 10) % 11);
                             }
                             break;
                         case sf::Keyboard::Key::Right:
@@ -3242,11 +2959,15 @@ int main(int argc, char* argv[]) {
                             } else if (selectedPracticeOption == 2) {
 
                                 practiceInfiniteBombs = !practiceInfiniteBombs;
+                            } else if (selectedPracticeOption == 3) {
+
+                                int current = static_cast<int>(selectedPracticeStartLevel);
+                                selectedPracticeStartLevel = static_cast<PracticeStartLevel>((current + 1) % 11);
                             }
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
-                            if (selectedPracticeOption == 3) {
+                            if (selectedPracticeOption == 4) {
 
                                 selectedGameModeOption = GameModeOption::Practice;
                                 
@@ -3287,8 +3008,11 @@ int main(int argc, char* argv[]) {
                                         grid[i][j] = Cell();
                                     }
                                 }
+                                
+
+                                currentLevel = static_cast<int>(selectedPracticeStartLevel);
                                 totalLinesCleared = 0;
-                                currentLevel = 0;
+                                
                                 totalScore = 0;
                                 currentCombo = 0;
                                 lastMoveScore = 0;
@@ -3296,7 +3020,7 @@ int main(int argc, char* argv[]) {
                                 totalLineScore = 0;
                                 totalComboScore = 0;
                                 RESET_SESSION_STATS();
-                                JigzterBag.reset();
+                                JigzterBag.reset(currentLevel);
                                 hasHeldPiece = false;
                                 canUseHold = true;
                                 linesSinceLastAbility = 0;
@@ -3344,6 +3068,16 @@ int main(int argc, char* argv[]) {
                             audioManager.playMenuBackSound();
                             gameState = GameState::Extras;
                             std::cout << "Returned to EXTRAS from STATISTICS" << std::endl;
+                            break;
+                        default: 
+                            break;
+                    }
+                } else if (gameState == GameState::BestScoresView) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
+                            gameState = GameState::Extras;
+                            std::cout << "Returned to EXTRAS from BEST SCORES" << std::endl;
                             break;
                         default: 
                             break;
@@ -3860,8 +3594,16 @@ int main(int argc, char* argv[]) {
                                 grid[i][j] = Cell();
                             }
                         }
-                        totalLinesCleared = 0;
-                        currentLevel = 0;
+                        
+                        if (practiceModeActive) {
+
+                            currentLevel = static_cast<int>(selectedPracticeStartLevel);
+                            totalLinesCleared = 0;
+                        } else {
+                            totalLinesCleared = 0;
+                            currentLevel = 0;
+                        }
+                        
                         totalScore = 0;
                         currentCombo = 0;
                         lastMoveScore = 0;
@@ -3870,7 +3612,7 @@ int main(int argc, char* argv[]) {
                         totalComboScore = 0;
                         RESET_SESSION_STATS();
                         
-                        JigzterBag.reset();
+                        JigzterBag.reset(currentLevel);
                         
                         hasHeldPiece = false;
                         canUseHold = true;
@@ -3882,7 +3624,7 @@ int main(int argc, char* argv[]) {
                         rightPressed = false;
                         
                         linesSinceLastAbility = 0;
-                        bombAbilityAvailable = debugMode;
+                        bombAbilityAvailable = practiceInfiniteBombs ? true : debugMode;
                         explosionEffects.clear();
                         glowEffects.clear();
                         
@@ -3945,8 +3687,16 @@ int main(int argc, char* argv[]) {
                                     grid[i][j] = Cell();
                                 }
                             }
-                            totalLinesCleared = 0;
-                            currentLevel = 0;
+                            
+                            if (practiceModeActive) {
+
+                                currentLevel = static_cast<int>(selectedPracticeStartLevel);
+                                totalLinesCleared = 0;
+                            } else {
+                                totalLinesCleared = 0;
+                                currentLevel = 0;
+                            }
+                            
                             totalScore = 0;
                             currentCombo = 0;
                             lastMoveScore = 0;
@@ -3955,7 +3705,7 @@ int main(int argc, char* argv[]) {
                             totalComboScore = 0;
                             RESET_SESSION_STATS();
                             
-                            JigzterBag.reset();
+                            JigzterBag.reset(currentLevel);
                             
                             hasHeldPiece = false;
                             canUseHold = true;
@@ -3967,7 +3717,7 @@ int main(int argc, char* argv[]) {
                             rightPressed = false;
                             
                             linesSinceLastAbility = 0;
-                            bombAbilityAvailable = debugMode;
+                            bombAbilityAvailable = practiceInfiniteBombs ? true : debugMode;
                             explosionEffects.clear();
                             glowEffects.clear();
                             
@@ -4127,7 +3877,7 @@ int main(int argc, char* argv[]) {
 
         bool fastFall = sf::Keyboard::isKeyPressed(keyBindings.quickFall);
         if (!gameOver) {
-            activePiece.update(deltaTime, fastFall, grid);
+            activePiece.update(deltaTime, fastFall, grid, currentLevel);
             
 
             if (challengeModeActive && selectedChallengeMode == ChallengeMode::Vanishing) {
@@ -4225,37 +3975,57 @@ int main(int argc, char* argv[]) {
 
                 if (challengeModeActive) {
                     float* bestTimePtr = nullptr;
+                    Achievement challengeAchievement;
+                    bool hasAchievement = true;
+                    
                     switch (selectedChallengeMode) {
                         case ChallengeMode::Debug:
                             bestTimePtr = &saveData.bestTimeChallengeDebug;
+                            hasAchievement = false;
                             break;
                         case ChallengeMode::TheForest:
                             bestTimePtr = &saveData.bestTimeChallengeTheForest;
+                            challengeAchievement = Achievement::ChallengeTheForest;
                             break;
                         case ChallengeMode::Randomness:
                             bestTimePtr = &saveData.bestTimeChallengeRandomness;
+                            challengeAchievement = Achievement::ChallengeRandomness;
                             break;
                         case ChallengeMode::NonStraight:
                             bestTimePtr = &saveData.bestTimeChallengeNonStraight;
+                            challengeAchievement = Achievement::ChallengeNonStraight;
                             break;
                         case ChallengeMode::OneRot:
                             bestTimePtr = &saveData.bestTimeChallengeOneRot;
+                            challengeAchievement = Achievement::ChallengeOneRot;
                             break;
                         case ChallengeMode::ChristopherCurse:
                             bestTimePtr = &saveData.bestTimeChallengeChristopherCurse;
+                            challengeAchievement = Achievement::ChallengeChristopherCurse;
                             break;
                         case ChallengeMode::Vanishing:
                             bestTimePtr = &saveData.bestTimeChallengeVanishing;
+                            challengeAchievement = Achievement::ChallengeVanishing;
                             break;
                         case ChallengeMode::AutoDrop:
                             bestTimePtr = &saveData.bestTimeChallengeAutoDrop;
+                            challengeAchievement = Achievement::ChallengeAutoDrop;
                             break;
                     }
                     
-                    if (bestTimePtr && (*bestTimePtr == 0.0f || sprintTimer < *bestTimePtr)) {
-                        *bestTimePtr = sprintTimer;
-                        std::cout << "NEW BEST TIME for challenge: " << sprintTimer << " seconds!" << std::endl;
-                        saveGameData(saveData);
+                    if (bestTimePtr) {
+                        bool isFirstCompletion = (*bestTimePtr == 0.0f);
+                        
+                        if (isFirstCompletion || sprintTimer < *bestTimePtr) {
+                            *bestTimePtr = sprintTimer;
+                            std::cout << "NEW BEST TIME for challenge: " << sprintTimer << " seconds!" << std::endl;
+                            saveGameData(saveData);
+                        }
+                        
+
+                        if (isFirstCompletion && hasAchievement) {
+                            unlockAchievement(saveData, challengeAchievement, &achievementPopups, &audioManager);
+                        }
                     }
                 }
                 
@@ -4346,11 +4116,14 @@ int main(int argc, char* argv[]) {
                 std::cout << "No lines cleared | Combo decreased to: " << currentCombo << std::endl;
             }
             
-            int newLevel = calculateLevel(totalLinesCleared);
-            if (newLevel != currentLevel) {
-                currentLevel = newLevel;
-                JigzterBag.updateLevel(currentLevel);
-                std::cout << "LEVEL UP! Level " << currentLevel << " reached! (Lines: " << totalLinesCleared << ")" << std::endl;
+
+            if (!practiceModeActive) {
+                int newLevel = calculateLevel(totalLinesCleared);
+                if (newLevel != currentLevel) {
+                    currentLevel = newLevel;
+                    JigzterBag.updateLevel(currentLevel);
+                    std::cout << "LEVEL UP! Level " << currentLevel << " reached! (Lines: " << totalLinesCleared << ")" << std::endl;
+                }
             }
             
             PieceType randomType = JigzterBag.getNextPiece();
@@ -4383,7 +4156,8 @@ int main(int argc, char* argv[]) {
                 
                 bool playWinSound = false;
 
-                if (!debugMode && !sprintModeActive && !challengeModeActive) {
+
+                if (!debugMode && !sprintModeActive && !challengeModeActive && !practiceModeActive) {
                     bool madeTopThree = insertNewScore(saveData, totalScore, totalLinesCleared, currentLevel, selectedClassicDifficulty);
                     
 
@@ -4436,6 +4210,8 @@ int main(int argc, char* argv[]) {
                     saveGameData(saveData);
                     
                     std::cout << "Game data saved with new scores!" << std::endl;
+                } else if (practiceModeActive) {
+                    std::cout << "Score not saved (PRACTICE MODE)" << std::endl;
                 } else {
                     std::cout << "Score not saved (DEBUG MODE)" << std::endl;
                 }
@@ -4607,11 +4383,11 @@ int main(int argc, char* argv[]) {
             }
         } else if (gameState == GameState::PracticeSelect) {
 
-            float startY = centerY - 180.0f;
-            float spacing = 100.0f;
+            float startY = centerY - 220.0f;
+            float spacing = 85.0f;
             
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 4; i++) {
                 float selectorY = startY + i * spacing - 5;
                 if (mouseX >= centerX - 350 && mouseX <= centerX + 350 &&
                     mouseY >= selectorY && mouseY <= selectorY + 60) {
@@ -4621,10 +4397,10 @@ int main(int argc, char* argv[]) {
             }
             
 
-            float startButtonY = startY + spacing * 3 + 25;
+            float startButtonY = startY + spacing * 4 + 25;
             if (mouseX >= centerX - 250 && mouseX <= centerX + 250 &&
                 mouseY >= startButtonY && mouseY <= startButtonY + 60) {
-                selectedPracticeOption = 3;
+                selectedPracticeOption = 4;
             }
         } else if (gameState == GameState::Extras) {
 
@@ -4891,7 +4667,7 @@ int main(int argc, char* argv[]) {
         } else if (gameState == GameState::PracticeSelect) {
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
             drawGlowEffects(window, glowEffects, textures);
-            drawPracticeMenu(window, titleFont, menuFont, fontLoaded, selectedPracticeDifficulty, selectedPracticeLineGoal, practiceInfiniteBombs, selectedPracticeOption);
+            drawPracticeMenu(window, titleFont, menuFont, fontLoaded, selectedPracticeDifficulty, selectedPracticeLineGoal, practiceInfiniteBombs, selectedPracticeStartLevel, selectedPracticeOption);
         } else if (gameState == GameState::Extras) {
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
             drawGlowEffects(window, glowEffects, textures);
@@ -4904,6 +4680,10 @@ int main(int argc, char* argv[]) {
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
             drawGlowEffects(window, glowEffects, textures);
             drawStatisticsScreen(window, titleFont, menuFont, fontLoaded, saveData);
+        } else if (gameState == GameState::BestScoresView) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
+            drawBestScoresScreen(window, titleFont, menuFont, fontLoaded, saveData);
         } else if (gameState == GameState::Options) {
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
             drawGlowEffects(window, glowEffects, textures);
@@ -5079,7 +4859,7 @@ int main(int argc, char* argv[]) {
 
         bool useSprintUI = sprintModeActive || (currentConfig && currentConfig->hasLineGoal);
         int targetLines = sprintModeActive ? sprintTargetLines : (currentConfig && currentConfig->hasLineGoal ? currentConfig->lineGoal : 0);
-        drawLevelInfo(window, totalLinesCleared, currentLevel, totalScore, textures, useTextures, menuFont, fontLoaded, useSprintUI, sprintTimer, targetLines);
+        drawLevelInfo(window, totalLinesCleared, currentLevel, totalScore, textures, useTextures, menuFont, fontLoaded, useSprintUI, sprintTimer, targetLines, sessionPlayTime);
         if (!useSprintUI) {
             drawCombo(window, currentCombo, lastMoveScore, menuFont, fontLoaded);
         }
@@ -5091,7 +4871,7 @@ int main(int argc, char* argv[]) {
             bool useLineGoalInterface = currentConfig && currentConfig->hasLineGoal;
             int lineTarget = useLineGoalInterface ? currentConfig->lineGoal : 0;
             
-            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData, totalHardDropScore, totalLineScore, totalComboScore, selectedClassicDifficulty, useLineGoalInterface, sprintTimer, lineTarget, sprintCompleted, challengeModeActive);
+            drawGameOver(window, totalScore, totalLinesCleared, currentLevel, textures, useTextures, menuFont, fontLoaded, saveData, totalHardDropScore, totalLineScore, totalComboScore, selectedClassicDifficulty, useLineGoalInterface, sprintTimer, lineTarget, sprintCompleted, challengeModeActive, practiceModeActive);
         }
         
         if (gameState == GameState::Paused) {

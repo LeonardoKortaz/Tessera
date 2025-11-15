@@ -6,6 +6,7 @@
 
 
 enum class Achievement {
+
     Combo10 = 0,
     Combo5OneClear = 1,
     Score200kNoBomb = 2,
@@ -15,10 +16,27 @@ enum class Achievement {
     Combo6OneClear = 6,
     Explosion = 7,
     MenuBombClicker = 8,
-    PerfectClear = 9
+    PerfectClear = 9,
+    Reserved10 = 10,
+    Reserved11 = 11,
+    Reserved12 = 12,
+    Reserved13 = 13,
+    Reserved14 = 14,
+    
+
+    ChallengeTheForest = 15,
+    ChallengeRandomness = 16,
+    ChallengeNonStraight = 17,
+    ChallengeOneRot = 18,
+    ChallengeChristopherCurse = 19,
+    ChallengeVanishing = 20,
+    ChallengeAutoDrop = 21,
+    ChallengeFuture1 = 22,
+    ChallengeFuture2 = 23,
+    ChallengeFuture3 = 24
 };
 
-constexpr int TOTAL_ACHIEVEMENTS = 10;
+constexpr int TOTAL_ACHIEVEMENTS = 25;
 constexpr int MAX_ACHIEVEMENT_SLOTS = 25;
 
 

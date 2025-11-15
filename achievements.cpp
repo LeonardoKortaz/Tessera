@@ -4,6 +4,7 @@
 
 AchievementInfo getAchievementInfo(Achievement ach) {
     switch (ach) {
+
         case Achievement::Combo10:
             return {"Combo Master", "Chain Reaction", "Reach a combo of 12", false};
         case Achievement::Combo5OneClear:
@@ -24,6 +25,33 @@ AchievementInfo getAchievementInfo(Achievement ach) {
             return {"Curiosity", "What Does This Do?", "Click a bomb in the menu", true};
         case Achievement::PerfectClear:
             return {"She Hit the Floor", "Apple Bottom Jeans, Boots with the Fur", "Reach the floor with 100 cleared lines", false};
+        case Achievement::Reserved10:
+        case Achievement::Reserved11:
+        case Achievement::Reserved12:
+        case Achievement::Reserved13:
+        case Achievement::Reserved14:
+            return {"???", "Coming Soon", "This achievement has not been implemented yet", false};
+            
+
+        case Achievement::ChallengeTheForest:
+            return {"Forest Survivor", "Trees Cleared", "Complete 'The Forest' challenge (96 lines)", false};
+        case Achievement::ChallengeRandomness:
+            return {"Chaos Navigator", "Order from Chaos", "Complete 'Randomness' challenge (96 lines)", false};
+        case Achievement::ChallengeNonStraight:
+            return {"Curve Master", "No Straight Lines", "Complete 'Non Straight' challenge (24 lines)", false};
+        case Achievement::ChallengeOneRot:
+            return {"Single Turn", "One Rotation Wonder", "Complete 'One Rotation' challenge (48 lines)", false};
+        case Achievement::ChallengeChristopherCurse:
+            return {"Curse Breaker", "Christopher's Defeat", "Complete 'The Curse' challenge (48 lines)", false};
+        case Achievement::ChallengeVanishing:
+            return {"Ghost Hunter", "See Through the Invisible", "Complete 'Vanishing' challenge (48 lines)", false};
+        case Achievement::ChallengeAutoDrop:
+            return {"Auto Pilot", "Gravity Master", "Complete 'Auto Drop' challenge (48 lines)", false};
+        case Achievement::ChallengeFuture1:
+        case Achievement::ChallengeFuture2:
+        case Achievement::ChallengeFuture3:
+            return {"???", "Coming Soon", "This challenge achievement has not been implemented yet", false};
+            
         default:
             return {"Unknown", "", "", false};
     }
@@ -75,7 +103,7 @@ bool tryUnlockAchievement(SaveData& saveData, Achievement ach) {
     if (!saveData.achievements[id]) {
         saveData.achievements[id] = true;
         
-        std::cout << "đźŹ† ACHIEVEMENT UNLOCKED: " << getAchievementName(ach) 
+        std::cout << "ACHIEVEMENT UNLOCKED: " << getAchievementName(ach) 
                   << " - " << getAchievementDescription(ach) << std::endl;
         
         return true;

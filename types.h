@@ -19,8 +19,33 @@ enum class Achievement;
 constexpr int GRID_WIDTH = 11;
 constexpr int GRID_HEIGHT = 22;
 constexpr float CELL_SIZE = 32.0f;
-constexpr int MAX_LEVEL = 5;
-constexpr int LEVEL_THRESHOLDS[MAX_LEVEL + 1] = {0, 9, 25, 49, 81, 121};
+constexpr int MAX_LEVEL = 10;
+constexpr int LEVEL_THRESHOLDS[MAX_LEVEL + 1] = {
+    0,
+    9,
+    25,
+    49,
+    81,
+    121,
+    169,
+    225,
+    289,
+    361,
+    441
+};
+constexpr float LEVEL_GRAVITY[MAX_LEVEL + 1] = {
+    1.0f,
+    1.25f,
+    1.5f,
+    1.75f,
+    2.0f,
+    3.0f,
+    4.0f,
+    5.0f,
+    7.0f,
+    8.0f,
+    10.0f
+};
 constexpr float BORDER_WIDTH = 16.0f;
 constexpr float GRID_OFFSET_X = (1920 - GRID_WIDTH * CELL_SIZE) / 2.0f;
 constexpr float GRID_OFFSET_Y = (1080 - GRID_HEIGHT * CELL_SIZE) / 2.0f;
@@ -44,6 +69,7 @@ enum class GameState {
     Extras,
     AchievementsView,
     StatisticsView,
+    BestScoresView,
     Options,
     Rebinding,
     ConfirmClearScores,
@@ -86,6 +112,20 @@ enum class PracticeLineGoal {
     Lines96 = 3
 };
 
+enum class PracticeStartLevel {
+    Level0 = 0,
+    Level1 = 1,
+    Level2 = 2,
+    Level3 = 3,
+    Level4 = 4,
+    Level5 = 5,
+    Level6 = 6,
+    Level7 = 7,
+    Level8 = 8,
+    Level9 = 9,
+    Level10 = 10
+};
+
 enum class SprintLines {
     Lines1 = 0,
     Lines24 = 1,
@@ -108,7 +148,8 @@ enum class ExtrasOption {
     JigzterPieces = 0,
     Achievements = 1,
     Statistics = 2,
-    Back = 3
+    BestScores = 3,
+    Back = 4
 };
 
 enum class OptionsMenuOption {
@@ -167,7 +208,11 @@ struct SaveData {
     float bestTimeChallengeAutoDrop = 0.0f;
     
 
-    bool achievements[10] = {false, false, false, false, false, false, false, false, false, false};
+    bool achievements[25] = {
+        false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false
+    };
     
 
     int totalLinesCleared = 0;
@@ -437,6 +482,7 @@ public:
     int getBagIndex() const;
     bool isNextBagReady() const;
     void reset();
+    void reset(int startLevel);
     void returnPieceToBag(PieceType piece);
 };
 
