@@ -357,7 +357,7 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawJigzterTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigzter 0.3.0-beta.4");
+    sf::Text titleText(font, "Jigzter 0.3.0-beta.4b");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -602,7 +602,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
     }
     
     if (fontLoaded) {
-        sf::Text versionText(menuFont, "v0.3.0-beta.4");
+        sf::Text versionText(menuFont, "v0.3.0-beta.4b");
         versionText.setCharacterSize(28);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();

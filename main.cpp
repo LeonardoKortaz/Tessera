@@ -1616,7 +1616,7 @@ int main(int argc, char* argv[]) {
     const float AUTO_DROP_INTERVAL = 1.337f;
     
     float hardDropCooldown = 0.0f;
-    const float HARD_DROP_COOLDOWN_TIME = 0.25f;
+    const float HARD_DROP_COOLDOWN_TIME = 0.1f;
     
     int linesSinceLastAbility = 0;
     bool bombAbilityAvailable = false;
