@@ -25,27 +25,76 @@ constexpr int LEVEL_THRESHOLDS[MAX_LEVEL + 1] = {
     9,
     25,
     49,
-    81,
+    72,
+    97,
     121,
-    169,
-    225,
-    289,
-    361,
-    441
+    145,
+    193,
+    241,
+    289
 };
+
+
+
+constexpr float LEVEL_GRAVITY_EASY[MAX_LEVEL + 1] = {
+    1.0f,
+    1.2f,
+    1.4f,
+    1.8f,
+    2.25f,
+    2.75f,
+    3.25f,
+    4.0f,
+    5.0f,
+    6.5f,
+    7.0f
+};
+
+
+constexpr float LEVEL_GRAVITY_MEDIUM[MAX_LEVEL + 1] = {
+    1.5f,
+    1.75f,
+    2.0f,
+    2.5f,
+    3.0f,
+    4.0f,
+    5.0f,
+    6.0f,
+    7.0f,
+    8.5f,
+    10.0f
+};
+
+
+constexpr float LEVEL_GRAVITY_HARD[MAX_LEVEL + 1] = {
+    2.0f,
+    2.5f,
+    3.0f,
+    4.0f,
+    5.0f,
+    6.0f,
+    7.0f,
+    8.5f,
+    10.0f,
+    12.0f,
+    14.0f
+};
+
+
 constexpr float LEVEL_GRAVITY[MAX_LEVEL + 1] = {
     1.0f,
     1.25f,
     1.5f,
-    1.75f,
     2.0f,
-    3.0f,
-    4.0f,
+    2.5f,
+    3.5f,
     5.0f,
-    7.0f,
+    6.5f,
     8.0f,
-    10.0f
+    10.0f,
+    12.0f
 };
+
 constexpr float BORDER_WIDTH = 16.0f;
 constexpr float GRID_OFFSET_X = (1920 - GRID_WIDTH * CELL_SIZE) / 2.0f;
 constexpr float GRID_OFFSET_Y = (1080 - GRID_HEIGHT * CELL_SIZE) / 2.0f;
@@ -98,6 +147,20 @@ enum class ClassicDifficulty {
     Hard = 2
 };
 
+
+inline const float* getGravityTable(ClassicDifficulty difficulty) {
+    switch (difficulty) {
+        case ClassicDifficulty::Easy:
+            return LEVEL_GRAVITY_EASY;
+        case ClassicDifficulty::Medium:
+            return LEVEL_GRAVITY_MEDIUM;
+        case ClassicDifficulty::Hard:
+            return LEVEL_GRAVITY_HARD;
+        default:
+            return LEVEL_GRAVITY_MEDIUM;
+    }
+}
+
 enum class PracticeDifficulty {
     VeryEasy = 0,
     Easy = 1,
@@ -145,7 +208,7 @@ enum class ChallengeMode {
 };
 
 enum class ExtrasOption {
-    JigzterPieces = 0,
+    TesseraPieces = 0,
     Achievements = 1,
     Statistics = 2,
     BestScores = 3,
@@ -314,7 +377,10 @@ enum class TextureType {
     A_Bomb,
 
     MuteIcon,
-    JigzterLogo
+    TesseraLogo
+    ,
+    Button,
+    ButtonActive
 };
 
 

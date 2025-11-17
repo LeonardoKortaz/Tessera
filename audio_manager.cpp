@@ -22,22 +22,22 @@ bool AudioManager::loadAllAudio() {
     }
 
 
-    if (menuMusic.openFromFile("Assets/Sound/Music/Jigzter_Menu.ogg")) {
+    if (menuMusic.openFromFile("Assets/Sound/Music/Tessera_Menu.ogg")) {
         menuMusic.setLooping(true);
         menuMusic.setVolume((menuMusicVolume * masterVolume) / 100.0f);
         std::cout << "Menu music loaded successfully!" << std::endl;
     } else {
-        std::cout << "Unable to load menu music (Assets/Sound/Music/Jigzter_Menu.ogg)" << std::endl;
+        std::cout << "Unable to load menu music (Assets/Sound/Music/Tessera_Menu.ogg)" << std::endl;
         allLoaded = false;
     }
 
 
-    if (gameplayMusic.openFromFile("Assets/Sound/Music/Jigzter_Main.ogg")) {
+    if (gameplayMusic.openFromFile("Assets/Sound/Music/Tessera_Main.ogg")) {
         gameplayMusic.setLooping(true);
         gameplayMusic.setVolume((gameplayMusicVolume * masterVolume) / 100.0f);
         std::cout << "Gameplay music loaded successfully!" << std::endl;
     } else {
-        std::cout << "Unable to load gameplay music (Assets/Sound/Music/Jigzter_Main.ogg)" << std::endl;
+        std::cout << "Unable to load gameplay music (Assets/Sound/Music/Tessera_Main.ogg)" << std::endl;
         allLoaded = false;
     }
 

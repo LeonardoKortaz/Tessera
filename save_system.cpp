@@ -11,9 +11,9 @@ std::string getSaveFilePath() {
     
     char* appData = std::getenv("APPDATA");
     if (appData) {
-        saveDataPath = std::filesystem::path(appData) / "Jigzter";
+        saveDataPath = std::filesystem::path(appData) / "Tessera";
     } else {
-        saveDataPath = std::filesystem::current_path() / "Jigzter_Saves";
+        saveDataPath = std::filesystem::current_path() / "Tessera_Saves";
     }
 #else
     
@@ -21,7 +21,7 @@ std::string getSaveFilePath() {
     if (homePath) {
         saveDataPath = std::filesystem::path(homePath) / ".jigz";
     } else {
-        saveDataPath = std::filesystem::current_path() / "Jigzter_Saves";
+        saveDataPath = std::filesystem::current_path() / "Tessera_Saves";
     }
 #endif
     

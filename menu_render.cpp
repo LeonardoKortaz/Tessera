@@ -7,6 +7,111 @@
 #include <cstdint>
 #include <cmath>
 
+
+float drawButtonSprite(sf::RenderWindow& window, 
+                       const std::map<TextureType, sf::Texture>& textures,
+                       bool useTextures,
+                       float centerX, float y,
+                       float scale,
+                       bool isActive) {
+    if (useTextures && textures.count(TextureType::ButtonActive) && textures.count(TextureType::Button)) {
+        TextureType btnType = isActive ? TextureType::ButtonActive : TextureType::Button;
+        sf::Sprite btn(textures.at(btnType));
+        sf::Vector2u ts = textures.at(btnType).getSize();
+        float btnW = static_cast<float>(ts.x) * scale;
+        float btnH = static_cast<float>(ts.y) * scale;
+        btn.setScale(sf::Vector2f(scale, scale));
+        btn.setPosition(sf::Vector2f(centerX - btnW/2, y));
+        window.draw(btn);
+        return btnH;
+    }
+    return 0.0f;
+}
+
+
+struct MenuOptionStyle {
+    float buttonScale = 3.0f;
+    float fallbackSelectorWidth = 500.0f;
+    float fallbackSelectorHeight = 60.0f;
+    float textSize = 48.0f;
+    float textOffsetY = -45.0f;
+    
+
+    static MenuOptionStyle MainMenuStyle() {
+        MenuOptionStyle style;
+        style.textSize = 64.0f;
+        style.fallbackSelectorHeight = 80.0f;
+        return style;
+    }
+    
+    static MenuOptionStyle SubMenuStyle() {
+        MenuOptionStyle style;
+        style.textSize = 64.0f;
+        style.fallbackSelectorHeight = 80.0f;
+        return style;
+    }
+    
+    static MenuOptionStyle SmallMenuStyle() {
+        MenuOptionStyle style;
+        style.textSize = 64.0f;
+        style.fallbackSelectorHeight = 80.0f;
+        return style;
+    }
+};
+
+
+float drawMenuButton(sf::RenderWindow& window,
+                     float centerX, float y,
+                     bool isSelected,
+                     const std::map<TextureType, sf::Texture>& textures,
+                     bool useTextures,
+                     const MenuOptionStyle& style = MenuOptionStyle()) {
+    
+    float btnH = drawButtonSprite(window, textures, useTextures, centerX, y, style.buttonScale, isSelected);
+    if (btnH == 0.0f) {
+        btnH = style.fallbackSelectorHeight;
+        if (isSelected) {
+            sf::RectangleShape selector;
+            selector.setSize(sf::Vector2f(style.fallbackSelectorWidth, style.fallbackSelectorHeight));
+            selector.setFillColor(sf::Color(255, 255, 0, 50));
+            selector.setOutlineColor(sf::Color::Yellow);
+            selector.setOutlineThickness(3);
+            selector.setPosition(sf::Vector2f(centerX - style.fallbackSelectorWidth/2, y));
+            window.draw(selector);
+        }
+    }
+    return btnH;
+}
+
+void drawMenuOption(sf::RenderWindow& window,
+                    const sf::Font& font,
+                    const std::string& text,
+                    float centerX, float y,
+                    bool isSelected,
+                    const std::map<TextureType, sf::Texture>& textures,
+                    bool useTextures,
+                    const MenuOptionStyle& style = MenuOptionStyle()) {
+    
+
+    float btnH = drawMenuButton(window, centerX, y, isSelected, textures, useTextures, style);
+    
+
+    sf::Text optionText(font, text);
+    optionText.setCharacterSize(static_cast<unsigned int>(style.textSize));
+    
+    if (isSelected) {
+        optionText.setFillColor(sf::Color::Yellow);
+        optionText.setStyle(sf::Text::Bold);
+    } else {
+        optionText.setFillColor(sf::Color::White);
+    }
+    
+    sf::FloatRect bounds = optionText.getLocalBounds();
+    float textY = y + btnH/2 + style.textOffsetY;
+    optionText.setPosition(sf::Vector2f(centerX - bounds.size.x/2, textY));
+    window.draw(optionText);
+}
+
 void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData, int dropScore, int lineScore, int comboScore, ClassicDifficulty difficulty, bool isSprintMode, float sprintTime, int sprintTarget, bool sprintCompleted, bool isChallengeMode, bool isPracticeMode) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 180));
@@ -354,10 +459,10 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
     }
 }
 
-void drawJigzterTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
+void drawTesseraTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "Jigzter 0.3.0-beta.4b");
+    sf::Text titleText(font, "Tessera 0.3.0-beta.4b");
     titleText.setCharacterSize(48);
     titleText.setFillColor(sf::Color(100, 255, 150));
     titleText.setStyle(sf::Text::Bold);
@@ -388,7 +493,7 @@ void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool font
     window.draw(menuBg);
     
     if (fontLoaded) {
-        sf::Text pausedText(menuFont, "Jigzter");
+        sf::Text pausedText(menuFont, "Tessera");
         pausedText.setCharacterSize(48);
         pausedText.setFillColor(sf::Color(100, 150, 255));
         pausedText.setStyle(sf::Text::Bold);
@@ -575,9 +680,9 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
     float centerY = SCREEN_HEIGHT / 2.0f;
     
 
-    if (useTextures && textures.find(TextureType::JigzterLogo) != textures.end()) {
-        sf::Sprite logoSprite(textures.at(TextureType::JigzterLogo));
-        sf::Vector2u logoSize = textures.at(TextureType::JigzterLogo).getSize();
+    if (useTextures && textures.find(TextureType::TesseraLogo) != textures.end()) {
+        sf::Sprite logoSprite(textures.at(TextureType::TesseraLogo));
+        sf::Vector2u logoSize = textures.at(TextureType::TesseraLogo).getSize();
         
 
         float logoScale = 1.0f;
@@ -590,7 +695,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         window.draw(logoSprite);
     } else if (fontLoaded) {
 
-        sf::Text titleText(titleFont, "JIGZTER");
+        sf::Text titleText(titleFont, "Tessera");
         titleText.setCharacterSize(128);
         titleText.setFillColor(sf::Color(100, 255, 150));
         titleText.setStyle(sf::Text::Bold);
@@ -609,85 +714,19 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         versionText.setPosition(sf::Vector2f(centerX - versionBounds.size.x/2, centerY - 140));
         window.draw(versionText);
         
-        sf::Text startText(menuFont, "START");
-        startText.setCharacterSize(64);
-        if (selectedOption == MenuOption::Start) {
-            startText.setFillColor(sf::Color::Yellow);
-            startText.setStyle(sf::Text::Bold);
-            
-            sf::RectangleShape selector;
-            selector.setSize(sf::Vector2f(400, 80));
-            selector.setFillColor(sf::Color(255, 255, 0, 50));
-            selector.setOutlineColor(sf::Color::Yellow);
-            selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 200, centerY - 60));
-            window.draw(selector);
-        } else {
-            startText.setFillColor(sf::Color::White);
-        }
-        sf::FloatRect startBounds = startText.getLocalBounds();
-        startText.setPosition(sf::Vector2f(centerX - startBounds.size.x/2, centerY - 60));
-        window.draw(startText);
+        MenuOptionStyle mainStyle = MenuOptionStyle::MainMenuStyle();
         
-        sf::Text extrasText(menuFont, "EXTRAS");
-        extrasText.setCharacterSize(64);
-        if (selectedOption == MenuOption::Extras) {
-            extrasText.setFillColor(sf::Color::Yellow);
-            extrasText.setStyle(sf::Text::Bold);
-            
-            sf::RectangleShape selector;
-            selector.setSize(sf::Vector2f(500, 80));
-            selector.setFillColor(sf::Color(255, 255, 0, 50));
-            selector.setOutlineColor(sf::Color::Yellow);
-            selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 250, centerY + 50));
-            window.draw(selector);
-        } else {
-            extrasText.setFillColor(sf::Color::White);
-        }
-        sf::FloatRect extrasBounds = extrasText.getLocalBounds();
-        extrasText.setPosition(sf::Vector2f(centerX - extrasBounds.size.x/2, centerY + 50));
-        window.draw(extrasText);
+        drawMenuOption(window, menuFont, "START", centerX, centerY - 60,
+                      selectedOption == MenuOption::Start, textures, useTextures, mainStyle);
         
-        sf::Text optionsText(menuFont, "OPTIONS");
-        optionsText.setCharacterSize(64);
-        if (selectedOption == MenuOption::Options) {
-            optionsText.setFillColor(sf::Color::Yellow);
-            optionsText.setStyle(sf::Text::Bold);
-            
-            sf::RectangleShape selector;
-            selector.setSize(sf::Vector2f(450, 80));
-            selector.setFillColor(sf::Color(255, 255, 0, 50));
-            selector.setOutlineColor(sf::Color::Yellow);
-            selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 225, centerY + 160));
-            window.draw(selector);
-        } else {
-            optionsText.setFillColor(sf::Color::White);
-        }
-        sf::FloatRect optionsBounds = optionsText.getLocalBounds();
-        optionsText.setPosition(sf::Vector2f(centerX - optionsBounds.size.x/2, centerY + 160));
-        window.draw(optionsText);
+        drawMenuOption(window, menuFont, "EXTRAS", centerX, centerY + 50,
+                      selectedOption == MenuOption::Extras, textures, useTextures, mainStyle);
         
-        sf::Text exitText(menuFont, "EXIT");
-        exitText.setCharacterSize(64);
-        if (selectedOption == MenuOption::Exit) {
-            exitText.setFillColor(sf::Color::Yellow);
-            exitText.setStyle(sf::Text::Bold);
-            
-            sf::RectangleShape selector;
-            selector.setSize(sf::Vector2f(350, 80));
-            selector.setFillColor(sf::Color(255, 255, 0, 50));
-            selector.setOutlineColor(sf::Color::Yellow);
-            selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 175, centerY + 270));
-            window.draw(selector);
-        } else {
-            exitText.setFillColor(sf::Color::White);
-        }
-        sf::FloatRect exitBounds = exitText.getLocalBounds();
-        exitText.setPosition(sf::Vector2f(centerX - exitBounds.size.x/2, centerY + 270));
-        window.draw(exitText);
+        drawMenuOption(window, menuFont, "OPTIONS", centerX, centerY + 160,
+                      selectedOption == MenuOption::Options, textures, useTextures, mainStyle);
+        
+        drawMenuOption(window, menuFont, "EXIT", centerX, centerY + 270,
+                      selectedOption == MenuOption::Exit, textures, useTextures, mainStyle);
     } else {
         sf::RectangleShape titleBar;
         titleBar.setFillColor(sf::Color(100, 255, 150));
@@ -721,7 +760,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
     }
 }
 
-void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, GameModeOption selectedOption) {
+void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, GameModeOption selectedOption, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
     
@@ -745,42 +784,15 @@ void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
         
         float startY = centerY - 80;
         float spacing = 90;
+        MenuOptionStyle style = MenuOptionStyle::MainMenuStyle();
         
         for (size_t i = 0; i < options.size(); ++i) {
-            sf::Text optionText(menuFont, options[i].first);
-            optionText.setCharacterSize(48);
-            
-
             bool isDisabled = false;
+            bool isSelected = (selectedOption == options[i].second);
             
-            if (selectedOption == options[i].second) {
-                if (isDisabled) {
-                    optionText.setFillColor(sf::Color(100, 100, 100));
-                } else {
-                    optionText.setFillColor(sf::Color::Yellow);
-                    optionText.setStyle(sf::Text::Bold);
-                    
-                    sf::RectangleShape selector;
-                    selector.setSize(sf::Vector2f(400, 60));
-                    selector.setFillColor(sf::Color(255, 255, 0, 50));
-                    selector.setOutlineColor(sf::Color::Yellow);
-                    selector.setOutlineThickness(3);
-                    selector.setPosition(sf::Vector2f(centerX - 200, startY + i * spacing - 5));
-                    window.draw(selector);
-                }
-            } else {
-                if (isDisabled) {
-                    optionText.setFillColor(sf::Color(80, 80, 80));
-                } else {
-                    optionText.setFillColor(sf::Color::White);
-                }
-            }
+            drawMenuOption(window, menuFont, options[i].first, centerX, startY + i * spacing - 5,
+                          isSelected, textures, useTextures, style);
             
-            sf::FloatRect optionBounds = optionText.getLocalBounds();
-            optionText.setPosition(sf::Vector2f(centerX - optionBounds.size.x/2, startY + i * spacing));
-            window.draw(optionText);
-            
-
             if (isDisabled) {
                 sf::Text disabledText(menuFont, "(Coming Soon)");
                 disabledText.setCharacterSize(24);
@@ -793,7 +805,7 @@ void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
     }
 }
 
-void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ClassicDifficulty selectedOption, const SaveData& saveData) {
+void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ClassicDifficulty selectedOption, const SaveData& saveData, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
     
@@ -816,28 +828,20 @@ void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFo
         
         float startY = centerY - 80;
         float spacing = 90;
+        MenuOptionStyle style = MenuOptionStyle::MainMenuStyle();
+        style.fallbackSelectorWidth = 550.0f;
         
         for (size_t i = 0; i < options.size(); ++i) {
+            bool isSelected = (selectedOption == std::get<1>(options[i]));
+            float btnH = drawMenuButton(window, centerX, startY + i * spacing - 5, isSelected, textures, useTextures, style);
+            
+
             sf::Text optionText(menuFont, std::get<0>(options[i]));
             optionText.setCharacterSize(48);
-            
-            if (selectedOption == std::get<1>(options[i])) {
-                optionText.setFillColor(sf::Color::Yellow);
-                optionText.setStyle(sf::Text::Bold);
-                
-                sf::RectangleShape selector;
-                selector.setSize(sf::Vector2f(550, 60));
-                selector.setFillColor(sf::Color(255, 255, 0, 50));
-                selector.setOutlineColor(sf::Color::Yellow);
-                selector.setOutlineThickness(3);
-                selector.setPosition(sf::Vector2f(centerX - 275, startY + i * spacing - 5));
-                window.draw(selector);
-            } else {
-                optionText.setFillColor(sf::Color::White);
-            }
-            
-            sf::FloatRect optionBounds = optionText.getLocalBounds();
-            optionText.setPosition(sf::Vector2f(centerX - 200, startY + i * spacing));
+            optionText.setFillColor(isSelected ? sf::Color::Yellow : sf::Color::White);
+            if (isSelected) optionText.setStyle(sf::Text::Bold);
+            float textY = startY + i * spacing + btnH/2 - 20;
+            optionText.setPosition(sf::Vector2f(centerX - 200, textY));
             window.draw(optionText);
             
 
@@ -845,14 +849,14 @@ void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFo
             sf::Text scoreText(menuFont, "Best: " + std::to_string(highScore));
             scoreText.setCharacterSize(32);
             scoreText.setFillColor(sf::Color(180, 180, 180));
-            scoreText.setPosition(sf::Vector2f(centerX + 80, startY + i * spacing + 8));
+            scoreText.setPosition(sf::Vector2f(centerX + 80, textY + 8));
             window.draw(scoreText);
         }
         
     }
 }
 
-void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, SprintLines selectedOption, const SaveData& saveData, bool debugMode) {
+void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, SprintLines selectedOption, const SaveData& saveData, bool debugMode, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
     
@@ -878,28 +882,20 @@ void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, co
         
         float startY = centerY - 80;
         float spacing = 90;
+        MenuOptionStyle style = MenuOptionStyle::MainMenuStyle();
+        style.fallbackSelectorWidth = 550.0f;
         
         for (size_t i = 0; i < options.size(); ++i) {
+            bool isSelected = (selectedOption == std::get<1>(options[i]));
+            float btnH = drawMenuButton(window, centerX, startY + i * spacing - 5, isSelected, textures, useTextures, style);
+            
+
             sf::Text optionText(menuFont, std::get<0>(options[i]));
             optionText.setCharacterSize(48);
-            
-            if (selectedOption == std::get<1>(options[i])) {
-                optionText.setFillColor(sf::Color::Yellow);
-                optionText.setStyle(sf::Text::Bold);
-                
-                sf::RectangleShape selector;
-                selector.setSize(sf::Vector2f(550, 60));
-                selector.setFillColor(sf::Color(255, 255, 0, 50));
-                selector.setOutlineColor(sf::Color::Yellow);
-                selector.setOutlineThickness(3);
-                selector.setPosition(sf::Vector2f(centerX - 275, startY + i * spacing - 5));
-                window.draw(selector);
-            } else {
-                optionText.setFillColor(sf::Color::White);
-            }
-            
-            sf::FloatRect optionBounds = optionText.getLocalBounds();
-            optionText.setPosition(sf::Vector2f(centerX - 180, startY + i * spacing));
+            optionText.setFillColor(isSelected ? sf::Color::Yellow : sf::Color::White);
+            if (isSelected) optionText.setStyle(sf::Text::Bold);
+            float textY = startY + i * spacing + btnH/2 - 20;
+            optionText.setPosition(sf::Vector2f(centerX - 180, textY));
             window.draw(optionText);
             
 
@@ -919,13 +915,13 @@ void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, co
             sf::Text timeText(menuFont, "Best: " + timeStr);
             timeText.setCharacterSize(32);
             timeText.setFillColor(sf::Color(180, 180, 180));
-            timeText.setPosition(sf::Vector2f(centerX + 80, startY + i * spacing + 8));
+            timeText.setPosition(sf::Vector2f(centerX + 80, textY + 8));
             window.draw(timeText);
         }
     }
 }
 
-void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ChallengeMode selectedOption, bool debugMode, const SaveData& saveData) {
+void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ChallengeMode selectedOption, bool debugMode, const SaveData& saveData, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
     
@@ -957,12 +953,9 @@ void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, cons
         
         float startY = centerY - 150;
         float spacing = 90;
+        MenuOptionStyle challengeStyle = MenuOptionStyle::MainMenuStyle();
         
         for (size_t i = 0; i < options.size(); ++i) {
-            sf::Text optionText(menuFont, options[i].first);
-            optionText.setCharacterSize(48);
-            
-
             bool isCompleted = false;
             switch (options[i].second) {
                 case ChallengeMode::Debug:
@@ -991,33 +984,32 @@ void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, cons
                     break;
             }
             
-            if (selectedOption == options[i].second) {
+            bool isSelected = (selectedOption == options[i].second);
+            float btnH = drawMenuButton(window, centerX, startY + i * spacing - 5, isSelected, textures, useTextures, challengeStyle);
+            
+
+            sf::Text optionText(menuFont, options[i].first);
+            optionText.setCharacterSize(48);
+            
+            if (isSelected) {
                 optionText.setFillColor(sf::Color::Yellow);
                 optionText.setStyle(sf::Text::Bold);
-                
-                sf::RectangleShape selector;
-                selector.setSize(sf::Vector2f(500, 60));
-                selector.setFillColor(sf::Color(255, 255, 0, 50));
-                selector.setOutlineColor(sf::Color::Yellow);
-                selector.setOutlineThickness(3);
-                selector.setPosition(sf::Vector2f(centerX - 250, startY + i * spacing - 5));
-                window.draw(selector);
             } else if (isCompleted) {
-
                 optionText.setFillColor(sf::Color(100, 255, 100));
             } else {
                 optionText.setFillColor(sf::Color::White);
             }
             
             sf::FloatRect optionBounds = optionText.getLocalBounds();
-            optionText.setPosition(sf::Vector2f(centerX - optionBounds.size.x/2, startY + i * spacing));
+            float textY = startY + i * spacing + btnH/2 - 20;
+            optionText.setPosition(sf::Vector2f(centerX - optionBounds.size.x/2, textY));
             window.draw(optionText);
         }
         
     }
 }
 
-void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, PracticeDifficulty selectedDifficulty, PracticeLineGoal selectedLineGoal, bool infiniteBombs, PracticeStartLevel selectedStartLevel, int selectedOption) {
+void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, PracticeDifficulty selectedDifficulty, PracticeLineGoal selectedLineGoal, bool infiniteBombs, PracticeStartLevel selectedStartLevel, int selectedOption, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
     
@@ -1035,13 +1027,14 @@ void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
 
         float startY = centerY - 220;
         float spacing = 85;
+        MenuOptionStyle practiceStyle = MenuOptionStyle::MainMenuStyle();
+        practiceStyle.fallbackSelectorWidth = 700.0f;
         
 
         {
             sf::Text label(menuFont, "DIFFICULTY:");
             label.setCharacterSize(36);
             label.setFillColor(selectedOption == 0 ? sf::Color::Yellow : sf::Color(180, 180, 180));
-            sf::FloatRect labelBounds = label.getLocalBounds();
             label.setPosition(sf::Vector2f(centerX - 300, startY));
             window.draw(label);
             
@@ -1053,23 +1046,15 @@ void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
                 case PracticeDifficulty::Hard: diffText = "HARD"; break;
             }
             
+            bool isSelected = (selectedOption == 0);
+            drawMenuButton(window, centerX, startY - 5, isSelected, textures, useTextures, practiceStyle);
+            
             sf::Text value(menuFont, diffText);
             value.setCharacterSize(40);
-            value.setFillColor(selectedOption == 0 ? sf::Color::Yellow : sf::Color::White);
-            value.setStyle(selectedOption == 0 ? sf::Text::Bold : sf::Text::Regular);
-            sf::FloatRect valueBounds = value.getLocalBounds();
+            value.setFillColor(isSelected ? sf::Color::Yellow : sf::Color::White);
+            value.setStyle(isSelected ? sf::Text::Bold : sf::Text::Regular);
             value.setPosition(sf::Vector2f(centerX + 100, startY - 5));
             window.draw(value);
-            
-            if (selectedOption == 0) {
-                sf::RectangleShape selector;
-                selector.setSize(sf::Vector2f(700, 60));
-                selector.setFillColor(sf::Color(255, 255, 0, 50));
-                selector.setOutlineColor(sf::Color::Yellow);
-                selector.setOutlineThickness(3);
-                selector.setPosition(sf::Vector2f(centerX - 350, startY - 5));
-                window.draw(selector);
-            }
         }
         
 
@@ -1077,7 +1062,6 @@ void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
             sf::Text label(menuFont, "LINE GOAL:");
             label.setCharacterSize(36);
             label.setFillColor(selectedOption == 1 ? sf::Color::Yellow : sf::Color(180, 180, 180));
-            sf::FloatRect labelBounds = label.getLocalBounds();
             label.setPosition(sf::Vector2f(centerX - 300, startY + spacing));
             window.draw(label);
             
@@ -1089,117 +1073,66 @@ void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
                 case PracticeLineGoal::Lines96: goalText = "96 LINES"; break;
             }
             
+            bool isSelected = (selectedOption == 1);
+            drawMenuButton(window, centerX, startY + spacing - 5, isSelected, textures, useTextures, practiceStyle);
+            
             sf::Text value(menuFont, goalText);
             value.setCharacterSize(40);
-            value.setFillColor(selectedOption == 1 ? sf::Color::Yellow : sf::Color::White);
-            value.setStyle(selectedOption == 1 ? sf::Text::Bold : sf::Text::Regular);
-            sf::FloatRect valueBounds = value.getLocalBounds();
+            value.setFillColor(isSelected ? sf::Color::Yellow : sf::Color::White);
+            value.setStyle(isSelected ? sf::Text::Bold : sf::Text::Regular);
             value.setPosition(sf::Vector2f(centerX + 100, startY + spacing - 5));
             window.draw(value);
-            
-            if (selectedOption == 1) {
-                sf::RectangleShape selector;
-                selector.setSize(sf::Vector2f(700, 60));
-                selector.setFillColor(sf::Color(255, 255, 0, 50));
-                selector.setOutlineColor(sf::Color::Yellow);
-                selector.setOutlineThickness(3);
-                selector.setPosition(sf::Vector2f(centerX - 350, startY + spacing - 5));
-                window.draw(selector);
-            }
         }
-        
 
         {
             sf::Text label(menuFont, "INFINITE BOMBS:");
             label.setCharacterSize(36);
             label.setFillColor(selectedOption == 2 ? sf::Color::Yellow : sf::Color(180, 180, 180));
-            sf::FloatRect labelBounds = label.getLocalBounds();
             label.setPosition(sf::Vector2f(centerX - 300, startY + spacing * 2));
             window.draw(label);
             
             std::string bombText = infiniteBombs ? "YES" : "NO";
             
+            bool isSelected = (selectedOption == 2);
+            drawMenuButton(window, centerX, startY + spacing * 2 - 5, isSelected, textures, useTextures, practiceStyle);
+            
             sf::Text value(menuFont, bombText);
             value.setCharacterSize(40);
-            value.setFillColor(selectedOption == 2 ? sf::Color::Yellow : sf::Color::White);
-            value.setStyle(selectedOption == 2 ? sf::Text::Bold : sf::Text::Regular);
-            sf::FloatRect valueBounds = value.getLocalBounds();
+            value.setFillColor(isSelected ? sf::Color::Yellow : sf::Color::White);
+            value.setStyle(isSelected ? sf::Text::Bold : sf::Text::Regular);
             value.setPosition(sf::Vector2f(centerX + 100, startY + spacing * 2 - 5));
             window.draw(value);
-            
-            if (selectedOption == 2) {
-                sf::RectangleShape selector;
-                selector.setSize(sf::Vector2f(700, 60));
-                selector.setFillColor(sf::Color(255, 255, 0, 50));
-                selector.setOutlineColor(sf::Color::Yellow);
-                selector.setOutlineThickness(3);
-                selector.setPosition(sf::Vector2f(centerX - 350, startY + spacing * 2 - 5));
-                window.draw(selector);
-            }
         }
-        
 
         {
             sf::Text label(menuFont, "START LEVEL:");
             label.setCharacterSize(36);
             label.setFillColor(selectedOption == 3 ? sf::Color::Yellow : sf::Color(180, 180, 180));
-            sf::FloatRect labelBounds = label.getLocalBounds();
             label.setPosition(sf::Vector2f(centerX - 300, startY + spacing * 3));
             window.draw(label);
             
             std::string levelText = "LEVEL " + std::to_string(static_cast<int>(selectedStartLevel));
             
+            bool isSelected = (selectedOption == 3);
+            drawMenuButton(window, centerX, startY + spacing * 3 - 5, isSelected, textures, useTextures, practiceStyle);
+            
             sf::Text value(menuFont, levelText);
             value.setCharacterSize(40);
-            value.setFillColor(selectedOption == 3 ? sf::Color::Yellow : sf::Color::White);
-            value.setStyle(selectedOption == 3 ? sf::Text::Bold : sf::Text::Regular);
-            sf::FloatRect valueBounds = value.getLocalBounds();
+            value.setFillColor(isSelected ? sf::Color::Yellow : sf::Color::White);
+            value.setStyle(isSelected ? sf::Text::Bold : sf::Text::Regular);
             value.setPosition(sf::Vector2f(centerX + 100, startY + spacing * 3 - 5));
             window.draw(value);
-            
-            if (selectedOption == 3) {
-                sf::RectangleShape selector;
-                selector.setSize(sf::Vector2f(700, 60));
-                selector.setFillColor(sf::Color(255, 255, 0, 50));
-                selector.setOutlineColor(sf::Color::Yellow);
-                selector.setOutlineThickness(3);
-                selector.setPosition(sf::Vector2f(centerX - 350, startY + spacing * 3 - 5));
-                window.draw(selector);
-            }
         }
-        
 
         {
-            sf::Text startButton(menuFont, "START PRACTICE");
-            startButton.setCharacterSize(48);
-            startButton.setFillColor(selectedOption == 4 ? sf::Color::Yellow : sf::Color(100, 255, 100));
-            startButton.setStyle(selectedOption == 4 ? sf::Text::Bold : sf::Text::Regular);
-            sf::FloatRect startBounds = startButton.getLocalBounds();
-            startButton.setPosition(sf::Vector2f(centerX - startBounds.size.x/2, startY + spacing * 4 + 30));
-            window.draw(startButton);
-            
-            if (selectedOption == 4) {
-                sf::RectangleShape selector;
-                selector.setSize(sf::Vector2f(500, 60));
-                selector.setFillColor(sf::Color(255, 255, 0, 50));
-                selector.setOutlineColor(sf::Color::Yellow);
-                selector.setOutlineThickness(3);
-                selector.setPosition(sf::Vector2f(centerX - 250, startY + spacing * 4 + 25));
-                window.draw(selector);
-            }
+            MenuOptionStyle startStyle = MenuOptionStyle::MainMenuStyle();
+            drawMenuOption(window, menuFont, "START PRACTICE", centerX, startY + spacing * 4 + 25,
+                          selectedOption == 4, textures, useTextures, startStyle);
         }
-        
-
-        sf::Text instructions(menuFont, "Use LEFT/RIGHT to change values, UP/DOWN to navigate, ENTER to start");
-        instructions.setCharacterSize(24);
-        instructions.setFillColor(sf::Color(150, 150, 150));
-        sf::FloatRect instrBounds = instructions.getLocalBounds();
-        instructions.setPosition(sf::Vector2f(centerX - instrBounds.size.x/2, startY + spacing * 4 + 50));
-        window.draw(instructions);
     }
 }
 
-void drawOptionsMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, bool debugMode, OptionsMenuOption selectedOption) {
+void drawOptionsMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, bool debugMode, OptionsMenuOption selectedOption, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
     
@@ -1221,45 +1154,13 @@ void drawOptionsMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fo
         versionText.setPosition(sf::Vector2f(centerX - versionBounds.size.x/2, centerY - 170));
         window.draw(versionText);
         
-        sf::Text clearText(menuFont, "CLEAR ALL DATA");
-        clearText.setCharacterSize(48);
-        if (selectedOption == OptionsMenuOption::ClearScores) {
-            clearText.setFillColor(sf::Color::Yellow);
-            clearText.setStyle(sf::Text::Bold);
-            
-            sf::RectangleShape selector;
-            selector.setSize(sf::Vector2f(400, 60));
-            selector.setFillColor(sf::Color(255, 255, 0, 50));
-            selector.setOutlineColor(sf::Color::Yellow);
-            selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 200, centerY - 85));
-            window.draw(selector);
-        } else {
-            clearText.setFillColor(sf::Color::White);
-        }
-        sf::FloatRect clearBounds = clearText.getLocalBounds();
-        clearText.setPosition(sf::Vector2f(centerX - clearBounds.size.x/2, centerY - 90));
-        window.draw(clearText);
+        MenuOptionStyle optionsStyle = MenuOptionStyle::MainMenuStyle();
         
-        sf::Text rebindText(menuFont, "REBIND KEYS");
-        rebindText.setCharacterSize(48);
-        if (selectedOption == OptionsMenuOption::RebindKeys) {
-            rebindText.setFillColor(sf::Color::Yellow);
-            rebindText.setStyle(sf::Text::Bold);
-            
-            sf::RectangleShape selector;
-            selector.setSize(sf::Vector2f(400, 60));
-            selector.setFillColor(sf::Color(255, 255, 0, 50));
-            selector.setOutlineColor(sf::Color::Yellow);
-            selector.setOutlineThickness(3);
-            selector.setPosition(sf::Vector2f(centerX - 200, centerY + 15));
-            window.draw(selector);
-        } else {
-            rebindText.setFillColor(sf::Color::White);
-        }
-        sf::FloatRect rebindBounds = rebindText.getLocalBounds();
-        rebindText.setPosition(sf::Vector2f(centerX - rebindBounds.size.x/2, centerY + 10));
-        window.draw(rebindText);
+        drawMenuOption(window, menuFont, "CLEAR ALL DATA", centerX, centerY - 85,
+                      selectedOption == OptionsMenuOption::ClearScores, textures, useTextures, optionsStyle);
+        
+        drawMenuOption(window, menuFont, "REBIND KEYS", centerX, centerY + 15,
+                      selectedOption == OptionsMenuOption::RebindKeys, textures, useTextures, optionsStyle);
     } else {
         sf::RectangleShape titleBar;
         titleBar.setFillColor(sf::Color(100, 255, 150));
@@ -1504,7 +1405,7 @@ void drawGlowEffects(sf::RenderWindow& window, const std::vector<GlowEffect>& gl
     }
 }
 
-void drawExtrasMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ExtrasOption selectedOption) {
+void drawExtrasMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ExtrasOption selectedOption, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
     
@@ -1520,7 +1421,7 @@ void drawExtrasMenu(sf::RenderWindow& window, const sf::Font& titleFont, const s
         window.draw(titleText);
         
         std::vector<std::pair<std::string, ExtrasOption>> options = {
-            {"JIGZTER PIECES (coming soon)", ExtrasOption::JigzterPieces},
+            {"Tessera PIECES (coming soon)", ExtrasOption::TesseraPieces},
             {"ACHIEVEMENTS", ExtrasOption::Achievements},
             {"STATISTICS", ExtrasOption::Statistics},
             {"BEST SCORES", ExtrasOption::BestScores}
@@ -1528,30 +1429,12 @@ void drawExtrasMenu(sf::RenderWindow& window, const sf::Font& titleFont, const s
         
         float startY = centerY - 200;
         float spacing = 70;
+        MenuOptionStyle extrasStyle = MenuOptionStyle::MainMenuStyle();
         
         for (size_t i = 0; i < options.size(); ++i) {
-            sf::Text optionText(menuFont, options[i].first);
-            optionText.setCharacterSize(40);
-            
-            if (selectedOption == options[i].second) {
-                optionText.setFillColor(sf::Color::Yellow);
-                optionText.setStyle(sf::Text::Bold);
-                
-                sf::RectangleShape selector;
-                selector.setSize(sf::Vector2f(500, 55));
-                selector.setFillColor(sf::Color(255, 255, 0, 50));
-                selector.setOutlineColor(sf::Color::Yellow);
-                selector.setOutlineThickness(3);
-                sf::FloatRect optionBounds = optionText.getLocalBounds();
-                selector.setPosition(sf::Vector2f(centerX - 250, startY + i * spacing - 5));
-                window.draw(selector);
-            } else {
-                optionText.setFillColor(sf::Color::White);
-            }
-            
-            sf::FloatRect optionBounds = optionText.getLocalBounds();
-            optionText.setPosition(sf::Vector2f(centerX - optionBounds.size.x/2, startY + i * spacing));
-            window.draw(optionText);
+            bool isSelected = (selectedOption == options[i].second);
+            drawMenuOption(window, menuFont, options[i].first, centerX, startY + i * spacing - 5,
+                          isSelected, textures, useTextures, extrasStyle);
         }
     }
 }
@@ -2297,4 +2180,5 @@ void spawnBackgroundPiece(std::vector<BackgroundPiece>& pieces) {
     
     pieces.emplace_back(x, y, speed, randomType);
 }
+
 
