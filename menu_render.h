@@ -14,7 +14,9 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawTesseraTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded);
 void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, PauseOption selectedOption);
 void drawConfirmClearScores(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, ConfirmOption selectedOption);
-void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption, bool debugMode, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
+void drawFirstTimeSetup(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ControlScheme selectedScheme, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
+void drawWelcomeScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded);
+void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption, bool debugMode, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime = 0.0f);
 void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, GameModeOption selectedOption, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
 void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ClassicDifficulty selectedOption, const SaveData& saveData, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
 void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, SprintLines selectedOption, const SaveData& saveData, bool debugMode, const std::map<TextureType, sf::Texture>& textures, bool useTextures);

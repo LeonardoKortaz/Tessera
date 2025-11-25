@@ -109,6 +109,8 @@ TextureType getTextureType(PieceType type);
 
 enum class GameState {
     SplashScreen,
+    FirstTimeSetup,
+    WelcomeScreen,
     MainMenu,
     GameModeSelect,
     ClassicDifficultySelect,
@@ -187,6 +189,11 @@ enum class PracticeStartLevel {
     Level8 = 8,
     Level9 = 9,
     Level10 = 10
+};
+
+enum class ControlScheme {
+    Classic = 0,
+    Alternative = 1
 };
 
 enum class SprintLines {
@@ -296,6 +303,7 @@ struct SaveData {
     int bestLevel = 0;
     float masterVolume = 80.0f;
     bool isMuted = false;
+    int setupVersion = 0;
     
     struct ScoreEntry {
         int score = 0;

@@ -675,7 +675,133 @@ void drawConfirmClearScores(sf::RenderWindow& window, const sf::Font& menuFont, 
     }
 }
 
-void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption, bool debugMode, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
+void drawFirstTimeSetup(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ControlScheme selectedScheme, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
+    
+    if (!fontLoaded) return;
+    
+
+    sf::Text titleText(titleFont, "Welcome to Tessera");
+    titleText.setCharacterSize(96);
+    titleText.setFillColor(sf::Color(100, 255, 150));
+    titleText.setStyle(sf::Text::Bold);
+    
+    sf::FloatRect titleBounds = titleText.getLocalBounds();
+    titleText.setOrigin(sf::Vector2f(titleBounds.size.x / 2.0f, titleBounds.size.y / 2.0f));
+    titleText.setPosition(sf::Vector2f(centerX, centerY - 300.0f));
+    window.draw(titleText);
+    
+
+    sf::Text controlsTitle(menuFont, "CONTROLS");
+    controlsTitle.setCharacterSize(56);
+    controlsTitle.setFillColor(sf::Color(255, 200, 100));
+    controlsTitle.setStyle(sf::Text::Bold);
+    sf::FloatRect controlsTitleBounds = controlsTitle.getLocalBounds();
+    controlsTitle.setPosition(sf::Vector2f(centerX - controlsTitleBounds.size.x / 2.0f, centerY - 180.0f));
+    window.draw(controlsTitle);
+    
+
+    MenuOptionStyle schemeStyle = MenuOptionStyle::MainMenuStyle();
+    schemeStyle.fallbackSelectorWidth = 600.0f;
+    
+    bool isClassicSelected = (selectedScheme == ControlScheme::Classic);
+    float classicY = centerY - 50.0f;
+    drawMenuButton(window, centerX - 250, classicY, isClassicSelected, textures, useTextures, schemeStyle);
+    
+    sf::Text classicText(menuFont, "CLASSIC");
+    classicText.setCharacterSize(48);
+    classicText.setFillColor(isClassicSelected ? sf::Color::Yellow : sf::Color::White);
+    if (isClassicSelected) classicText.setStyle(sf::Text::Bold);
+    sf::FloatRect classicBounds = classicText.getLocalBounds();
+    classicText.setPosition(sf::Vector2f(centerX - 250 - classicBounds.size.x / 2.0f, classicY + 15));
+    window.draw(classicText);
+    
+
+    sf::Text classicDesc(menuFont, "A/D - Move | W/S - Rotate | Shift - Hold");
+    classicDesc.setCharacterSize(24);
+    classicDesc.setFillColor(sf::Color(180, 180, 180));
+    sf::FloatRect classicDescBounds = classicDesc.getLocalBounds();
+    classicDesc.setPosition(sf::Vector2f(centerX - 250 - classicDescBounds.size.x / 2.0f, classicY + 75));
+    window.draw(classicDesc);
+    
+
+    bool isAltSelected = (selectedScheme == ControlScheme::Alternative);
+    float altY = centerY - 50.0f;
+    drawMenuButton(window, centerX + 250, altY, isAltSelected, textures, useTextures, schemeStyle);
+    
+    sf::Text altText(menuFont, "ALTERNATIVE");
+    altText.setCharacterSize(48);
+    altText.setFillColor(isAltSelected ? sf::Color::Yellow : sf::Color::White);
+    if (isAltSelected) altText.setStyle(sf::Text::Bold);
+    sf::FloatRect altBounds = altText.getLocalBounds();
+    altText.setPosition(sf::Vector2f(centerX + 250 - altBounds.size.x / 2.0f, altY + 15));
+    window.draw(altText);
+    
+
+    sf::Text altDesc(menuFont, "Arrows - Move/Rotate | Space - Drop | C - Hold");
+    altDesc.setCharacterSize(24);
+    altDesc.setFillColor(sf::Color(180, 180, 180));
+    sf::FloatRect altDescBounds = altDesc.getLocalBounds();
+    altDesc.setPosition(sf::Vector2f(centerX + 250 - altDescBounds.size.x / 2.0f, altY + 75));
+    window.draw(altDesc);
+    
+
+    sf::Text instructionText(menuFont, "Use Arrow Keys to select, then press ENTER or SPACE");
+    instructionText.setCharacterSize(32);
+    instructionText.setFillColor(sf::Color(200, 200, 200));
+    sf::FloatRect instructionBounds = instructionText.getLocalBounds();
+    instructionText.setPosition(sf::Vector2f(centerX - instructionBounds.size.x / 2.0f, centerY + 150.0f));
+    window.draw(instructionText);
+    
+
+    sf::Text versionText(menuFont, "First Time Setup - v1.0");
+    versionText.setCharacterSize(20);
+    versionText.setFillColor(sf::Color(100, 100, 100));
+    versionText.setPosition(sf::Vector2f(20.0f, SCREEN_HEIGHT - 40.0f));
+    window.draw(versionText);
+}
+
+void drawWelcomeScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded) {
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
+    
+    if (!fontLoaded) return;
+    
+
+    sf::Text titleText(titleFont, "Welcome to Tessera");
+    titleText.setCharacterSize(96);
+    titleText.setFillColor(sf::Color(100, 255, 150));
+    titleText.setStyle(sf::Text::Bold);
+    
+    sf::FloatRect titleBounds = titleText.getLocalBounds();
+    titleText.setOrigin(sf::Vector2f(titleBounds.size.x / 2.0f, titleBounds.size.y / 2.0f));
+    titleText.setPosition(sf::Vector2f(centerX, centerY - 150.0f));
+    window.draw(titleText);
+    
+
+    sf::Text messageText(menuFont, "Thanks for playing Tessera");
+    messageText.setCharacterSize(48);
+    messageText.setFillColor(sf::Color::White);
+    messageText.setStyle(sf::Text::Bold);
+    
+    sf::FloatRect messageBounds = messageText.getLocalBounds();
+    messageText.setOrigin(sf::Vector2f(messageBounds.size.x / 2.0f, messageBounds.size.y / 2.0f));
+    messageText.setPosition(sf::Vector2f(centerX, centerY));
+    window.draw(messageText);
+    
+
+    sf::Text instructionText(menuFont, "Press any key to continue");
+    instructionText.setCharacterSize(36);
+    instructionText.setFillColor(sf::Color(200, 200, 200));
+    
+    sf::FloatRect instructionBounds = instructionText.getLocalBounds();
+    instructionText.setOrigin(sf::Vector2f(instructionBounds.size.x / 2.0f, instructionBounds.size.y / 2.0f));
+    instructionText.setPosition(sf::Vector2f(centerX, centerY + 100.0f));
+    window.draw(instructionText);
+}
+
+void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption, bool debugMode, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
     
@@ -685,14 +811,34 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
         sf::Vector2u logoSize = textures.at(TextureType::TesseraLogo).getSize();
         
 
-        float logoScale = 1.0f;
+        float logoScale = 0.45f;
         logoSprite.setScale(sf::Vector2f(logoScale, logoScale));
         
+
+        float hueShift = std::fmod(elapsedTime / 5.0f, 1.0f);
+        
+        static sf::Shader hueShader;
+        static bool shaderLoaded = false;
+        if (!shaderLoaded) {
+            if (hueShader.loadFromFile("Assets/Shaders/hue_shift.frag", sf::Shader::Type::Fragment)) {
+                shaderLoaded = true;
+                std::cout << "Hue shift shader loaded successfully" << std::endl;
+            } else {
+                std::cout << "Failed to load hue shift shader" << std::endl;
+            }
+        }
 
         float scaledWidth = logoSize.x * logoScale;
         float scaledHeight = logoSize.y * logoScale;
         logoSprite.setPosition(sf::Vector2f(centerX - scaledWidth/2, centerY - 350));
-        window.draw(logoSprite);
+        
+        if (shaderLoaded && sf::Shader::isAvailable()) {
+            hueShader.setUniform("texture", sf::Shader::CurrentTexture);
+            hueShader.setUniform("hueShift", hueShift);
+            window.draw(logoSprite, &hueShader);
+        } else {
+            window.draw(logoSprite);
+        }
     } else if (fontLoaded) {
 
         sf::Text titleText(titleFont, "Tessera");

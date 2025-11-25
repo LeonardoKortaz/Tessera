@@ -1228,7 +1228,7 @@ int main(int argc, char* argv[]) {
                 if (mouseButtonPressed->button == sf::Mouse::Button::Left) {
                     useKeyboardNavigation = false;
                     if (gameState == GameState::SplashScreen) {
-
+                        // Check if we need to show FirstTimeSetup
                         constexpr int CURRENT_SETUP_VERSION = 1;
                         if (saveData.setupVersion < CURRENT_SETUP_VERSION) {
                             gameState = GameState::FirstTimeSetup;
@@ -1240,7 +1240,7 @@ int main(int argc, char* argv[]) {
                         audioManager.playMenuMusic();
                         showCustomCursor = true;
                     } else if (gameState == GameState::WelcomeScreen) {
-
+                        // Skip welcome screen on click
                         gameState = GameState::MainMenu;
                         std::cout << "Welcome screen skipped (mouse)" << std::endl;
                     } else if (gameState == GameState::MainMenu) {
@@ -1897,7 +1897,7 @@ int main(int argc, char* argv[]) {
                 }
                 
                 if (gameState == GameState::SplashScreen) {
-
+                    // Check if we need to show FirstTimeSetup
                     constexpr int CURRENT_SETUP_VERSION = 1;
                     if (saveData.setupVersion < CURRENT_SETUP_VERSION) {
                         gameState = GameState::FirstTimeSetup;
@@ -1909,7 +1909,7 @@ int main(int argc, char* argv[]) {
                     audioManager.playMenuMusic();
                     showCustomCursor = true;
                 } else if (gameState == GameState::FirstTimeSetup) {
-
+                    // Handle arrow keys to change selection
                     if (keyPressed->code == sf::Keyboard::Key::Left) {
                         selectedControlScheme = ControlScheme::Classic;
                         audioManager.playMenuClickSound();
@@ -1919,11 +1919,11 @@ int main(int argc, char* argv[]) {
                         audioManager.playMenuClickSound();
                         std::cout << "Selected Alternative controls" << std::endl;
                     } else if (keyPressed->code == sf::Keyboard::Key::Enter || keyPressed->code == sf::Keyboard::Key::Space) {
-
+                        // Apply selected control scheme and move to welcome screen
                         constexpr int CURRENT_SETUP_VERSION = 1;
                         
                         if (selectedControlScheme == ControlScheme::Classic) {
-
+                        // Classic: A/D move, W/S rotate, Shift hold
                         keyBindings.moveLeft = sf::Keyboard::Key::A;
                         keyBindings.moveRight = sf::Keyboard::Key::D;
                         keyBindings.rotateLeft = sf::Keyboard::Key::S;
@@ -1944,7 +1944,7 @@ int main(int argc, char* argv[]) {
                         
                         std::cout << "Applied Classic controls" << std::endl;
                     } else {
-
+                        // Alternative: Arrows move/rotate, Space drop, C hold
                         keyBindings.moveLeft = sf::Keyboard::Key::Left;
                         keyBindings.moveRight = sf::Keyboard::Key::Right;
                         keyBindings.rotateLeft = sf::Keyboard::Key::Down;
@@ -1972,7 +1972,7 @@ int main(int argc, char* argv[]) {
                         std::cout << "First time setup completed, showing welcome screen" << std::endl;
                     }
                 } else if (gameState == GameState::WelcomeScreen) {
-
+                    // Any key press moves to main menu
                     gameState = GameState::MainMenu;
                     std::cout << "Welcome screen completed, transitioning to main menu" << std::endl;
                 } else if (gameState == GameState::MainMenu) {
@@ -4206,7 +4206,7 @@ int main(int argc, char* argv[]) {
                 case 5:
                     blackScreenAlpha = std::max(0.0f, 1.0f - (splashElapsedTime / FADE_DURATION));
                     if (blackScreenAlpha <= 0.0f) {
-
+                        // Check if we need to show FirstTimeSetup
                         constexpr int CURRENT_SETUP_VERSION = 1;
                         if (saveData.setupVersion < CURRENT_SETUP_VERSION) {
                             gameState = GameState::FirstTimeSetup;
