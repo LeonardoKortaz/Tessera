@@ -14,30 +14,41 @@ private:
     sf::Music gameplayMusic;
     sf::Music splashMusic;
     sf::Music gameWinMusic;
+    sf::Music themeMusic;
     sf::Music* currentMusic;
+    std::string currentMusicPath;
 
 
     sf::SoundBuffer spaceSoundBuffer;
+    sf::SoundBuffer customDropSoundBuffer;
     sf::SoundBuffer laserSoundBuffer;
     sf::SoundBuffer bombSoundBuffer;
     sf::SoundBuffer achievementSoundBuffer;
     sf::SoundBuffer gameOverSoundBuffer;
     sf::SoundBuffer menuClickSoundBuffer;
     sf::SoundBuffer menuBackSoundBuffer;
+    sf::SoundBuffer customLineClearBuffer;
     std::vector<sf::SoundBuffer> wowSoundBuffers;
 
 
     std::unique_ptr<sf::Sound> spaceSound;
+    std::unique_ptr<sf::Sound> customDropSound;
     std::unique_ptr<sf::Sound> laserSound;
     std::unique_ptr<sf::Sound> bombSound;
     std::unique_ptr<sf::Sound> achievementSound;
     std::unique_ptr<sf::Sound> gameOverSound;
     std::unique_ptr<sf::Sound> menuClickSound;
     std::unique_ptr<sf::Sound> menuBackSound;
+    std::unique_ptr<sf::Sound> customLineClearSound;
     std::vector<std::unique_ptr<sf::Sound>> wowSounds;
+    
+    std::string currentLineClearSoundPath;
+    std::string currentDropSoundPath;
 
 
     float masterVolume;
+    float musicVolumeMultiplier;
+    float sfxVolumeMultiplier;
     float lastMasterVolume;
     bool isMuted;
 
@@ -73,6 +84,10 @@ public:
     void switchToGameplayMusic();
     void switchToMenuMusic();
     void stopAllMusic();
+    
+
+    bool playMusicFromPath(const std::string& musicPath, float volumeMultiplier = 1.0f);
+    std::string getCurrentMusicPath() const { return currentMusicPath; }
 
 
     void playSpaceSound();
@@ -83,10 +98,22 @@ public:
     void playWowSound(int index);
     void playMenuClickSound();
     void playMenuBackSound();
+    
+
+    bool setLineClearSound(const std::string& soundPath);
+    void playLineClearSound();
+    
+
+    bool setDropSound(const std::string& soundPath);
+    void playDropSound();
 
 
     void setMasterVolume(float volume);
     float getMasterVolume() const;
+    void setMusicVolume(float volume);
+    float getMusicVolume() const;
+    void setSfxVolume(float volume);
+    float getSfxVolume() const;
     void increaseMasterVolume();
     void decreaseMasterVolume();
     void toggleMute();

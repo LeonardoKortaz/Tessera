@@ -40,14 +40,25 @@ struct DifficultyConfig {
     
 
     bool useRandomColorPalette;
+    bool useTypeBasedColors;
     std::vector<sf::Color> colorPalette;
+    
+
+    std::vector<float> gravityTable;
     
 
     DifficultyConfig() 
         : modeName("Unknown"), maxLevels(0), hasLineGoal(false), 
           lineGoal(0), bombEnabled(false), bombInterval(10), holdEnabled(true),
-          useCustomPieceFilter(false), useRandomColorPalette(false) {}
+          useCustomPieceFilter(false), useRandomColorPalette(false), useTypeBasedColors(false) {}
 };
+
+
+namespace GravityPresets {
+    const std::vector<float> NORMAL = {1.5f, 1.75f, 2.0f, 2.5f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.5f, 10.0f};
+    const std::vector<float> HARD = {2.0f, 2.5f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.5f, 10.0f, 12.0f, 14.0f};
+    const std::vector<float> DEFAULT = {1.5f, 1.75f, 2.0f, 2.5f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.5f, 10.0f};
+}
 
 
 
@@ -77,6 +88,17 @@ inline DifficultyConfig getPracticeConfig(PracticeDifficulty difficulty, Practic
     config.bombInterval = infiniteBombs ? 0 : 10;
     config.holdEnabled = true;
     
+
+    switch (difficulty) {
+        case PracticeDifficulty::VeryEasy:
+        case PracticeDifficulty::Easy:
+        case PracticeDifficulty::Medium:
+            config.gravityTable = GravityPresets::NORMAL;
+            break;
+        case PracticeDifficulty::Hard:
+            config.gravityTable = GravityPresets::HARD;
+            break;
+    }
 
     switch (difficulty) {
         case PracticeDifficulty::VeryEasy:
@@ -144,42 +166,16 @@ inline DifficultyConfig getPracticeConfig(PracticeDifficulty difficulty, Practic
     return config;
 }
 
-inline DifficultyConfig getClassicEasyConfig() {
+inline DifficultyConfig getClassicNormalConfig() {
     DifficultyConfig config;
-    config.modeName = "Classic Easy";
-    config.maxLevels = 10;
-    config.hasLineGoal = false;
-    config.lineGoal = 0;
-    config.bombEnabled = true;
-    config.bombInterval = 5;
-    config.holdEnabled = true;
-    
-    config.levelThresholds = {
-        {0,   {7, 0, 0}},
-        {9,   {7, 0, 0}},
-        {25,  {7, 1, 0}},
-        {49,  {7, 1, 0}},
-        {81,  {7, 0, 1}},
-        {121, {7, 1, 1}},
-        {169, {7, 1, 1}},
-        {225, {7, 1, 1}},
-        {289, {7, 1, 1}},
-        {361, {7, 1, 1}},
-        {441, {7, 1, 1}}
-    };
-    
-    return config;
-}
-
-inline DifficultyConfig getClassicMediumConfig() {
-    DifficultyConfig config;
-    config.modeName = "Classic Medium";
+    config.modeName = "Classic Normal";
     config.maxLevels = 10;
     config.hasLineGoal = false;
     config.lineGoal = 0;
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
     config.levelThresholds = {
         {0,   {7, 0, 0}},
@@ -187,7 +183,7 @@ inline DifficultyConfig getClassicMediumConfig() {
         {25,  {7, 0, 1}},
         {49,  {7, 1, 1}},
         {81,  {7, 2, 1}},
-        {121, {7, 2, 2}},
+        {121, {7, 1, 2}},
         {169, {7, 2, 2}},
         {225, {7, 2, 2}},
         {289, {7, 2, 2}},
@@ -207,6 +203,7 @@ inline DifficultyConfig getClassicHardConfig() {
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::HARD;
     
     config.levelThresholds = {
         {0,   {7, 0, 0}},
@@ -214,7 +211,7 @@ inline DifficultyConfig getClassicHardConfig() {
         {25,  {7, 1, 1}},
         {49,  {7, 2, 1}},
         {81,  {7, 2, 2}},
-        {121, {7, 3, 3}},
+        {121, {7, 3, 2}},
         {169, {7, 3, 3}},
         {225, {7, 3, 3}},
         {289, {7, 3, 3}},
@@ -227,23 +224,6 @@ inline DifficultyConfig getClassicHardConfig() {
 
 
 
-inline DifficultyConfig getSprint1Config() {
-    DifficultyConfig config;
-    config.modeName = "Sprint 1 Line (DEBUG)";
-    config.maxLevels = 0;
-    config.hasLineGoal = true;
-    config.lineGoal = 1;
-    config.bombEnabled = false;
-    config.bombInterval = 0;
-    config.holdEnabled = true;
-    
-    config.levelThresholds = {
-        {0, {7, 0, 0}}
-    };
-    
-    return config;
-}
-
 inline DifficultyConfig getSprint24Config() {
     DifficultyConfig config;
     config.modeName = "Sprint 24 Lines";
@@ -253,6 +233,7 @@ inline DifficultyConfig getSprint24Config() {
     config.bombEnabled = false;
     config.bombInterval = 0;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
     config.levelThresholds = {
         {0,  {7, 0, 0}},
@@ -271,6 +252,7 @@ inline DifficultyConfig getSprint24ConfigOld() {
     config.bombEnabled = false;
     config.bombInterval = 0;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
     config.levelThresholds = {
         {0,  {7, 0, 0}},
@@ -289,6 +271,7 @@ inline DifficultyConfig getSprint48Config() {
     config.bombEnabled = false;
     config.bombInterval = 0;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
     config.levelThresholds = {
         {0,  {7, 0, 0}},
@@ -308,6 +291,7 @@ inline DifficultyConfig getSprint96Config() {
     config.bombEnabled = false;
     config.bombInterval = 0;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
     config.levelThresholds = {
         {0,  {7, 0, 0}},
@@ -329,6 +313,7 @@ inline DifficultyConfig getChallengeDebugConfig() {
     config.bombEnabled = true;
     config.bombInterval = 1;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
 
     config.useCustomPieceFilter = true;
@@ -355,6 +340,7 @@ inline DifficultyConfig getChallengeTheForestConfig() {
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
 
 
@@ -375,14 +361,18 @@ inline DifficultyConfig getChallengeTheForestConfig() {
     };
 
 
-    config.useRandomColorPalette = true;
+
+
+    config.useRandomColorPalette = false;
+    config.useTypeBasedColors = true;
     config.colorPalette = {
-        sf::Color(0x27, 0x4f, 0x00),
-        sf::Color(0x4b, 0x82, 0x15),
         sf::Color(0x38, 0xb7, 0x55),
-        sf::Color(0x86, 0x3c, 0x00),
+        sf::Color(0x4b, 0x82, 0x15),
         sf::Color(0xb4, 0x82, 0x2b),
-        sf::Color(0xd3, 0xe5, 0x3e)
+        sf::Color(0x86, 0x3c, 0x00),
+        sf::Color(0x27, 0x4f, 0x00),
+        sf::Color(0xd3, 0xe5, 0x3e),
+        sf::Color(0x5a, 0x6f, 0x28)
     };
 
 
@@ -412,6 +402,7 @@ inline DifficultyConfig getChallengeRandomnessConfig() {
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
 
     config.useCustomPieceFilter = true;
@@ -455,6 +446,7 @@ inline DifficultyConfig getChallengeNonStraightConfig() {
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
 
     config.useCustomPieceFilter = true;
@@ -503,6 +495,7 @@ inline DifficultyConfig getChallengeOneRotConfig() {
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
 
     config.useCustomPieceFilter = true;
@@ -539,6 +532,7 @@ inline DifficultyConfig getChallengeChristopherCurseConfig() {
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
 
     config.useCustomPieceFilter = true;
@@ -577,6 +571,7 @@ inline DifficultyConfig getChallengeVanishingConfig() {
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
 
     config.useCustomPieceFilter = true;
@@ -614,6 +609,7 @@ inline DifficultyConfig getChallengeAutoDropConfig() {
     config.bombEnabled = true;
     config.bombInterval = 10;
     config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
     
 
     config.useCustomPieceFilter = true;
@@ -642,18 +638,86 @@ inline DifficultyConfig getChallengeAutoDropConfig() {
     return config;
 }
 
+inline DifficultyConfig getChallengeGravityFlipConfig() {
+    DifficultyConfig config;
+    config.modeName = "Gravity Flip";
+    config.maxLevels = 10;
+    config.hasLineGoal = true;
+    config.lineGoal = 40;
+    config.bombEnabled = true;
+    config.bombInterval = 15;
+    config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
+    
+
+    config.useCustomPieceFilter = true;
+    config.allowedBasicPieces = {
+        PieceType::I_Basic, PieceType::T_Basic, PieceType::L_Basic, 
+        PieceType::J_Basic, PieceType::O_Basic, PieceType::S_Basic, PieceType::Z_Basic
+    };
+    config.allowedMediumPieces = {};
+    config.allowedHardPieces = {};
+
+    config.levelThresholds = {
+        {0,   {7, 0, 0}},
+        {9,   {7, 1, 0}},
+        {25,  {7, 0, 1}},
+        {49,  {7, 1, 1}},
+        {81,  {7, 1, 1}},
+        {121, {7, 1, 1}},
+        {169, {7, 1, 1}},
+        {225, {7, 1, 1}},
+        {289, {7, 1, 1}},
+        {361, {7, 1, 1}},
+        {441, {7, 1, 1}}
+    };
+    
+    return config;
+}
+
+inline DifficultyConfig getChallengePetrifyConfig() {
+    DifficultyConfig config;
+    config.modeName = "Petrify";
+    config.maxLevels = 10;
+    config.hasLineGoal = true;
+    config.lineGoal = 48;
+    config.bombEnabled = true;
+    config.bombInterval = 10;
+    config.holdEnabled = true;
+    config.gravityTable = GravityPresets::NORMAL;
+    
+    config.useCustomPieceFilter = true;
+    config.allowedBasicPieces = {
+        PieceType::I_Basic, PieceType::T_Basic, PieceType::L_Basic, 
+        PieceType::J_Basic, PieceType::O_Basic, PieceType::S_Basic, PieceType::Z_Basic
+    };
+    config.allowedMediumPieces = {};
+    config.allowedHardPieces = {};
+
+    config.levelThresholds = {
+        {0,   {7, 0, 0}},
+        {9,   {7, 1, 0}},
+        {25,  {7, 0, 1}},
+        {49,  {7, 1, 1}},
+        {81,  {7, 1, 1}},
+        {121, {7, 1, 1}},
+        {169, {7, 1, 1}},
+        {225, {7, 1, 1}},
+        {289, {7, 1, 1}},
+        {361, {7, 1, 1}},
+        {441, {7, 1, 1}}
+    };
+    
+    return config;
+}
 
 
 inline const DifficultyConfig* getDifficultyConfig(GameModeOption mode, ClassicDifficulty classic, SprintLines sprint, ChallengeMode challenge, PracticeDifficulty practiceDiff = PracticeDifficulty::Easy, PracticeLineGoal practiceGoal = PracticeLineGoal::Infinite, bool practiceInfBombs = false) {
     switch (mode) {
         case GameModeOption::Classic:
             switch (classic) {
-                case ClassicDifficulty::Easy: {
-                    static const DifficultyConfig config = getClassicEasyConfig();
-                    return &config;
-                }
-                case ClassicDifficulty::Medium: {
-                    static const DifficultyConfig config = getClassicMediumConfig();
+                case ClassicDifficulty::Normal: {
+                    static const DifficultyConfig config = getClassicNormalConfig();
                     return &config;
                 }
                 case ClassicDifficulty::Hard: {
@@ -661,17 +725,13 @@ inline const DifficultyConfig* getDifficultyConfig(GameModeOption mode, ClassicD
                     return &config;
                 }
                 default: {
-                    static const DifficultyConfig config = getClassicMediumConfig();
+                    static const DifficultyConfig config = getClassicNormalConfig();
                     return &config;
                 }
             }
         
         case GameModeOption::Sprint:
             switch (sprint) {
-                case SprintLines::Lines1: {
-                    static const DifficultyConfig config = getSprint1Config();
-                    return &config;
-                }
                 case SprintLines::Lines24: {
                     static const DifficultyConfig config = getSprint24Config();
                     return &config;
@@ -724,6 +784,14 @@ inline const DifficultyConfig* getDifficultyConfig(GameModeOption mode, ClassicD
                     static const DifficultyConfig config = getChallengeAutoDropConfig();
                     return &config;
                 }
+                case ChallengeMode::GravityFlip: {
+                    static const DifficultyConfig config = getChallengeGravityFlipConfig();
+                    return &config;
+                }
+                case ChallengeMode::Petrify: {
+                    static const DifficultyConfig config = getChallengePetrifyConfig();
+                    return &config;
+                }
                 default: {
                     static const DifficultyConfig config = getChallengeDebugConfig();
                     return &config;
@@ -737,7 +805,7 @@ inline const DifficultyConfig* getDifficultyConfig(GameModeOption mode, ClassicD
         }
         
         default: {
-            static const DifficultyConfig config = getClassicMediumConfig();
+            static const DifficultyConfig config = getClassicNormalConfig();
             return &config;
         }
     }

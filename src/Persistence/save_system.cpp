@@ -40,8 +40,7 @@ void saveGameData(const SaveData& data) {
     
     if (file.is_open()) {
         file << "HIGH_SCORE=" << data.highScore << std::endl;
-        file << "HIGH_SCORE_CLASSIC_EASY=" << data.highScoreClassicEasy << std::endl;
-        file << "HIGH_SCORE_CLASSIC_MEDIUM=" << data.highScoreClassicMedium << std::endl;
+        file << "HIGH_SCORE_CLASSIC_NORMAL=" << data.highScoreClassicNormal << std::endl;
         file << "HIGH_SCORE_CLASSIC_HARD=" << data.highScoreClassicHard << std::endl;
         file << "BEST_TIME_SPRINT_1=" << data.bestTimeSprint1 << std::endl;
         file << "BEST_TIME_SPRINT_24=" << data.bestTimeSprint24 << std::endl;
@@ -55,6 +54,8 @@ void saveGameData(const SaveData& data) {
         file << "BEST_TIME_CHALLENGE_CHRISTOPHER_CURSE=" << data.bestTimeChallengeChristopherCurse << std::endl;
         file << "BEST_TIME_CHALLENGE_VANISHING=" << data.bestTimeChallengeVanishing << std::endl;
         file << "BEST_TIME_CHALLENGE_AUTO_DROP=" << data.bestTimeChallengeAutoDrop << std::endl;
+        file << "BEST_TIME_CHALLENGE_GRAVITY_FLIP=" << data.bestTimeChallengeGravityFlip << std::endl;
+        file << "BEST_TIME_CHALLENGE_PETRIFY=" << data.bestTimeChallengePetrify << std::endl;
         file << "BEST_LINES=" << data.bestLines << std::endl;
         file << "BEST_LEVEL=" << data.bestLevel << std::endl;
         
@@ -71,7 +72,11 @@ void saveGameData(const SaveData& data) {
         file << "STAT_TOTAL_PERFECT_CLEARS=" << data.totalPerfectClears << std::endl;
         
         file << "MASTER_VOLUME=" << data.masterVolume << std::endl;
+        file << "MUSIC_VOLUME=" << data.musicVolume << std::endl;
+        file << "SFX_VOLUME=" << data.sfxVolume << std::endl;
         file << "IS_MUTED=" << (data.isMuted ? 1 : 0) << std::endl;
+        file << "SETUP_VERSION=" << data.setupVersion << std::endl;
+        file << "SELECTED_THEME=" << data.selectedTheme << std::endl;
         
 
         for (int i = 0; i < 3; i++) {
@@ -82,16 +87,9 @@ void saveGameData(const SaveData& data) {
         
 
         for (int i = 0; i < 3; i++) {
-            file << "TOP_EASY_" << (i+1) << "_SCORE=" << data.topScoresEasy[i].score << std::endl;
-            file << "TOP_EASY_" << (i+1) << "_LINES=" << data.topScoresEasy[i].lines << std::endl;
-            file << "TOP_EASY_" << (i+1) << "_LEVEL=" << data.topScoresEasy[i].level << std::endl;
-        }
-        
-
-        for (int i = 0; i < 3; i++) {
-            file << "TOP_MEDIUM_" << (i+1) << "_SCORE=" << data.topScoresMedium[i].score << std::endl;
-            file << "TOP_MEDIUM_" << (i+1) << "_LINES=" << data.topScoresMedium[i].lines << std::endl;
-            file << "TOP_MEDIUM_" << (i+1) << "_LEVEL=" << data.topScoresMedium[i].level << std::endl;
+            file << "TOP_NORMAL_" << (i+1) << "_SCORE=" << data.topScoresNormal[i].score << std::endl;
+            file << "TOP_NORMAL_" << (i+1) << "_LINES=" << data.topScoresNormal[i].lines << std::endl;
+            file << "TOP_NORMAL_" << (i+1) << "_LEVEL=" << data.topScoresNormal[i].level << std::endl;
         }
         
 
@@ -115,6 +113,7 @@ void saveGameData(const SaveData& data) {
         file << "KEY_DROP=" << data.drop << std::endl;
         file << "KEY_HOLD=" << data.hold << std::endl;
         file << "KEY_BOMB=" << data.bomb << std::endl;
+        file << "KEY_RESTART=" << data.restart << std::endl;
         file << "KEY_MUTE=" << data.mute << std::endl;
         file << "KEY_VOLUME_DOWN=" << data.volumeDown << std::endl;
         file << "KEY_VOLUME_UP=" << data.volumeUp << std::endl;
@@ -142,10 +141,12 @@ SaveData loadGameData() {
                 
                 if (key == "HIGH_SCORE") {
                     data.highScore = std::stoi(value);
-                } else if (key == "HIGH_SCORE_CLASSIC_EASY") {
-                    data.highScoreClassicEasy = std::stoi(value);
-                } else if (key == "HIGH_SCORE_CLASSIC_MEDIUM") {
-                    data.highScoreClassicMedium = std::stoi(value);
+                } else if (key == "HIGH_SCORE_CLASSIC_NORMAL" || key == "HIGH_SCORE_CLASSIC_EASY" || key == "HIGH_SCORE_CLASSIC_MEDIUM") {
+
+                    int oldScore = std::stoi(value);
+                    if (oldScore > data.highScoreClassicNormal) {
+                        data.highScoreClassicNormal = oldScore;
+                    }
                 } else if (key == "HIGH_SCORE_CLASSIC_HARD") {
                     data.highScoreClassicHard = std::stoi(value);
                 } else if (key == "BEST_TIME_SPRINT_1") {
@@ -172,6 +173,10 @@ SaveData loadGameData() {
                     data.bestTimeChallengeVanishing = std::stof(value);
                 } else if (key == "BEST_TIME_CHALLENGE_AUTO_DROP") {
                     data.bestTimeChallengeAutoDrop = std::stof(value);
+                } else if (key == "BEST_TIME_CHALLENGE_GRAVITY_FLIP") {
+                    data.bestTimeChallengeGravityFlip = std::stof(value);
+                } else if (key == "BEST_TIME_CHALLENGE_PETRIFY") {
+                    data.bestTimeChallengePetrify = std::stof(value);
                 } else if (key == "BEST_LINES") {
                     data.bestLines = std::stoi(value);
                 } else if (key == "BEST_LEVEL") {
@@ -198,8 +203,16 @@ SaveData loadGameData() {
                     data.totalPerfectClears = std::stoi(value);
                 } else if (key == "MASTER_VOLUME") {
                     data.masterVolume = std::stof(value);
+                } else if (key == "MUSIC_VOLUME") {
+                    data.musicVolume = std::stof(value);
+                } else if (key == "SFX_VOLUME") {
+                    data.sfxVolume = std::stof(value);
                 } else if (key == "IS_MUTED") {
                     data.isMuted = (std::stoi(value) == 1);
+                } else if (key == "SETUP_VERSION") {
+                    data.setupVersion = std::stoi(value);
+                } else if (key == "SELECTED_THEME") {
+                    data.selectedTheme = std::stoi(value);
                 } else if (key.rfind("ACHIEVEMENT_", 0) == 0) {
 
                     int achievementId = std::stoi(key.substr(12));
@@ -222,6 +235,8 @@ SaveData loadGameData() {
                     data.hold = std::stoi(value);
                 } else if (key == "KEY_BOMB") {
                     data.bomb = std::stoi(value);
+                } else if (key == "KEY_RESTART") {
+                    data.restart = std::stoi(value);
                 } else if (key == "KEY_MUTE") {
                     data.mute = std::stoi(value);
                 } else if (key == "KEY_VOLUME_DOWN") {
@@ -232,28 +247,27 @@ SaveData loadGameData() {
                     data.menu = std::stoi(value);
                 } else if (key.find("TOP") == 0) {
 
-                    if (key.find("TOP_EASY_") == 0) {
-                        char topNum = key[9];
+                    if (key.find("TOP_NORMAL_") == 0 || key.find("TOP_EASY_") == 0 || key.find("TOP_MEDIUM_") == 0) {
+
+                        int prefixLen = (key.find("TOP_NORMAL_") == 0) ? 11 : ((key.find("TOP_EASY_") == 0) ? 9 : 11);
+                        char topNum = key[prefixLen];
                         int index = topNum - '1';
                         if (index >= 0 && index < 3) {
                             if (key.find("_SCORE") != std::string::npos) {
-                                data.topScoresEasy[index].score = std::stoi(value);
+                                int score = std::stoi(value);
+                                if (score > data.topScoresNormal[index].score) {
+                                    data.topScoresNormal[index].score = score;
+                                }
                             } else if (key.find("_LINES") != std::string::npos) {
-                                data.topScoresEasy[index].lines = std::stoi(value);
+                                int lines = std::stoi(value);
+                                if (lines > data.topScoresNormal[index].lines) {
+                                    data.topScoresNormal[index].lines = lines;
+                                }
                             } else if (key.find("_LEVEL") != std::string::npos) {
-                                data.topScoresEasy[index].level = std::stoi(value);
-                            }
-                        }
-                    } else if (key.find("TOP_MEDIUM_") == 0) {
-                        char topNum = key[11];
-                        int index = topNum - '1';
-                        if (index >= 0 && index < 3) {
-                            if (key.find("_SCORE") != std::string::npos) {
-                                data.topScoresMedium[index].score = std::stoi(value);
-                            } else if (key.find("_LINES") != std::string::npos) {
-                                data.topScoresMedium[index].lines = std::stoi(value);
-                            } else if (key.find("_LEVEL") != std::string::npos) {
-                                data.topScoresMedium[index].level = std::stoi(value);
+                                int level = std::stoi(value);
+                                if (level > data.topScoresNormal[index].level) {
+                                    data.topScoresNormal[index].level = level;
+                                }
                             }
                         }
                     } else if (key.find("TOP_HARD_") == 0) {
@@ -301,11 +315,8 @@ bool insertNewScore(SaveData& saveData, int score, int lines, int level, Classic
 
     SaveData::ScoreEntry* topScoresArray = nullptr;
     switch (difficulty) {
-        case ClassicDifficulty::Easy:
-            topScoresArray = saveData.topScoresEasy;
-            break;
-        case ClassicDifficulty::Medium:
-            topScoresArray = saveData.topScoresMedium;
+        case ClassicDifficulty::Normal:
+            topScoresArray = saveData.topScoresNormal;
             break;
         case ClassicDifficulty::Hard:
             topScoresArray = saveData.topScoresHard;
@@ -355,16 +366,10 @@ bool insertNewScore(SaveData& saveData, int score, int lines, int level, Classic
     
 
     switch (difficulty) {
-        case ClassicDifficulty::Easy:
-            if (score > saveData.highScoreClassicEasy) {
-                saveData.highScoreClassicEasy = score;
-                std::cout << "New Classic Easy high score: " << score << std::endl;
-            }
-            break;
-        case ClassicDifficulty::Medium:
-            if (score > saveData.highScoreClassicMedium) {
-                saveData.highScoreClassicMedium = score;
-                std::cout << "New Classic Medium high score: " << score << std::endl;
+        case ClassicDifficulty::Normal:
+            if (score > saveData.highScoreClassicNormal) {
+                saveData.highScoreClassicNormal = score;
+                std::cout << "New Classic Normal high score: " << score << std::endl;
             }
             break;
         case ClassicDifficulty::Hard:

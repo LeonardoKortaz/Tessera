@@ -36,22 +36,7 @@ constexpr int LEVEL_THRESHOLDS[MAX_LEVEL + 1] = {
 
 
 
-constexpr float LEVEL_GRAVITY_EASY[MAX_LEVEL + 1] = {
-    1.0f,
-    1.2f,
-    1.4f,
-    1.8f,
-    2.25f,
-    2.75f,
-    3.25f,
-    4.0f,
-    5.0f,
-    6.5f,
-    7.0f
-};
-
-
-constexpr float LEVEL_GRAVITY_MEDIUM[MAX_LEVEL + 1] = {
+constexpr float LEVEL_GRAVITY_NORMAL[MAX_LEVEL + 1] = {
     1.5f,
     1.75f,
     2.0f,
@@ -122,6 +107,8 @@ enum class GameState {
     StatisticsView,
     BestScoresView,
     Options,
+    AudioSettings,
+    Customization,
     Rebinding,
     ConfirmClearScores,
     Playing,
@@ -144,22 +131,19 @@ enum class GameModeOption {
 };
 
 enum class ClassicDifficulty {
-    Easy = 0,
-    Medium = 1,
-    Hard = 2
+    Normal = 0,
+    Hard = 1
 };
 
 
 inline const float* getGravityTable(ClassicDifficulty difficulty) {
     switch (difficulty) {
-        case ClassicDifficulty::Easy:
-            return LEVEL_GRAVITY_EASY;
-        case ClassicDifficulty::Medium:
-            return LEVEL_GRAVITY_MEDIUM;
+        case ClassicDifficulty::Normal:
+            return LEVEL_GRAVITY_NORMAL;
         case ClassicDifficulty::Hard:
             return LEVEL_GRAVITY_HARD;
         default:
-            return LEVEL_GRAVITY_MEDIUM;
+            return LEVEL_GRAVITY_NORMAL;
     }
 }
 
@@ -193,7 +177,8 @@ enum class PracticeStartLevel {
 
 enum class ControlScheme {
     Classic = 0,
-    Alternative = 1
+    Alternative = 1,
+    Custom = 2
 };
 
 enum class SprintLines {
@@ -211,20 +196,36 @@ enum class ChallengeMode {
     OneRot = 4,
     ChristopherCurse = 5,
     Vanishing = 6,
-    AutoDrop = 7
+    AutoDrop = 7,
+    GravityFlip = 8,
+    Petrify = 9
 };
 
 enum class ExtrasOption {
-    TesseraPieces = 0,
+    Customization = 0,
     Achievements = 1,
     Statistics = 2,
     BestScores = 3,
     Back = 4
 };
 
+
+enum class GameThemeChoice {
+    Classic = 0,
+    Forest = 1,
+    Racer = 2
+};
+
 enum class OptionsMenuOption {
-    ClearScores = 0,
-    RebindKeys = 1
+    Audio = 0,
+    RebindKeys = 1,
+    ClearScores = 2
+};
+
+enum class AudioOption {
+    MainVolume = 0,
+    MusicVolume = 1,
+    SfxVolume = 2
 };
 
 enum class PauseOption {
@@ -247,18 +248,18 @@ struct KeyBindings {
     sf::Keyboard::Key quickFall = sf::Keyboard::Key::S;
     sf::Keyboard::Key drop = sf::Keyboard::Key::Space;
     sf::Keyboard::Key hold = sf::Keyboard::Key::L;
+    sf::Keyboard::Key bomb = sf::Keyboard::Key::I;
+    sf::Keyboard::Key restart = sf::Keyboard::Key::R;
     sf::Keyboard::Key mute = sf::Keyboard::Key::M;
     sf::Keyboard::Key volumeDown = sf::Keyboard::Key::Comma;
     sf::Keyboard::Key volumeUp = sf::Keyboard::Key::Period;
     sf::Keyboard::Key menu = sf::Keyboard::Key::Escape;
-    sf::Keyboard::Key bomb = sf::Keyboard::Key::I;
 };
 
 
 struct SaveData {
 
-    int highScoreClassicEasy = 0;
-    int highScoreClassicMedium = 0;
+    int highScoreClassicNormal = 0;
     int highScoreClassicHard = 0;
     
 
@@ -276,6 +277,8 @@ struct SaveData {
     float bestTimeChallengeChristopherCurse = 0.0f;
     float bestTimeChallengeVanishing = 0.0f;
     float bestTimeChallengeAutoDrop = 0.0f;
+    float bestTimeChallengeGravityFlip = 0.0f;
+    float bestTimeChallengePetrify = 0.0f;
     
 
     bool achievements[25] = {
@@ -302,6 +305,8 @@ struct SaveData {
     int bestLines = 0;
     int bestLevel = 0;
     float masterVolume = 80.0f;
+    float musicVolume = 100.0f;
+    float sfxVolume = 100.0f;
     bool isMuted = false;
     int setupVersion = 0;
     
@@ -312,8 +317,7 @@ struct SaveData {
     };
     
 
-    ScoreEntry topScoresEasy[3];
-    ScoreEntry topScoresMedium[3];
+    ScoreEntry topScoresNormal[3];
     ScoreEntry topScoresHard[3];
     
 
@@ -327,10 +331,14 @@ struct SaveData {
     int drop = static_cast<int>(sf::Keyboard::Key::Space);
     int hold = static_cast<int>(sf::Keyboard::Key::L);
     int bomb = static_cast<int>(sf::Keyboard::Key::I);
+    int restart = static_cast<int>(sf::Keyboard::Key::R);
     int mute = static_cast<int>(sf::Keyboard::Key::M);
     int volumeDown = static_cast<int>(sf::Keyboard::Key::Comma);
     int volumeUp = static_cast<int>(sf::Keyboard::Key::Period);
     int menu = static_cast<int>(sf::Keyboard::Key::Escape);
+    
+
+    int selectedTheme = 0;
 };
 
 
@@ -398,6 +406,8 @@ struct Cell {
     TextureType textureType = TextureType::Empty;
     float vanishTimer = 0.0f;
     bool isVanishing = false;
+    int petrifyCounter = 0;
+    bool isPetrified = false;
     
     Cell() = default;
     Cell(const sf::Color& col, TextureType texType = TextureType::Empty) : occupied(true), color(col), textureType(texType) {}
@@ -444,6 +454,70 @@ struct GlowEffect {
     
     bool isFinished() const {
         return timer <= 0.0f;
+    }
+};
+
+
+struct ThermometerParticle {
+    float x, y;
+    float targetX, targetY;
+    float startX, startY;
+    float progress;
+    float speed;
+    float size;
+    sf::Color color;
+    
+    ThermometerParticle(float sx, float sy, float tx, float ty, sf::Color col = sf::Color::White)
+        : x(sx), y(sy), targetX(tx), targetY(ty), startX(sx), startY(sy)
+        , progress(0.0f), speed(2.0f), size(16.0f), color(col) {}
+    
+    void update(float deltaTime) {
+        progress += deltaTime * speed;
+        if (progress > 1.0f) progress = 1.0f;
+        
+
+        float t = 1.0f - (1.0f - progress) * (1.0f - progress);
+        
+        x = startX + (targetX - startX) * t;
+        y = startY + (targetY - startY) * t;
+        
+
+        size = 16.0f * (1.0f - progress * 0.5f);
+    }
+    
+    bool isFinished() const {
+        return progress >= 1.0f;
+    }
+};
+
+
+struct FallingCell {
+    float x, y;
+    float velocityY;
+    float rotation;
+    float rotationSpeed;
+    sf::Color color;
+    TextureType texType;
+    float timer;
+    
+    FallingCell(float posX, float posY, sf::Color col, TextureType tex)
+        : x(posX), y(posY), velocityY(0.0f), rotation(0.0f)
+        , rotationSpeed((rand() % 200 - 100) / 50.0f)
+        , color(col), texType(tex), timer(2.0f) {
+
+        velocityY = 50.0f + (rand() % 100);
+    }
+    
+    void update(float deltaTime) {
+
+        velocityY += 800.0f * deltaTime;
+        y += velocityY * deltaTime;
+        rotation += rotationSpeed * deltaTime;
+        timer -= deltaTime;
+    }
+    
+    bool isFinished() const {
+        return timer <= 0.0f || y > 1200.0f;
     }
 };
 

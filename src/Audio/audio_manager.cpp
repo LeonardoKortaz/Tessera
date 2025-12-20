@@ -3,6 +3,8 @@
 AudioManager::AudioManager()
     : currentMusic(nullptr)
     , masterVolume(100.0f)
+    , musicVolumeMultiplier(100.0f)
+    , sfxVolumeMultiplier(100.0f)
     , lastMasterVolume(100.0f)
     , isMuted(false)
 {
@@ -141,36 +143,48 @@ bool AudioManager::loadAllAudio() {
 
 void AudioManager::updateAllVolumes() {
 
-    menuMusic.setVolume((menuMusicVolume * masterVolume) / 100.0f);
-    gameplayMusic.setVolume((gameplayMusicVolume * masterVolume) / 100.0f);
-    splashMusic.setVolume((splashMusicVolume * masterVolume) / 100.0f);
-    gameWinMusic.setVolume((gameWinMusicVolume * masterVolume) / 100.0f);
+
+    float musicEffective = (masterVolume * musicVolumeMultiplier) / 100.0f;
+    float sfxEffective = (masterVolume * sfxVolumeMultiplier) / 100.0f;
+
+
+    menuMusic.setVolume((menuMusicVolume * musicEffective) / 100.0f);
+    gameplayMusic.setVolume((gameplayMusicVolume * musicEffective) / 100.0f);
+    splashMusic.setVolume((splashMusicVolume * musicEffective) / 100.0f);
+    gameWinMusic.setVolume((gameWinMusicVolume * musicEffective) / 100.0f);
+    themeMusic.setVolume((gameplayMusicVolume * musicEffective) / 100.0f);
 
 
     if (spaceSound) {
-        spaceSound->setVolume((spaceVolume * masterVolume) / 100.0f);
+        spaceSound->setVolume((spaceVolume * sfxEffective) / 100.0f);
     }
     if (laserSound) {
-        laserSound->setVolume((laserVolume * masterVolume) / 100.0f);
+        laserSound->setVolume((laserVolume * sfxEffective) / 100.0f);
     }
     if (bombSound) {
-        bombSound->setVolume((bombVolume * masterVolume) / 100.0f);
+        bombSound->setVolume((bombVolume * sfxEffective) / 100.0f);
     }
     if (achievementSound) {
-        achievementSound->setVolume((achievementVolume * masterVolume) / 100.0f);
+        achievementSound->setVolume((achievementVolume * sfxEffective) / 100.0f);
     }
     if (gameOverSound) {
-        gameOverSound->setVolume((gameOverVolume * masterVolume) / 100.0f);
+        gameOverSound->setVolume((gameOverVolume * sfxEffective) / 100.0f);
     }
     if (menuClickSound) {
-        menuClickSound->setVolume((menuClickVolume * masterVolume) / 100.0f);
+        menuClickSound->setVolume((menuClickVolume * sfxEffective) / 100.0f);
     }
     if (menuBackSound) {
-        menuBackSound->setVolume((menuBackVolume * masterVolume) / 100.0f);
+        menuBackSound->setVolume((menuBackVolume * sfxEffective) / 100.0f);
+    }
+    if (customLineClearSound) {
+        customLineClearSound->setVolume((laserVolume * sfxEffective) / 100.0f);
+    }
+    if (customDropSound) {
+        customDropSound->setVolume((spaceVolume * sfxEffective) / 100.0f);
     }
     for (auto& wowSound : wowSounds) {
         if (wowSound) {
-            wowSound->setVolume((wowVolume * masterVolume) / 100.0f);
+            wowSound->setVolume((wowVolume * sfxEffective) / 100.0f);
         }
     }
 }
@@ -221,9 +235,11 @@ void AudioManager::switchToMenuMusic() {
 }
 
 void AudioManager::stopAllMusic() {
+    splashMusic.stop();
     menuMusic.stop();
     gameplayMusic.stop();
     gameWinMusic.stop();
+    themeMusic.stop();
     currentMusic = nullptr;
 }
 
@@ -284,6 +300,24 @@ float AudioManager::getMasterVolume() const {
     return masterVolume;
 }
 
+void AudioManager::setMusicVolume(float volume) {
+    musicVolumeMultiplier = std::max(0.0f, std::min(100.0f, volume));
+    updateAllVolumes();
+}
+
+float AudioManager::getMusicVolume() const {
+    return musicVolumeMultiplier;
+}
+
+void AudioManager::setSfxVolume(float volume) {
+    sfxVolumeMultiplier = std::max(0.0f, std::min(100.0f, volume));
+    updateAllVolumes();
+}
+
+float AudioManager::getSfxVolume() const {
+    return sfxVolumeMultiplier;
+}
+
 void AudioManager::increaseMasterVolume() {
     if (!isMuted && masterVolume < 100.0f) {
         masterVolume = std::min(100.0f, masterVolume + 10.0f);
@@ -325,4 +359,115 @@ void AudioManager::toggleMute() {
 
 bool AudioManager::isMutedStatus() const {
     return isMuted;
+}
+
+bool AudioManager::playMusicFromPath(const std::string& musicPath, float volumeMultiplier) {
+
+    if (currentMusicPath == musicPath && currentMusic == &themeMusic && 
+        themeMusic.getStatus() == sf::Music::Status::Playing) {
+        return true;
+    }
+    
+
+    if (currentMusic) {
+        currentMusic->stop();
+    }
+    
+
+    if (themeMusic.openFromFile(musicPath)) {
+        themeMusic.setLooping(true);
+        float musicEffective = (masterVolume * musicVolumeMultiplier) / 100.0f;
+        themeMusic.setVolume((gameplayMusicVolume * musicEffective * volumeMultiplier) / 100.0f);
+        themeMusic.play();
+        currentMusic = &themeMusic;
+        currentMusicPath = musicPath;
+        std::cout << "Theme music loaded: " << musicPath << std::endl;
+        return true;
+    } else {
+        std::cout << "Failed to load theme music: " << musicPath << ", falling back to default" << std::endl;
+
+        playGameplayMusic();
+        currentMusicPath = "Assets/Sound/Music/Tessera_Main.ogg";
+        return false;
+    }
+}
+
+bool AudioManager::setLineClearSound(const std::string& soundPath) {
+
+    if (soundPath.empty()) {
+        currentLineClearSoundPath = "";
+        customLineClearSound.reset();
+        std::cout << "Line clear sound reset to default (laser)" << std::endl;
+        return true;
+    }
+    
+
+    if (currentLineClearSoundPath == soundPath && customLineClearSound) {
+        return true;
+    }
+    
+
+    if (customLineClearBuffer.loadFromFile(soundPath)) {
+        customLineClearSound = std::make_unique<sf::Sound>(customLineClearBuffer);
+        float sfxEffective = (masterVolume * sfxVolumeMultiplier) / 100.0f;
+        customLineClearSound->setVolume((laserVolume * sfxEffective) / 100.0f);
+        currentLineClearSoundPath = soundPath;
+        std::cout << "Custom line clear sound loaded: " << soundPath << std::endl;
+        return true;
+    } else {
+        std::cout << "Failed to load custom line clear sound: " << soundPath << ", using default" << std::endl;
+        currentLineClearSoundPath = "";
+        customLineClearSound.reset();
+        return false;
+    }
+}
+
+void AudioManager::playLineClearSound() {
+
+    if (customLineClearSound && !currentLineClearSoundPath.empty()) {
+        customLineClearSound->play();
+    } else {
+
+        playLaserSound();
+    }
+}
+
+bool AudioManager::setDropSound(const std::string& soundPath) {
+
+    if (soundPath.empty()) {
+        currentDropSoundPath = "";
+        customDropSound.reset();
+        std::cout << "Drop sound reset to default (ground)" << std::endl;
+        return true;
+    }
+    
+
+    if (currentDropSoundPath == soundPath && customDropSound) {
+        return true;
+    }
+    
+
+    if (customDropSoundBuffer.loadFromFile(soundPath)) {
+        customDropSound = std::make_unique<sf::Sound>(customDropSoundBuffer);
+        float sfxEffective = (masterVolume * sfxVolumeMultiplier) / 100.0f;
+        customDropSound->setVolume((spaceVolume * sfxEffective) / 100.0f);
+        currentDropSoundPath = soundPath;
+        std::cout << "Custom drop sound loaded: " << soundPath << std::endl;
+        return true;
+    } else {
+        std::cout << "Failed to load custom drop sound: " << soundPath << ", using default" << std::endl;
+        currentDropSoundPath = "";
+        customDropSound.reset();
+        return false;
+    }
+}
+
+void AudioManager::playDropSound() {
+
+    if (customDropSound && !currentDropSoundPath.empty()) {
+        customDropSound->play();
+    } else {
+
+        playSpaceSound();
+    }
 }

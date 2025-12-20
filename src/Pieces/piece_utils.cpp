@@ -5,15 +5,15 @@ PieceShape getPieceShape(PieceType type) {
     switch(type){
         case PieceType::I_Basic:
             shape.blocks = {{false, false, false, false},{true, true, true, true},{false, false, false, false},{false, false, false, false}};
-            shape.color = sf::Color(0, 255, 185);
+            shape.color = sf::Color(69, 255, 112);
             break;
         case PieceType::I_Medium:
             shape.blocks = {{false, false, false, false, false},{false, false, false, false, false},{true, true, true, true, true},{false, false, false, false, false},{false, false, false, false, false}};
-            shape.color = sf::Color(0, 225, 185);
+            shape.color = sf::Color(69, 255, 112);
             break;
         case PieceType::I_Hard:
             shape.blocks = {{false, false, false, false, false},{false, false, false, false, false},{true, true, true, true, true},{false, false, true, false, false},{false, false, false, false, false}};
-            shape.color = sf::Color(0, 225, 185);
+            shape.color = sf::Color(69, 255, 112);
             break;
 
         case PieceType::T_Basic:
@@ -57,15 +57,15 @@ PieceShape getPieceShape(PieceType type) {
 
         case PieceType::O_Basic:
             shape.blocks = {{true, true},{true, true}};
-            shape.color = sf::Color(137, 173, 0);
+            shape.color = sf::Color(90, 30, 10);
             break;
         case PieceType::O_Medium:
             shape.blocks = {{false, false, false},{true, true, true},{true, true, true}};
-            shape.color = sf::Color(137, 173, 0);
+            shape.color = sf::Color(90, 30, 10);
             break;
         case PieceType::O_Hard:
             shape.blocks = {{false, true, true},{true, true, true},{true, true, false}};
-            shape.color = sf::Color(137, 173, 0);
+            shape.color = sf::Color(90, 30, 10);
             break;
 
         case PieceType::S_Basic:
