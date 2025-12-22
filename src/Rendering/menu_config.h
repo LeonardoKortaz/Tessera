@@ -126,7 +126,6 @@ namespace PracticeMenu {
 
 
 namespace ExtrasMenu {
-    constexpr const char* CUSTOMIZATION = "CUSTOMIZATION";
     constexpr const char* ACHIEVEMENTS = "ACHIEVEMENTS";
     constexpr const char* STATISTICS = "STATISTICS";
     constexpr const char* BEST_SCORES = "BEST SCORES";
@@ -136,7 +135,7 @@ namespace ExtrasMenu {
     constexpr float SPACING = 90.0f;
     
 
-    constexpr int NUM_OPTIONS = 4;
+    constexpr int NUM_OPTIONS = 3;
 }
 
 
@@ -236,10 +235,9 @@ namespace ScreenTitles {
 
 inline const char* getExtrasOptionText(int index) {
     switch (index) {
-        case 0: return ExtrasMenu::CUSTOMIZATION;
-        case 1: return ExtrasMenu::ACHIEVEMENTS;
-        case 2: return ExtrasMenu::STATISTICS;
-        case 3: return ExtrasMenu::BEST_SCORES;
+        case 0: return ExtrasMenu::ACHIEVEMENTS;
+        case 1: return ExtrasMenu::STATISTICS;
+        case 2: return ExtrasMenu::BEST_SCORES;
         default: return "";
     }
 }
@@ -258,7 +256,6 @@ inline const char* getGameModeText(GameModeOption mode) {
 
 inline const char* getExtrasOptionText(ExtrasOption option) {
     switch (option) {
-        case ExtrasOption::Customization: return ExtrasMenu::CUSTOMIZATION;
         case ExtrasOption::Achievements: return ExtrasMenu::ACHIEVEMENTS;
         case ExtrasOption::Statistics: return ExtrasMenu::STATISTICS;
         case ExtrasOption::BestScores: return ExtrasMenu::BEST_SCORES;

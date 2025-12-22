@@ -165,6 +165,7 @@ std::string getGameModeText(GameModeOption mode, ClassicDifficulty difficulty, S
 AbilityType getAbilityType(PieceType type) {
     switch(type) {
         case PieceType::A_Bomb: return AbilityType::Bomb;
+        case PieceType::A_Stomp: return AbilityType::Stomp;
         default: return AbilityType::None;
     }
 }
@@ -397,6 +398,18 @@ void PieceBag::returnPieceToBag(PieceType piece) {
     std::cout << "[DEBUG] Bag size after return: " << currentBag.size() << std::endl;
 }
 
+void PieceBag::insertPiecesToQueue(PieceType piece, int count) {
+    std::cout << "[DEBUG] Inserting " << count << " pieces into queue at position " << bagIndex << std::endl;
+    for (int i = 0; i < count; i++) {
+        currentBag.insert(currentBag.begin() + bagIndex + i, piece);
+    }
+    fillNextQueue();
+    std::cout << "[DEBUG] Bag size after insert: " << currentBag.size() << std::endl;
+}
+
+
+void StompEffect(int stompX, int stompY, std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, float& shakeIntensity, float& shakeDuration, float& shakeTimer);
+
 class Piece {
 private:
     PieceShape shape;
@@ -529,17 +542,20 @@ public:
         }
     }
     void ChangeToStatic(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, AbilityType ability = AbilityType::None, AudioManager* audioManager = nullptr, std::vector<ExplosionEffect>* explosions = nullptr, std::vector<GlowEffect>* glowEffects = nullptr, float* shakeIntensity = nullptr, float* shakeDuration = nullptr, float* shakeTimer = nullptr, int* consecutiveBombsUsed = nullptr, SaveData* saveData = nullptr, std::vector<AchievementPopup>* achievementPopups = nullptr, bool isVanishingMode = false) {
-        for (int i = 0; i < shape.height; ++i) {
-            for (int j = 0; j < shape.width; ++j) {
-                if (shape.blocks[i][j]) {
-                    int gx = x + j;
-                    int gy = y + i;
-                    if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT) {
-                        grid[gy][gx] = Cell(shape.color, getTextureType(type));
 
-                        if (isVanishingMode) {
-                            grid[gy][gx].isVanishing = true;
-                            grid[gy][gx].vanishTimer = 0.0f;
+        if (ability != AbilityType::Stomp) {
+            for (int i = 0; i < shape.height; ++i) {
+                for (int j = 0; j < shape.width; ++j) {
+                    if (shape.blocks[i][j]) {
+                        int gx = x + j;
+                        int gy = y + i;
+                        if (gx >= 0 && gx < GRID_WIDTH && gy >= 0 && gy < GRID_HEIGHT) {
+                            grid[gy][gx] = Cell(shape.color, getTextureType(type));
+
+                            if (isVanishingMode) {
+                                grid[gy][gx].isVanishing = true;
+                                grid[gy][gx].vanishTimer = 0.0f;
+                            }
                         }
                     }
                 }
@@ -617,6 +633,7 @@ public:
             }
         }
     }
+    
     void AbilityEffect(std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, AudioManager* audioManager = nullptr, std::vector<ExplosionEffect>* explosions = nullptr, std::vector<GlowEffect>* glowEffects = nullptr, float* shakeIntensity = nullptr, float* shakeDuration = nullptr, float* shakeTimer = nullptr, int* consecutiveBombsUsed = nullptr, SaveData* saveData = nullptr, std::vector<AchievementPopup>* achievementPopups = nullptr)
     {
         switch(ability)
@@ -626,6 +643,13 @@ public:
                     BombEffect(x, y, grid, *audioManager, *explosions, *glowEffects, *shakeIntensity, *shakeDuration, *shakeTimer, consecutiveBombsUsed, saveData, achievementPopups);
                 } else {
                     std::cout << "Bomb ability activated (no sound/explosions)!" << std::endl;
+                }
+                break;
+            case AbilityType::Stomp:
+                if (shakeIntensity && shakeDuration && shakeTimer) {
+                    StompEffect(x, y, grid, *shakeIntensity, *shakeDuration, *shakeTimer);
+                } else {
+                    std::cout << "Stomp ability activated (no shake)!" << std::endl;
                 }
                 break;
             default:
@@ -649,6 +673,25 @@ public:
                         explosionPreview.setOutlineColor(sf::Color(255, 0, 0, 120));
                         explosionPreview.setOutlineThickness(1);
                         window.draw(explosionPreview);
+                    }
+                }
+            }
+        } else if (ability == AbilityType::Stomp) {
+
+            for (int dx = 0; dx < 3; ++dx) {
+                if (x + dx >= 0 && x + dx < GRID_WIDTH) {
+
+                    for (int dy = 0; dy < GRID_HEIGHT; ++dy) {
+                        float worldX = GRID_OFFSET_X + (x + dx) * CELL_SIZE;
+                        float worldY = GRID_OFFSET_Y + dy * CELL_SIZE;
+                        
+                        sf::RectangleShape columnPreview;
+                        columnPreview.setSize(sf::Vector2f(CELL_SIZE, CELL_SIZE));
+                        columnPreview.setPosition(sf::Vector2f(worldX, worldY));
+                        columnPreview.setFillColor(sf::Color(160, 82, 45, 30));
+                        columnPreview.setOutlineColor(sf::Color(160, 82, 45, 80));
+                        columnPreview.setOutlineThickness(1);
+                        window.draw(columnPreview);
                     }
                 }
             }
@@ -827,6 +870,44 @@ public:
     }
 };
 
+void StompEffect(int stompX, int stompY, std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, float& shakeIntensity, float& shakeDuration, float& shakeTimer)
+{
+    std::cout << "STOMP EFFECT ACTIVATED at (" << stompX << ", " << stompY << ")!" << std::endl;
+    
+
+    shakeIntensity = 8.0f;
+    shakeDuration = 0.4f;
+    shakeTimer = 0.0f;
+    
+
+    int stompWidth = 3;
+    
+
+    for (int col = stompX; col < stompX + stompWidth && col < GRID_WIDTH; ++col) {
+        if (col < 0) continue;
+        
+        std::cout << "  Compacting column " << col << std::endl;
+        
+
+
+        for (int targetRow = GRID_HEIGHT - 1; targetRow >= 0; --targetRow) {
+            if (!grid[targetRow][col].occupied) {
+
+                for (int sourceRow = targetRow - 1; sourceRow >= 0; --sourceRow) {
+                    if (grid[sourceRow][col].occupied) {
+
+                        grid[targetRow][col] = grid[sourceRow][col];
+                        grid[sourceRow][col] = Cell();
+                        std::cout << "    Moved block from row " << sourceRow << " to row " << targetRow << std::endl;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    std::cout << "STOMP EFFECT COMPLETE!" << std::endl;
+}
 
 bool hasBlocksInTopRows(const std::array<std::array<Cell, GRID_WIDTH>, GRID_HEIGHT>& grid, int topRows = 5) {
     for (int row = 0; row < topRows; ++row) {
@@ -1216,7 +1297,7 @@ int main(int argc, char* argv[]) {
     bool practiceInfiniteBombs = false;
     PracticeStartLevel selectedPracticeStartLevel = PracticeStartLevel::Level0;
     int selectedPracticeOption = 0;
-    ExtrasOption selectedExtrasOption = ExtrasOption::Customization;
+    ExtrasOption selectedExtrasOption = ExtrasOption::Achievements;
     OptionsMenuOption selectedOptionsOption = OptionsMenuOption::Audio;
     AudioOption selectedAudioOption = AudioOption::MainVolume;
     int draggingAudioSlider = -1;
@@ -1229,6 +1310,11 @@ int main(int argc, char* argv[]) {
     GameThemeChoice hoveredThemeChoice = selectedThemeChoice;
     
 
+    AbilityChoice selectedAbilityChoice = AbilityChoice::Bomb;
+    AbilityChoice hoveredAbilityChoice = selectedAbilityChoice;
+    bool isAbilitySelectorHovered = false;
+    
+
     GameModeTheme currentTheme = GameThemes::getDefaultTheme();
     
     bool showCustomCursor = false;
@@ -1236,6 +1322,9 @@ int main(int argc, char* argv[]) {
 
     bool useKeyboardNavigation = false;
     sf::Vector2f lastMousePos(-1.0f, -1.0f);
+    
+
+    bool isThemeSelectorHovered = false;
     
 
     int splashSequenceStep = 0;
@@ -1339,7 +1428,11 @@ int main(int argc, char* argv[]) {
     
     int linesSinceLastAbility = 0;
     bool bombAbilityAvailable = false;
-    const int LINES_FOR_ABILITY = 10;
+    bool deliveryAbilityAvailable = false;
+    bool stompAbilityAvailable = false;
+    const int LINES_FOR_DELIVERY = 10;
+    const int LINES_FOR_BOMB = 10;
+    const int LINES_FOR_STOMP = 10;
     
     int currentCombo = 0;
     float displayCombo = 0.0f;
@@ -1470,6 +1563,49 @@ int main(int argc, char* argv[]) {
                     } else if (draggingAudioSlider == 2) {
                         audioManager.setSfxVolume(newVolume);
                         saveData.sfxVolume = newVolume;
+                    }
+                }
+                
+
+                if (gameState == GameState::ClassicDifficultySelect) {
+                    sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                    sf::Vector2f mousePos = window.mapPixelToCoords(pixelPos);
+                    float mouseX = mousePos.x;
+                    float mouseY = mousePos.y;
+                    
+                    float panelX = 1400;
+                    float panelY = 450;
+                    float themeHeight = 70;
+                    
+                    isThemeSelectorHovered = false;
+                    
+                    if (mouseX >= panelX && mouseX <= panelX + 220) {
+                        for (int i = 0; i < 3; i++) {
+                            float yPos = panelY + 35 + i * themeHeight;
+                            if (mouseY >= yPos && mouseY <= yPos + themeHeight - 10) {
+                                isThemeSelectorHovered = true;
+                                hoveredThemeChoice = static_cast<GameThemeChoice>(i);
+                                break;
+                            }
+                        }
+                    }
+                    
+
+                    float abilityPanelX = 300;
+                    float abilityPanelY = 450;
+                    float abilityHeight = 70;
+                    
+                    isAbilitySelectorHovered = false;
+                    
+                    if (mouseX >= abilityPanelX && mouseX <= abilityPanelX + 220) {
+                        for (int i = 0; i < 3; i++) {
+                            float yPos = abilityPanelY + 35 + i * abilityHeight;
+                            if (mouseY >= yPos && mouseY <= yPos + abilityHeight - 10) {
+                                isAbilitySelectorHovered = true;
+                                hoveredAbilityChoice = static_cast<AbilityChoice>(i);
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -1620,7 +1756,7 @@ int main(int argc, char* argv[]) {
                                      clickY >= centerY + 50 && clickY <= centerY + 50 + buttonHeight) {
                                 audioManager.playMenuClickSound();
                                 gameState = GameState::Extras;
-                                selectedExtrasOption = ExtrasOption::Customization;
+                                selectedExtrasOption = ExtrasOption::Achievements;
                                 std::cout << "Entered EXTRAS menu (mouse)" << std::endl;
                             }
 
@@ -1660,9 +1796,9 @@ int main(int argc, char* argv[]) {
                             float buttonHeight = 80.0f;
                             
 
-                            std::string options[4] = {"CLASSIC", "BLITZ", "CHALLENGE", "PRACTICE"};
+                            std::string options[3] = {"CLASSIC", "BLITZ", "CHALLENGE"};
 
-                            for (int i = 0; i < 4; i++) {
+                            for (int i = 0; i < 3; i++) {
                                 float selectorY = startY + i * spacing - 5;
                                 float halfWidth = calculateButtonWidth(menuFont, options[i], 86.0f) / 2;
                                 if (clickX >= centerX - halfWidth && clickX <= centerX + halfWidth &&
@@ -1682,10 +1818,6 @@ int main(int argc, char* argv[]) {
                                         gameState = GameState::ChallengeSelect;
                                         selectedChallengeMode = debugMode ? ChallengeMode::Debug : ChallengeMode::Randomness;
                                         std::cout << "Entered CHALLENGE selection (mouse)" << std::endl;
-                                    } else if (clickedMode == GameModeOption::Practice) {
-                                        gameState = GameState::PracticeSelect;
-                                        selectedPracticeOption = 0;
-                                        std::cout << "Entered PRACTICE selection (mouse)" << std::endl;
                                     }
                                     break;
                                 }
@@ -1796,6 +1928,7 @@ int main(int argc, char* argv[]) {
                             canUseHold = true;
                             linesSinceLastAbility = 0;
                             bombAbilityAvailable = practiceInfiniteBombs ? true : debugMode;
+                            deliveryAbilityAvailable = false;
                             explosionEffects.clear();
                             glowEffects.clear();
                             thermometerParticles.clear();
@@ -1921,6 +2054,7 @@ int main(int argc, char* argv[]) {
                         canUseHold = true;
                         linesSinceLastAbility = 0;
                         bombAbilityAvailable = debugMode;
+                        deliveryAbilityAvailable = false;
                         explosionEffects.clear();
                         glowEffects.clear();
                             thermometerParticles.clear();
@@ -1988,11 +2122,7 @@ int main(int argc, char* argv[]) {
                                     clickY >= selectorY && clickY <= selectorY + buttonHeight) {
                                     ExtrasOption clickedOption = static_cast<ExtrasOption>(i);
                                     
-                                    if (clickedOption == ExtrasOption::Customization) {
-                                        audioManager.playMenuClickSound();
-                                        gameState = GameState::Customization;
-                                        std::cout << "Entered CUSTOMIZATION menu (mouse)" << std::endl;
-                                    } else if (clickedOption == ExtrasOption::Achievements) {
+                                    if (clickedOption == ExtrasOption::Achievements) {
                                         audioManager.playMenuClickSound();
                                         gameState = GameState::AchievementsView;
                                         std::cout << "Entered ACHIEVEMENTS view (mouse)" << std::endl;
@@ -2144,65 +2274,6 @@ int main(int argc, char* argv[]) {
                                           shakeIntensity, shakeDuration, shakeTimer, 
                                           saveData, achievementPopups);
                             backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
-                        }
-
-                    } else if (gameState == GameState::Customization) {
-
-                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
-                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
-                        float clickX = clickPos.x;
-                        float clickY = clickPos.y;
-                        float centerX = WINDOW_WIDTH / 2.0f;
-                        float centerY = WINDOW_HEIGHT / 2.0f;
-                        
-
-                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
-                        if (clickedBombIndex >= 0) {
-                            const auto& bomb = backgroundPieces[clickedBombIndex];
-                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
-                                          shakeIntensity, shakeDuration, shakeTimer, 
-                                          saveData, achievementPopups);
-                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
-                        }
-                        else {
-                            float buttonHeight = 80.0f;
-                            float classicHalfWidth = calculateButtonWidth(menuFont, "CLASSIC [SELECTED]", 86.0f) / 2;
-                            float forestHalfWidth = calculateButtonWidth(menuFont, "FOREST [SELECTED]", 86.0f) / 2;
-                            float racerHalfWidth = calculateButtonWidth(menuFont, "RACER [SELECTED]", 86.0f) / 2;
-                            
-
-                            if (clickX >= centerX - classicHalfWidth && clickX <= centerX + classicHalfWidth &&
-                                clickY >= centerY + MenuConfig::CustomizationMenu::OPTION1_Y_OFFSET - 5 && 
-                                clickY <= centerY + MenuConfig::CustomizationMenu::OPTION1_Y_OFFSET + buttonHeight) {
-                                audioManager.playMenuClickSound();
-                                hoveredThemeChoice = GameThemeChoice::Classic;
-                                selectedThemeChoice = GameThemeChoice::Classic;
-                                saveData.selectedTheme = static_cast<int>(selectedThemeChoice);
-                                saveGameData(saveData);
-                                std::cout << "Theme changed to: Classic (mouse)" << std::endl;
-                            }
-
-                            else if (clickX >= centerX - forestHalfWidth && clickX <= centerX + forestHalfWidth &&
-                                     clickY >= centerY + MenuConfig::CustomizationMenu::OPTION2_Y_OFFSET - 5 && 
-                                     clickY <= centerY + MenuConfig::CustomizationMenu::OPTION2_Y_OFFSET + buttonHeight) {
-                                audioManager.playMenuClickSound();
-                                hoveredThemeChoice = GameThemeChoice::Forest;
-                                selectedThemeChoice = GameThemeChoice::Forest;
-                                saveData.selectedTheme = static_cast<int>(selectedThemeChoice);
-                                saveGameData(saveData);
-                                std::cout << "Theme changed to: Forest (mouse)" << std::endl;
-                            }
-
-                            else if (clickX >= centerX - racerHalfWidth && clickX <= centerX + racerHalfWidth &&
-                                     clickY >= centerY + MenuConfig::CustomizationMenu::OPTION3_Y_OFFSET - 5 && 
-                                     clickY <= centerY + MenuConfig::CustomizationMenu::OPTION3_Y_OFFSET + buttonHeight) {
-                                audioManager.playMenuClickSound();
-                                hoveredThemeChoice = GameThemeChoice::Racer;
-                                selectedThemeChoice = GameThemeChoice::Racer;
-                                saveData.selectedTheme = static_cast<int>(selectedThemeChoice);
-                                saveGameData(saveData);
-                                std::cout << "Theme changed to: Racer (mouse)" << std::endl;
-                            }
                         }
 
                     } else if (gameState == GameState::BestScoresView) {
@@ -2803,6 +2874,25 @@ int main(int argc, char* argv[]) {
                         saveGameData(saveData);
                         draggingAudioSlider = -1;
                     }
+                    
+
+                    if (gameState == GameState::ClassicDifficultySelect && isThemeSelectorHovered) {
+                        audioManager.playMenuClickSound();
+                        selectedThemeChoice = hoveredThemeChoice;
+                        std::cout << "Theme changed to: " << static_cast<int>(selectedThemeChoice) << std::endl;
+                    }
+                    
+
+                    if (gameState == GameState::ClassicDifficultySelect && isAbilitySelectorHovered) {
+
+                        if (hoveredAbilityChoice == AbilityChoice::Bomb || 
+                            hoveredAbilityChoice == AbilityChoice::Delivery || 
+                            hoveredAbilityChoice == AbilityChoice::Stomp) {
+                            audioManager.playMenuClickSound();
+                            selectedAbilityChoice = hoveredAbilityChoice;
+                            std::cout << "Ability changed to: " << static_cast<int>(selectedAbilityChoice) << std::endl;
+                        }
+                    }
                 }
             }
             
@@ -2923,6 +3013,12 @@ int main(int argc, char* argv[]) {
                                 sf::Keyboard::isKeyPressed(sf::Keyboard::Key::RControl)) {
                                 debugMode = !debugMode;
                                 std::cout << "DEBUG MODE " << (debugMode ? "ENABLED" : "DISABLED") << std::endl;
+                                if (debugMode) {
+                                    bombAbilityAvailable = true;
+                                    deliveryAbilityAvailable = true;
+                                    stompAbilityAvailable = true;
+                                    std::cout << "All abilities loaded in debug mode!" << std::endl;
+                                }
                             }
                             break;
                         case sf::Keyboard::Key::Up:
@@ -2947,7 +3043,7 @@ int main(int argc, char* argv[]) {
                             } else if (selectedMenuOption == MenuOption::Extras) {
                                 audioManager.playMenuClickSound();
                                 gameState = GameState::Extras;
-                                selectedExtrasOption = ExtrasOption::Customization;
+                                selectedExtrasOption = ExtrasOption::Achievements;
                                 std::cout << "Entered EXTRAS menu" << std::endl;
                             } else if (selectedMenuOption == MenuOption::Options) {
                                 audioManager.playMenuClickSound();
@@ -3081,20 +3177,16 @@ int main(int argc, char* argv[]) {
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
                             useKeyboardNavigation = true;
-                            selectedExtrasOption = static_cast<ExtrasOption>((static_cast<int>(selectedExtrasOption) + 3) % 4);
+                            selectedExtrasOption = static_cast<ExtrasOption>((static_cast<int>(selectedExtrasOption) + 2) % 3);
                             break;
                         case sf::Keyboard::Key::Down:
                         case sf::Keyboard::Key::S:
                             useKeyboardNavigation = true;
-                            selectedExtrasOption = static_cast<ExtrasOption>((static_cast<int>(selectedExtrasOption) + 1) % 4);
+                            selectedExtrasOption = static_cast<ExtrasOption>((static_cast<int>(selectedExtrasOption) + 1) % 3);
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
-                            if (selectedExtrasOption == ExtrasOption::Customization) {
-                                audioManager.playMenuClickSound();
-                                gameState = GameState::Customization;
-                                std::cout << "Entered CUSTOMIZATION menu (keyboard)" << std::endl;
-                            } else if (selectedExtrasOption == ExtrasOption::Achievements) {
+                            if (selectedExtrasOption == ExtrasOption::Achievements) {
                                 audioManager.playMenuClickSound();
                                 gameState = GameState::AchievementsView;
                                 std::cout << "Entered ACHIEVEMENTS view (keyboard)" << std::endl;
@@ -3121,12 +3213,12 @@ int main(int argc, char* argv[]) {
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
                             useKeyboardNavigation = true;
-                            selectedGameModeOption = static_cast<GameModeOption>((static_cast<int>(selectedGameModeOption) + 3) % 4);
+                            selectedGameModeOption = static_cast<GameModeOption>((static_cast<int>(selectedGameModeOption) + 2) % 3);
                             break;
                         case sf::Keyboard::Key::Down:
                         case sf::Keyboard::Key::S:
                             useKeyboardNavigation = true;
-                            selectedGameModeOption = static_cast<GameModeOption>((static_cast<int>(selectedGameModeOption) + 1) % 4);
+                            selectedGameModeOption = static_cast<GameModeOption>((static_cast<int>(selectedGameModeOption) + 1) % 3);
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
@@ -3736,6 +3828,7 @@ int main(int argc, char* argv[]) {
                                 canUseHold = true;
                                 linesSinceLastAbility = 0;
                                 bombAbilityAvailable = practiceInfiniteBombs ? true : debugMode;
+                                deliveryAbilityAvailable = false;
                                 explosionEffects.clear();
                                 glowEffects.clear();
                             thermometerParticles.clear();
@@ -3947,55 +4040,6 @@ int main(int argc, char* argv[]) {
                             saveGameData(saveData);
                             break;
                         }
-                        default:
-                            break;
-                    }
-                } else if (gameState == GameState::Customization) {
-                    switch (keyPressed->code) {
-                        case sf::Keyboard::Key::Escape:
-                            audioManager.playMenuBackSound();
-                            gameState = GameState::Extras;
-                            selectedExtrasOption = ExtrasOption::Customization;
-                            std::cout << "Returned to EXTRAS menu" << std::endl;
-                            break;
-                        case sf::Keyboard::Key::Up:
-                        case sf::Keyboard::Key::W:
-                            useKeyboardNavigation = true;
-                            audioManager.playMenuClickSound();
-                            if (hoveredThemeChoice == GameThemeChoice::Classic) {
-                                hoveredThemeChoice = GameThemeChoice::Racer;
-                            } else if (hoveredThemeChoice == GameThemeChoice::Forest) {
-                                hoveredThemeChoice = GameThemeChoice::Classic;
-                            } else {
-                                hoveredThemeChoice = GameThemeChoice::Forest;
-                            }
-                            break;
-                        case sf::Keyboard::Key::Down:
-                        case sf::Keyboard::Key::S:
-                            useKeyboardNavigation = true;
-                            audioManager.playMenuClickSound();
-                            if (hoveredThemeChoice == GameThemeChoice::Classic) {
-                                hoveredThemeChoice = GameThemeChoice::Forest;
-                            } else if (hoveredThemeChoice == GameThemeChoice::Forest) {
-                                hoveredThemeChoice = GameThemeChoice::Racer;
-                            } else {
-                                hoveredThemeChoice = GameThemeChoice::Classic;
-                            }
-                            break;
-                        case sf::Keyboard::Key::Enter:
-                        case sf::Keyboard::Key::Space:
-                            audioManager.playMenuClickSound();
-
-                            selectedThemeChoice = hoveredThemeChoice;
-                            saveData.selectedTheme = static_cast<int>(selectedThemeChoice);
-                            saveGameData(saveData);
-                            {
-                                std::string themeName = "Classic";
-                                if (selectedThemeChoice == GameThemeChoice::Forest) themeName = "Forest";
-                                else if (selectedThemeChoice == GameThemeChoice::Racer) themeName = "Racer";
-                                std::cout << "Theme changed to: " << themeName << std::endl;
-                            }
-                            break;
                         default:
                             break;
                     }
@@ -4572,9 +4616,15 @@ int main(int argc, char* argv[]) {
                                 std::cout << "Bomb cleared " << clearedLines << " lines! Base: " << baseScore << " | Combo: x" << (currentCombo - clearedLines) << " (+" << comboBonus << ") | Total: +" << bombLineScore << std::endl;
                                 
                                 linesSinceLastAbility += clearedLines;
-                                if (linesSinceLastAbility >= LINES_FOR_ABILITY) {
+                                if (selectedAbilityChoice == AbilityChoice::Bomb && linesSinceLastAbility >= LINES_FOR_BOMB) {
                                     bombAbilityAvailable = true;
                                     std::cout << "BOMB ABILITY READY AGAIN!" << std::endl;
+                                } else if (selectedAbilityChoice == AbilityChoice::Delivery && linesSinceLastAbility >= LINES_FOR_DELIVERY) {
+                                    deliveryAbilityAvailable = true;
+                                    std::cout << "DELIVERY ABILITY READY AGAIN!" << std::endl;
+                                } else if (selectedAbilityChoice == AbilityChoice::Stomp && linesSinceLastAbility >= LINES_FOR_STOMP) {
+                                    stompAbilityAvailable = true;
+                                    std::cout << "STOMP ABILITY READY AGAIN!" << std::endl;
                                 }
                             } else {
                                 lastMoveScore = 0;
@@ -4622,35 +4672,94 @@ int main(int argc, char* argv[]) {
                         std::cout << "Game paused" << std::endl;
                     }
                 } else if (keyPressed->code == keyBindings.bomb) {
-                    if ((bombAbilityAvailable || debugMode || practiceInfiniteBombs) && !gameOver) {
-                        std::cout << "BOMB ABILITY ACTIVATED - Spawning bomb!" << (debugMode ? " (DEBUG MODE)" : "") << (practiceInfiniteBombs ? " (INFINITE BOMBS)" : "") << std::endl;
-                        
 
-                        bombUsedThisGame = true;
-                        
+                    if (selectedAbilityChoice == AbilityChoice::Bomb) {
+                        if ((bombAbilityAvailable || debugMode || practiceInfiniteBombs) && !gameOver) {
+                            std::cout << "BOMB ABILITY ACTIVATED - Spawning bomb!" << (debugMode ? " (DEBUG MODE)" : "") << (practiceInfiniteBombs ? " (INFINITE BOMBS)" : "") << std::endl;
+                            
 
-                        saveData.totalBombsUsed++;
-                        
+                            bombUsedThisGame = true;
+                            
 
-                        PieceType replacedPiece = activePiece.getType();
-                        TesseraBag.returnPieceToBag(replacedPiece);
-                        std::cout << "Returned " << pieceTypeToString(replacedPiece) << " to bag" << std::endl;
-                        
-                        PieceType newType = PieceType::A_Bomb;
-                        std::cout << "Spawning bomb piece!" << std::endl;
-                        PieceShape newShape = getPieceShape(newType);
-                        int spawnX = (GRID_WIDTH - newShape.width) / 2;
-                        int firstFilledRow = findFirstFilledRow(newShape);
-                        int spawnY = -firstFilledRow;
-                        activePiece = Piece(spawnX, spawnY, newType);
-                        
-                        if (!debugMode && !practiceInfiniteBombs) {
-                            bombAbilityAvailable = false;
-                            linesSinceLastAbility = 0;
+                            saveData.totalBombsUsed++;
+                            
+
+                            PieceType replacedPiece = activePiece.getType();
+                            TesseraBag.returnPieceToBag(replacedPiece);
+                            std::cout << "Returned " << pieceTypeToString(replacedPiece) << " to bag" << std::endl;
+                            
+                            PieceType newType = PieceType::A_Bomb;
+                            std::cout << "Spawning bomb piece!" << std::endl;
+                            PieceShape newShape = getPieceShape(newType);
+                            int spawnX = (GRID_WIDTH - newShape.width) / 2;
+                            int firstFilledRow = findFirstFilledRow(newShape);
+                            int spawnY = -firstFilledRow;
+                            activePiece = Piece(spawnX, spawnY, newType);
+                            
+                            if (!debugMode && !practiceInfiniteBombs) {
+                                bombAbilityAvailable = false;
+                                linesSinceLastAbility = 0;
+                            }
+                        } else if (!bombAbilityAvailable && !debugMode && !practiceInfiniteBombs && !gameOver) {
+                            int linesNeeded = LINES_FOR_BOMB - linesSinceLastAbility;
+                            std::cout << "Bomb ability not ready yet! Need " << linesNeeded << " more lines." << std::endl;
                         }
-                    } else if (!bombAbilityAvailable && !debugMode && !practiceInfiniteBombs && !gameOver) {
-                        int linesNeeded = LINES_FOR_ABILITY - linesSinceLastAbility;
-                        std::cout << "Bomb ability not ready yet! Need " << linesNeeded << " more lines." << std::endl;
+                    } else if (selectedAbilityChoice == AbilityChoice::Delivery) {
+                        if ((deliveryAbilityAvailable || debugMode) && !gameOver) {
+                            std::cout << "DELIVERY ABILITY ACTIVATED - Returning piece and adding 6 cream blocks!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
+                            
+
+                            PieceType replacedPiece = activePiece.getType();
+                            TesseraBag.returnPieceToBag(replacedPiece);
+                            std::cout << "Returned " << pieceTypeToString(replacedPiece) << " to bag" << std::endl;
+                            
+
+                            TesseraBag.insertPiecesToQueue(PieceType::Cream_Single, 6);
+                            std::cout << "Added 6 cream blocks to queue!" << std::endl;
+                            
+
+                            PieceType newType = TesseraBag.getNextPiece();
+                            std::cout << "Spawning next piece: " << pieceTypeToString(newType) << std::endl;
+                            PieceShape newShape = getPieceShape(newType);
+                            int spawnX = (GRID_WIDTH - newShape.width) / 2;
+                            int firstFilledRow = findFirstFilledRow(newShape);
+                            int spawnY = -firstFilledRow;
+                            activePiece = Piece(spawnX, spawnY, newType);
+                            
+                            if (!debugMode) {
+                                deliveryAbilityAvailable = false;
+                                linesSinceLastAbility = 0;
+                            }
+                        } else if (!deliveryAbilityAvailable && !debugMode && !gameOver) {
+                            int linesNeeded = LINES_FOR_DELIVERY - linesSinceLastAbility;
+                            std::cout << "Delivery ability not ready yet! Need " << linesNeeded << " more lines." << std::endl;
+                        }
+                    } else if (selectedAbilityChoice == AbilityChoice::Stomp) {
+                        if ((stompAbilityAvailable || debugMode) && !gameOver) {
+                            std::cout << "STOMP ABILITY ACTIVATED - Spawning stomp piece!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
+                            
+
+                            PieceType replacedPiece = activePiece.getType();
+                            TesseraBag.returnPieceToBag(replacedPiece);
+                            std::cout << "Returned " << pieceTypeToString(replacedPiece) << " to bag" << std::endl;
+                            
+
+                            PieceType newType = PieceType::A_Stomp;
+                            std::cout << "Spawning stomp piece!" << std::endl;
+                            PieceShape newShape = getPieceShape(newType);
+                            int spawnX = (GRID_WIDTH - newShape.width) / 2;
+                            int firstFilledRow = findFirstFilledRow(newShape);
+                            int spawnY = -firstFilledRow;
+                            activePiece = Piece(spawnX, spawnY, newType);
+                            
+                            if (!debugMode) {
+                                stompAbilityAvailable = false;
+                                linesSinceLastAbility = 0;
+                            }
+                        } else if (!stompAbilityAvailable && !debugMode && !gameOver) {
+                            int linesNeeded = LINES_FOR_STOMP - linesSinceLastAbility;
+                            std::cout << "Stomp ability not ready yet! Need " << linesNeeded << " more lines." << std::endl;
+                        }
                     }
                 } else if (keyPressed->code == sf::Keyboard::Key::R) {
                     if (!gameOver) {
@@ -4716,6 +4825,7 @@ int main(int argc, char* argv[]) {
                         
                         linesSinceLastAbility = 0;
                         bombAbilityAvailable = practiceInfiniteBombs ? true : debugMode;
+                        deliveryAbilityAvailable = false;
                         explosionEffects.clear();
                         glowEffects.clear();
                             thermometerParticles.clear();
@@ -5307,9 +5417,15 @@ int main(int argc, char* argv[]) {
                 
                 linesSinceLastAbility += clearedLines;
                 
-                if (linesSinceLastAbility >= LINES_FOR_ABILITY) {
+                if (selectedAbilityChoice == AbilityChoice::Bomb && linesSinceLastAbility >= LINES_FOR_BOMB) {
                     bombAbilityAvailable = true;
                     std::cout << "BOMB ABILITY READY! Press 'I' to activate!" << std::endl;
+                } else if (selectedAbilityChoice == AbilityChoice::Delivery && linesSinceLastAbility >= LINES_FOR_DELIVERY) {
+                    deliveryAbilityAvailable = true;
+                    std::cout << "DELIVERY ABILITY READY! Press 'I' to activate!" << std::endl;
+                } else if (selectedAbilityChoice == AbilityChoice::Stomp && linesSinceLastAbility >= LINES_FOR_STOMP) {
+                    stompAbilityAvailable = true;
+                    std::cout << "STOMP ABILITY READY! Press 'I' to activate!" << std::endl;
                 }
                 
 
@@ -5649,9 +5765,9 @@ int main(int argc, char* argv[]) {
             float startY = centerY - 80.0f;
             float spacing = 90.0f;
             float buttonHeight = 80.0f;
-            std::string options[4] = {"CLASSIC", "BLITZ", "CHALLENGE", "PRACTICE"};
+            std::string options[3] = {"CLASSIC", "BLITZ", "CHALLENGE"};
             
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 3; i++) {
                 float selectorY = startY + i * spacing - 5;
                 float halfWidth = calculateButtonWidth(menuFont, options[i], 86.0f) / 2;
                 if (mouseX >= centerX - halfWidth && mouseX <= centerX + halfWidth &&
@@ -5958,6 +6074,8 @@ int main(int argc, char* argv[]) {
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
             drawGlowEffects(window, glowEffects, textures);
             drawClassicDifficultyMenu(window, titleFont, menuFont, fontLoaded, selectedClassicDifficulty, saveData, textures, useTextures, debugMode);
+            drawThemeSelector(window, menuFont, fontLoaded, selectedThemeChoice, hoveredThemeChoice, isThemeSelectorHovered);
+            drawAbilitySelector(window, menuFont, fontLoaded, selectedAbilityChoice, hoveredAbilityChoice, isAbilitySelectorHovered);
         } else if (gameState == GameState::SprintLinesSelect) {
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
             drawGlowEffects(window, glowEffects, textures);
@@ -5999,11 +6117,6 @@ int main(int argc, char* argv[]) {
             drawAudioMenu(window, menuFont, fontLoaded, debugMode, selectedAudioOption,
                          audioManager.getMasterVolume(), audioManager.getMusicVolume(), audioManager.getSfxVolume(),
                          textures, useTextures, splashElapsedTime);
-        } else if (gameState == GameState::Customization) {
-            splashElapsedTime += deltaTime;
-            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
-            drawGlowEffects(window, glowEffects, textures);
-            drawCustomizationMenu(window, menuFont, fontLoaded, hoveredThemeChoice, selectedThemeChoice, textures, useTextures, splashElapsedTime);
         } else if (gameState == GameState::Rebinding) {
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
             drawGlowEffects(window, glowEffects, textures);
@@ -6091,7 +6204,17 @@ int main(int argc, char* argv[]) {
         drawFallingCells(window, fallingCells, textures, useTextures);
         drawNextPieces(window, TesseraBag.getNextQueue(), textures, useTextures, currentTheme.frameColor, menuFont, fontLoaded);
         drawHeldPiece(window, heldPiece, hasHeldPiece, textures, useTextures, menuFont, fontLoaded, currentTheme.frameColor);
-        drawBombAbility(window, bombAbilityAvailable, linesSinceLastAbility, textures, useTextures, menuFont, fontLoaded, practiceModeActive && practiceInfiniteBombs, currentTheme.frameColor);
+        
+        int currentAbilityLinesRequired = LINES_FOR_BOMB;
+        if (selectedAbilityChoice == AbilityChoice::Delivery) {
+            currentAbilityLinesRequired = LINES_FOR_DELIVERY;
+        } else if (selectedAbilityChoice == AbilityChoice::Stomp) {
+            currentAbilityLinesRequired = LINES_FOR_STOMP;
+        } else if (selectedAbilityChoice == AbilityChoice::Bomb) {
+            currentAbilityLinesRequired = LINES_FOR_BOMB;
+        }
+        
+        drawBombAbility(window, bombAbilityAvailable, linesSinceLastAbility, textures, useTextures, menuFont, fontLoaded, practiceModeActive && practiceInfiniteBombs, currentTheme.frameColor, selectedAbilityChoice, currentAbilityLinesRequired);
         
 
         bool useSprintUI = sprintModeActive || (currentConfig && currentConfig->hasLineGoal);
@@ -6180,7 +6303,7 @@ int main(int argc, char* argv[]) {
         }
         
         if (gameState == GameState::Paused) {
-            drawPauseMenu(window, menuFont, fontLoaded, selectedPauseOption);
+            drawPauseMenu(window, menuFont, fontLoaded, selectedPauseOption, currentTheme.frameColor, currentTheme.backgroundColor);
         }
         
         if (debugMode) {

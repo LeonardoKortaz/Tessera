@@ -12,7 +12,7 @@ constexpr float SCREEN_HEIGHT = 1080.0f;
 
 void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData, int hardDropScore, int lineScore, int comboScore, ClassicDifficulty difficulty, bool isSprintMode, float sprintTime, int sprintTarget, bool sprintCompleted, bool isChallengeMode, bool isPracticeMode = false, float uiAlpha = 1.0f, sf::Color frameColor = sf::Color::White, float statsRevealTime = 0.0f, bool isNewHighScore = false, int previousHighScore = 0, sf::Color backgroundColor = sf::Color::Black);
 void drawTesseraTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded);
-void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, PauseOption selectedOption);
+void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, PauseOption selectedOption, const sf::Color& frameColor = sf::Color(100, 150, 255), const sf::Color& backgroundColor = sf::Color(10, 15, 31));
 void drawConfirmClearScores(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, ConfirmOption selectedOption);
 void drawFirstTimeSetup(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ControlScheme selectedScheme, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
 void drawWelcomeScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded);

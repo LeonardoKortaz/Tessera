@@ -108,7 +108,6 @@ enum class GameState {
     BestScoresView,
     Options,
     AudioSettings,
-    Customization,
     Rebinding,
     ConfirmClearScores,
     Playing,
@@ -202,11 +201,10 @@ enum class ChallengeMode {
 };
 
 enum class ExtrasOption {
-    Customization = 0,
-    Achievements = 1,
-    Statistics = 2,
-    BestScores = 3,
-    Back = 4
+    Achievements = 0,
+    Statistics = 1,
+    BestScores = 2,
+    Back = 3
 };
 
 
@@ -214,6 +212,12 @@ enum class GameThemeChoice {
     Classic = 0,
     Forest = 1,
     Racer = 2
+};
+
+enum class AbilityChoice {
+    Bomb = 0,
+    Delivery = 1,
+    Stomp = 2
 };
 
 enum class OptionsMenuOption {
@@ -374,13 +378,16 @@ enum class PieceType {
     S_Hard,
     Z_Hard,
 
-    A_Bomb
+    Cream_Single,
+    A_Bomb,
+    A_Stomp
 };
 
 
 enum class AbilityType {
     None,
-    Bomb
+    Bomb,
+    Stomp
 };
 
 
@@ -390,7 +397,9 @@ enum class TextureType {
     MediumBlock,
     HardBlock,
     
+    CreamBlock,
     A_Bomb,
+    A_Stomp,
 
     MuteIcon,
     TesseraLogo
@@ -632,6 +641,7 @@ public:
     void reset();
     void reset(int startLevel);
     void returnPieceToBag(PieceType piece);
+    void insertPiecesToQueue(PieceType piece, int count);
 };
 
 

@@ -93,10 +93,18 @@ PieceShape getPieceShape(PieceType type) {
             shape.blocks = {{false, true, false},{true, true, false},{false, true, true},{false, true, false}};
             shape.color = sf::Color(0, 115, 255);
             break;
-
+        case PieceType::Cream_Single:
+            shape.blocks = {{true}};
+            shape.color = sf::Color(255, 253, 208);
+            break;
         case PieceType::A_Bomb:
             shape.blocks = {{true}};
             shape.color = sf::Color(255, 255, 255);
+            break;
+
+        case PieceType::A_Stomp:
+            shape.blocks = {{true, true, true}};
+            shape.color = sf::Color(160, 82, 45);
             break;
     }
     shape.height = static_cast<int>(shape.blocks.size());
@@ -133,8 +141,14 @@ TextureType getTextureType(PieceType pieceType) {
         case PieceType::Z_Hard:
             return TextureType::HardBlock;
         
+        case PieceType::Cream_Single:
+            return TextureType::CreamBlock;
+        
         case PieceType::A_Bomb:
             return TextureType::A_Bomb;
+
+        case PieceType::A_Stomp:
+            return TextureType::A_Stomp;
 
         default:
             return TextureType::Empty;
@@ -166,6 +180,9 @@ std::string pieceTypeToString(PieceType type) {
         case PieceType::O_Hard: return "O#";
         case PieceType::S_Hard: return "S#";
         case PieceType::Z_Hard: return "Z#";
+        
+        case PieceType::Cream_Single: return "Cream";
+        case PieceType::A_Stomp: return "Stomp";
         
         default: return "Unknown";
     }

@@ -64,7 +64,7 @@ void drawGridBorder(sf::RenderWindow& window, const sf::Color& borderColor) {
     window.draw(border);
 }
 
-void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceLastAbility, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, bool infiniteBombs, const sf::Color& frameColor) {
+void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceLastAbility, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, bool infiniteBombs, const sf::Color& frameColor, AbilityChoice selectedAbility, int linesRequired) {
 
     static sf::Shader grayscaleShader;
     static bool shaderLoaded = false;
@@ -83,9 +83,31 @@ void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceL
 
 
     if (fontLoaded) {
-        sf::Text bombTitle(font, "BOMB");
+        std::string abilityName;
+        sf::Color abilityColor;
+        
+        switch(selectedAbility) {
+            case AbilityChoice::Bomb:
+                abilityName = "BOMB";
+                abilityColor = sf::Color(255, 100, 100);
+                break;
+            case AbilityChoice::Delivery:
+                abilityName = "DELIVERY";
+                abilityColor = sf::Color(255, 200, 100);
+                break;
+            case AbilityChoice::Stomp:
+                abilityName = "STOMP";
+                abilityColor = sf::Color(160, 120, 90);
+                break;
+            default:
+                abilityName = "ABILITY";
+                abilityColor = sf::Color::White;
+                break;
+        }
+        
+        sf::Text bombTitle(font, abilityName);
         bombTitle.setCharacterSize(32);
-        bombTitle.setFillColor((isAvailable || infiniteBombs) ? sf::Color(255, 100, 100) : sf::Color::White);
+        bombTitle.setFillColor((isAvailable || infiniteBombs) ? abilityColor : sf::Color::White);
         bombTitle.setStyle(sf::Text::Bold);
         bombTitle.setPosition(sf::Vector2f(panelX, panelY - 40));
         window.draw(bombTitle);
@@ -148,11 +170,15 @@ void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceL
 
     float barStartX = panelX + 5;
     float barY = panelY + 75;
-    float barWidth = 8.0f;
-    float barHeight = 20.0f;
-    float barSpacing = 1.0f;
     
-    for (int i = 0; i < 10; ++i) {
+
+    const float TOTAL_BAR_WIDTH = 90.0f;
+    float barSpacing = 1.0f;
+    float totalSpacingWidth = (linesRequired - 1) * barSpacing;
+    float barWidth = (TOTAL_BAR_WIDTH - totalSpacingWidth) / linesRequired;
+    float barHeight = 20.0f;
+    
+    for (int i = 0; i < linesRequired; ++i) {
         sf::RectangleShape segment;
         segment.setSize(sf::Vector2f(barWidth, barHeight));
         segment.setPosition(sf::Vector2f(barStartX + i * (barWidth + barSpacing), barY));
@@ -162,7 +188,7 @@ void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceL
             segment.setFillColor(sf::Color(255, 215, 0));
         } else if (i < linesSinceLastAbility) {
 
-            float t = static_cast<float>(i) / 9.0f;
+            float t = static_cast<float>(i) / (linesRequired - 1.0f);
             sf::Color fillColor(
                 static_cast<std::uint8_t>(100 + 155 * t),
                 static_cast<std::uint8_t>(255 - 155 * t),
@@ -760,6 +786,187 @@ void drawFallingCells(sf::RenderWindow& window, const std::vector<FallingCell>& 
             cellShape.setRotation(sf::degrees(cell.rotation * 57.2958f));
             
             window.draw(cellShape);
+        }
+    }
+}
+
+void drawThemeSelector(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded, 
+                      GameThemeChoice currentTheme, GameThemeChoice hoveredTheme, 
+                      bool isHovered) {
+    float panelX = 1400;
+    float panelY = 450;
+    float panelWidth = 220;
+    float themeHeight = 70;
+    
+
+    sf::RectangleShape panelBg;
+    panelBg.setFillColor(sf::Color(20, 25, 35, 230));
+    panelBg.setOutlineColor(sf::Color(100, 150, 255, 255));
+    panelBg.setOutlineThickness(2);
+    panelBg.setPosition(sf::Vector2f(panelX - 10, panelY - 10));
+    panelBg.setSize(sf::Vector2f(panelWidth + 20, themeHeight * 3 + 40));
+    window.draw(panelBg);
+    
+
+    sf::Text titleText(font, "THEMES");
+    titleText.setCharacterSize(20);
+    titleText.setFillColor(sf::Color(200, 220, 255));
+    titleText.setStyle(sf::Text::Bold);
+    titleText.setPosition(sf::Vector2f(panelX + 60, panelY));
+    window.draw(titleText);
+    
+
+    std::vector<std::pair<GameThemeChoice, std::string>> themes = {
+        {GameThemeChoice::Classic, "CLASSIC"},
+        {GameThemeChoice::Forest, "FOREST"},
+        {GameThemeChoice::Racer, "RACER"}
+    };
+    
+    for (size_t i = 0; i < themes.size(); i++) {
+        float yPos = panelY + 35 + i * themeHeight;
+        GameThemeChoice theme = themes[i].first;
+        bool isSelected = (theme == currentTheme);
+        bool isHover = isHovered && (theme == hoveredTheme);
+        
+
+        sf::RectangleShape themeButton;
+        themeButton.setSize(sf::Vector2f(panelWidth, themeHeight - 10));
+        themeButton.setPosition(sf::Vector2f(panelX, yPos));
+        
+        if (isSelected) {
+            themeButton.setFillColor(sf::Color(50, 100, 200, 200));
+            themeButton.setOutlineColor(sf::Color(100, 200, 255, 255));
+            themeButton.setOutlineThickness(3);
+        } else if (isHover) {
+            themeButton.setFillColor(sf::Color(40, 80, 160, 180));
+            themeButton.setOutlineColor(sf::Color(80, 160, 220, 200));
+            themeButton.setOutlineThickness(2);
+        } else {
+            themeButton.setFillColor(sf::Color(30, 40, 60, 150));
+            themeButton.setOutlineColor(sf::Color(60, 80, 120, 150));
+            themeButton.setOutlineThickness(1);
+        }
+        
+        window.draw(themeButton);
+        
+
+        sf::Text themeName(font, themes[i].second);
+        themeName.setCharacterSize(isSelected ? 24 : 20);
+        themeName.setFillColor(isSelected ? sf::Color(255, 255, 255) : 
+                              isHover ? sf::Color(220, 220, 255) : sf::Color(180, 180, 200));
+        themeName.setStyle(isSelected ? sf::Text::Bold : sf::Text::Regular);
+        
+
+        sf::FloatRect textBounds = themeName.getLocalBounds();
+        themeName.setPosition(sf::Vector2f(
+            panelX + (panelWidth - textBounds.size.x) / 2,
+            yPos + (themeHeight - 10 - textBounds.size.y) / 2 - 5
+        ));
+        
+        window.draw(themeName);
+        
+
+        if (isSelected) {
+            sf::CircleShape indicator(6);
+            indicator.setFillColor(sf::Color(100, 255, 150));
+            indicator.setPosition(sf::Vector2f(panelX + 15, yPos + themeHeight/2 - 11));
+            window.draw(indicator);
+        }
+    }
+}
+
+void drawAbilitySelector(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded, 
+                        AbilityChoice currentAbility, AbilityChoice hoveredAbility, 
+                        bool isHovered) {
+    float panelX = 300;
+    float panelY = 450;
+    float panelWidth = 220;
+    float abilityHeight = 70;
+    
+
+    sf::RectangleShape panelBg;
+    panelBg.setFillColor(sf::Color(20, 25, 35, 230));
+    panelBg.setOutlineColor(sf::Color(255, 150, 100, 255));
+    panelBg.setOutlineThickness(2);
+    panelBg.setPosition(sf::Vector2f(panelX - 10, panelY - 10));
+    panelBg.setSize(sf::Vector2f(panelWidth + 20, abilityHeight * 3 + 40));
+    window.draw(panelBg);
+    
+
+    sf::Text titleText(font, "ABILITY");
+    titleText.setCharacterSize(20);
+    titleText.setFillColor(sf::Color(255, 220, 200));
+    titleText.setStyle(sf::Text::Bold);
+    titleText.setPosition(sf::Vector2f(panelX + 60, panelY));
+    window.draw(titleText);
+    
+
+    std::vector<std::pair<AbilityChoice, std::string>> abilities = {
+        {AbilityChoice::Bomb, "BOMB"},
+        {AbilityChoice::Delivery, "DELIVERY"},
+        {AbilityChoice::Stomp, "STOMP"}
+    };
+    
+    for (size_t i = 0; i < abilities.size(); i++) {
+        float yPos = panelY + 35 + i * abilityHeight;
+        AbilityChoice ability = abilities[i].first;
+        bool isSelected = (ability == currentAbility);
+        bool isHover = isHovered && (ability == hoveredAbility);
+        bool isLocked = false;
+        
+
+        sf::RectangleShape abilityButton;
+        abilityButton.setSize(sf::Vector2f(panelWidth, abilityHeight - 10));
+        abilityButton.setPosition(sf::Vector2f(panelX, yPos));
+        
+        if (isLocked) {
+            abilityButton.setFillColor(sf::Color(40, 40, 40, 150));
+            abilityButton.setOutlineColor(sf::Color(80, 80, 80, 150));
+            abilityButton.setOutlineThickness(1);
+        } else if (isSelected) {
+            abilityButton.setFillColor(sf::Color(200, 100, 50, 200));
+            abilityButton.setOutlineColor(sf::Color(255, 150, 100, 255));
+            abilityButton.setOutlineThickness(3);
+        } else if (isHover) {
+            abilityButton.setFillColor(sf::Color(160, 80, 40, 180));
+            abilityButton.setOutlineColor(sf::Color(220, 130, 80, 200));
+            abilityButton.setOutlineThickness(2);
+        } else {
+            abilityButton.setFillColor(sf::Color(60, 40, 30, 150));
+            abilityButton.setOutlineColor(sf::Color(120, 80, 60, 150));
+            abilityButton.setOutlineThickness(1);
+        }
+        
+        window.draw(abilityButton);
+        
+
+        sf::Text abilityName(font, abilities[i].second);
+        abilityName.setCharacterSize(isLocked ? 18 : (isSelected ? 24 : 20));
+        
+        if (isLocked) {
+            abilityName.setFillColor(sf::Color(100, 100, 100));
+        } else {
+            abilityName.setFillColor(isSelected ? sf::Color(255, 255, 255) : 
+                                  isHover ? sf::Color(255, 220, 200) : sf::Color(200, 180, 160));
+        }
+        
+        abilityName.setStyle(isSelected ? sf::Text::Bold : sf::Text::Regular);
+        
+
+        sf::FloatRect textBounds = abilityName.getLocalBounds();
+        abilityName.setPosition(sf::Vector2f(
+            panelX + (panelWidth - textBounds.size.x) / 2,
+            yPos + (abilityHeight - 10 - textBounds.size.y) / 2 - 5
+        ));
+        
+        window.draw(abilityName);
+        
+
+        if (isSelected && !isLocked) {
+            sf::CircleShape indicator(6);
+            indicator.setFillColor(sf::Color(255, 150, 100));
+            indicator.setPosition(sf::Vector2f(panelX + 15, yPos + abilityHeight/2 - 11));
+            window.draw(indicator);
         }
     }
 }

@@ -16,7 +16,9 @@ void drawGridBorder(sf::RenderWindow& window, const sf::Color& borderColor = sf:
 void drawBombAbility(sf::RenderWindow& window, bool isAvailable, int linesSinceLastAbility, 
                     const std::map<TextureType, sf::Texture>& textures, bool useTextures, 
                     const sf::Font& font, bool fontLoaded, bool infiniteBombs = false,
-                    const sf::Color& frameColor = sf::Color(100, 150, 255));
+                    const sf::Color& frameColor = sf::Color(100, 150, 255),
+                    AbilityChoice selectedAbility = AbilityChoice::Bomb,
+                    int linesRequired = 10);
 void drawHeldPiece(sf::RenderWindow& window, PieceType heldType, bool hasHeld, 
                   const std::map<TextureType, sf::Texture>& textures, bool useTextures, 
                   const sf::Font& font, bool fontLoaded,
@@ -49,3 +51,9 @@ void drawCustomCursor(sf::RenderWindow& window, const std::map<TextureType, sf::
 void drawThermometerParticles(sf::RenderWindow& window, const std::vector<ThermometerParticle>& particles);
 void drawFallingCells(sf::RenderWindow& window, const std::vector<FallingCell>& cells,
                      const std::map<TextureType, sf::Texture>& textures, bool useTextures);
+void drawThemeSelector(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded, 
+                      GameThemeChoice currentTheme, GameThemeChoice hoveredTheme, 
+                      bool isHovered);
+void drawAbilitySelector(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded, 
+                        AbilityChoice currentAbility, AbilityChoice hoveredAbility, 
+                        bool isHovered);

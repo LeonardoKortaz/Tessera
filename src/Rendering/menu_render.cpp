@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <cmath>
 
+const std::string GAME_VERSION = "v0.3.0-beta.10";
 
 float drawButtonSprite(sf::RenderWindow& window, 
                        const std::map<TextureType, sf::Texture>& textures,
@@ -369,19 +370,19 @@ void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int 
 void drawTesseraTitle(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded) {
     if (!fontLoaded) return;
     
-    sf::Text titleText(font, "v0.3.0-beta.9");
+    sf::Text titleText(font, GAME_VERSION);
     titleText.setCharacterSize(24);
-    titleText.setFillColor(sf::Color(100, 255, 150));
+    titleText.setFillColor(sf::Color(250, 250, 250));
     titleText.setStyle(sf::Text::Bold);
     titleText.setOutlineColor(sf::Color::Black);
     titleText.setOutlineThickness(2);
     
-    titleText.setPosition(sf::Vector2f(SCREEN_WIDTH - 300, SCREEN_HEIGHT - 40));
+    titleText.setPosition(sf::Vector2f(10, SCREEN_HEIGHT - 40));
     
     window.draw(titleText);
 }
 
-void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, PauseOption selectedOption) {
+void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, PauseOption selectedOption, const sf::Color& frameColor, const sf::Color& backgroundColor) {
     sf::RectangleShape overlay;
     overlay.setFillColor(sf::Color(0, 0, 0, 180));
     overlay.setSize(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
@@ -392,8 +393,8 @@ void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool font
     float centerY = SCREEN_HEIGHT / 2.0f;
     
     sf::RectangleShape menuBg;
-    menuBg.setFillColor(sf::Color(40, 40, 50, 240));
-    menuBg.setOutlineColor(sf::Color(100, 150, 255, 255));
+    menuBg.setFillColor(sf::Color(backgroundColor.r, backgroundColor.g, backgroundColor.b, 240));
+    menuBg.setOutlineColor(frameColor);
     menuBg.setOutlineThickness(4);
     menuBg.setSize(sf::Vector2f(400, 350));
     menuBg.setPosition(sf::Vector2f(centerX - 200, centerY - 175));
@@ -402,7 +403,7 @@ void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool font
     if (fontLoaded) {
         sf::Text pausedText(menuFont, "Tessera");
         pausedText.setCharacterSize(48);
-        pausedText.setFillColor(sf::Color(100, 150, 255));
+        pausedText.setFillColor(frameColor);
         pausedText.setStyle(sf::Text::Bold);
         sf::FloatRect titleBounds = pausedText.getLocalBounds();
         pausedText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 140));
@@ -780,7 +781,7 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
     }
     
     if (fontLoaded) {
-        sf::Text versionText(menuFont, "v0.3.0-beta.9");
+        sf::Text versionText(menuFont, GAME_VERSION);
         versionText.setCharacterSize(24);
         versionText.setFillColor(sf::Color(150, 150, 150));
         sf::FloatRect versionBounds = versionText.getLocalBounds();
@@ -846,8 +847,7 @@ void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
         std::vector<std::pair<std::string, GameModeOption>> options = {
             {"CLASSIC", GameModeOption::Classic},
             {"BLITZ", GameModeOption::Sprint},
-            {"CHALLENGE", GameModeOption::Challenge},
-            {"PRACTICE", GameModeOption::Practice}
+            {"CHALLENGE", GameModeOption::Challenge}
         };
         
         float startY = centerY - 80;
@@ -1731,7 +1731,6 @@ void drawExtrasMenu(sf::RenderWindow& window, const sf::Font& titleFont, const s
     
     if (fontLoaded) {
         std::vector<std::pair<std::string, ExtrasOption>> options = {
-            {MenuConfig::ExtrasMenu::CUSTOMIZATION, ExtrasOption::Customization},
             {MenuConfig::ExtrasMenu::ACHIEVEMENTS, ExtrasOption::Achievements},
             {MenuConfig::ExtrasMenu::STATISTICS, ExtrasOption::Statistics},
             {MenuConfig::ExtrasMenu::BEST_SCORES, ExtrasOption::BestScores}
