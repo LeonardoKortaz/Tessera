@@ -84,6 +84,26 @@ bool AudioManager::loadAllAudio() {
     }
 
 
+    if (stompSoundBuffer.loadFromFile("Assets/Sound/SFX/stomp.ogg")) {
+        stompSound = std::make_unique<sf::Sound>(stompSoundBuffer);
+        stompSound->setVolume((bombVolume * masterVolume) / 100.0f);
+        std::cout << "Stomp sound loaded successfully!" << std::endl;
+    } else {
+        std::cout << "Unable to load stomp sound (Assets/Sound/SFX/stomp.ogg)" << std::endl;
+        allLoaded = false;
+    }
+
+
+    if (deliverySoundBuffer.loadFromFile("Assets/Sound/SFX/delivery.ogg")) {
+        deliverySound = std::make_unique<sf::Sound>(deliverySoundBuffer);
+        deliverySound->setVolume((bombVolume * masterVolume) / 100.0f);
+        std::cout << "Delivery sound loaded successfully!" << std::endl;
+    } else {
+        std::cout << "Unable to load delivery sound (Assets/Sound/SFX/delivery.ogg)" << std::endl;
+        allLoaded = false;
+    }
+
+
     if (achievementSoundBuffer.loadFromFile("Assets/Sound/SFX/Achievement.ogg")) {
         achievementSound = std::make_unique<sf::Sound>(achievementSoundBuffer);
         achievementSound->setVolume((achievementVolume * masterVolume) / 100.0f);
@@ -258,6 +278,18 @@ void AudioManager::playLaserSound() {
 void AudioManager::playBombSound() {
     if (bombSound) {
         bombSound->play();
+    }
+}
+
+void AudioManager::playStompSound() {
+    if (stompSound) {
+        stompSound->play();
+    }
+}
+
+void AudioManager::playDeliverySound() {
+    if (deliverySound) {
+        deliverySound->play();
     }
 }
 

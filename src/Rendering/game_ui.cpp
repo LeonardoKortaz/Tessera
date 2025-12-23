@@ -275,7 +275,7 @@ void drawCombo(sf::RenderWindow& window, float displayCombo, int targetCombo, in
     window.draw(comboLabel);
     
 
-    float cappedCombo = std::min(comboToShow, 30.0f);
+    float cappedCombo = std::min(comboToShow, 12.0f);
     float baseFontSize = 48.0f + cappedCombo * 2.0f;
     float scaleFactor = (baseFontSize / 48.0f) * fadeScale;
     

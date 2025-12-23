@@ -648,6 +648,9 @@ public:
             case AbilityType::Stomp:
                 if (shakeIntensity && shakeDuration && shakeTimer) {
                     StompEffect(x, y, grid, *shakeIntensity, *shakeDuration, *shakeTimer);
+                    if (audioManager) {
+                        audioManager->playStompSound();
+                    }
                 } else {
                     std::cout << "Stomp ability activated (no shake)!" << std::endl;
                 }
@@ -1430,9 +1433,11 @@ int main(int argc, char* argv[]) {
     bool bombAbilityAvailable = false;
     bool deliveryAbilityAvailable = false;
     bool stompAbilityAvailable = false;
-    const int LINES_FOR_DELIVERY = 10;
-    const int LINES_FOR_BOMB = 10;
-    const int LINES_FOR_STOMP = 10;
+    const int LINES_FOR_DELIVERY = 6;
+    const int LINES_FOR_BOMB = 8;
+    const int LINES_FOR_STOMP = 12;
+    
+    int lastCreamBlockX = -1;
     
     int currentCombo = 0;
     float displayCombo = 0.0f;
@@ -4384,6 +4389,11 @@ int main(int argc, char* argv[]) {
                     canRotate = (currentPieceRotations < 1);
                 }
                 
+
+                if (activePiece.getType() == PieceType::A_Stomp) {
+                    canRotate = false;
+                }
+                
                 if (keyPressed->code == keyBindings.rotateLeft) {
                     if (!gameOver && canRotate) {
                         activePiece.rotateLeft(grid);
@@ -4434,6 +4444,15 @@ int main(int argc, char* argv[]) {
                                 spawnY = GRID_HEIGHT / 2 - newShape.height / 2;
                             }
                             
+
+                            Piece testPiece(spawnX, spawnY, newType);
+                            if (testPiece.collidesAt(grid, spawnX, spawnY)) {
+                                std::cout << "HOLD BLOCKED: Cannot spawn " << pieceTypeToString(newType) << " - would cause game over!" << std::endl;
+                                hasHeldPiece = false;
+                                canUseHold = false;
+                                break;
+                            }
+                            
                             activePiece = Piece(spawnX, spawnY, newType);
                             
 
@@ -4450,13 +4469,12 @@ int main(int argc, char* argv[]) {
 
                             PieceType currentType = activePiece.getType();
                             PieceType swapType = heldPiece;
-                            heldPiece = currentType;
                             
 
                             saveData.totalHolds++;
                             
 
-                            if (heldPiece == PieceType::A_Bomb && !challengeModeActive && !practiceModeActive) {
+                            if (currentType == PieceType::A_Bomb && !challengeModeActive && !practiceModeActive) {
                                 unlockAchievement(saveData, Achievement::HoldBomb, &achievementPopups, &audioManager);
                             }
                             
@@ -4471,6 +4489,15 @@ int main(int argc, char* argv[]) {
                                 spawnY = GRID_HEIGHT / 2 - swapShape.height / 2;
                             }
                             
+
+                            Piece testPiece(spawnX, spawnY, swapType);
+                            if (testPiece.collidesAt(grid, spawnX, spawnY)) {
+                                std::cout << "SWAP BLOCKED: Cannot spawn " << pieceTypeToString(swapType) << " from hold - would cause game over!" << std::endl;
+                                canUseHold = false;
+                                break;
+                            }
+                            
+                            heldPiece = currentType;
                             activePiece = Piece(spawnX, spawnY, swapType);
                             
 
@@ -4708,8 +4735,17 @@ int main(int argc, char* argv[]) {
                         if ((deliveryAbilityAvailable || debugMode) && !gameOver) {
                             std::cout << "DELIVERY ABILITY ACTIVATED - Returning piece and adding 6 cream blocks!" << (debugMode ? " (DEBUG MODE)" : "") << std::endl;
                             
+                            audioManager.playDeliverySound();
+                            
 
                             PieceType replacedPiece = activePiece.getType();
+                            
+
+                            if (replacedPiece == PieceType::Cream_Single) {
+                                lastCreamBlockX = activePiece.getX();
+                                std::cout << "Saved cream block position X: " << lastCreamBlockX << std::endl;
+                            }
+                            
                             TesseraBag.returnPieceToBag(replacedPiece);
                             std::cout << "Returned " << pieceTypeToString(replacedPiece) << " to bag" << std::endl;
                             
@@ -5217,6 +5253,12 @@ int main(int argc, char* argv[]) {
                 autoDropTimer = 0.0f;
             }
             
+
+            if (activePiece.getType() == PieceType::Cream_Single) {
+                lastCreamBlockX = activePiece.getX();
+                std::cout << "Saved cream block position X: " << lastCreamBlockX << std::endl;
+            }
+            
             AbilityType usedAbility = activePiece.getAbility();
             bool isVanishing = (challengeModeActive && selectedChallengeMode == ChallengeMode::Vanishing);
             activePiece.ChangeToStatic(grid, usedAbility, &audioManager, &explosionEffects, &glowEffects, &shakeIntensity, &shakeDuration, &shakeTimer, &consecutiveBombsUsed, &saveData, &achievementPopups, isVanishing);
@@ -5452,8 +5494,10 @@ int main(int argc, char* argv[]) {
                 }
             } else {
                 lastMoveScore = 0;
-                currentCombo = std::max(0, currentCombo - 2);
-                std::cout << "No lines cleared | Combo decreased to: " << currentCombo << std::endl;
+                if (activePiece.getType() != PieceType::Cream_Single) {
+                    currentCombo = std::max(0, currentCombo - 2);
+                    std::cout << "No lines cleared | Combo decreased to: " << currentCombo << std::endl;
+                }
             }
             
 
@@ -5469,7 +5513,16 @@ int main(int argc, char* argv[]) {
             PieceType randomType = TesseraBag.getNextPiece();
             std::cout << "Respawn: " << pieceTypeToString(randomType) << " (Bag System)" << std::endl;
             PieceShape newShape = getPieceShape(randomType);
-            int spawnX = (GRID_WIDTH - newShape.width) / 2;
+            
+            int spawnX;
+
+            if (randomType == PieceType::Cream_Single && lastCreamBlockX >= 0) {
+                spawnX = lastCreamBlockX;
+                std::cout << "Using saved cream block position X: " << spawnX << std::endl;
+            } else {
+                spawnX = (GRID_WIDTH - newShape.width) / 2;
+                lastCreamBlockX = -1;
+            }
             
 
             int firstFilledRow = findFirstFilledRow(newShape);

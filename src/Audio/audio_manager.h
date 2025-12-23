@@ -23,6 +23,8 @@ private:
     sf::SoundBuffer customDropSoundBuffer;
     sf::SoundBuffer laserSoundBuffer;
     sf::SoundBuffer bombSoundBuffer;
+    sf::SoundBuffer stompSoundBuffer;
+    sf::SoundBuffer deliverySoundBuffer;
     sf::SoundBuffer achievementSoundBuffer;
     sf::SoundBuffer gameOverSoundBuffer;
     sf::SoundBuffer menuClickSoundBuffer;
@@ -35,6 +37,8 @@ private:
     std::unique_ptr<sf::Sound> customDropSound;
     std::unique_ptr<sf::Sound> laserSound;
     std::unique_ptr<sf::Sound> bombSound;
+    std::unique_ptr<sf::Sound> stompSound;
+    std::unique_ptr<sf::Sound> deliverySound;
     std::unique_ptr<sf::Sound> achievementSound;
     std::unique_ptr<sf::Sound> gameOverSound;
     std::unique_ptr<sf::Sound> menuClickSound;
@@ -93,6 +97,8 @@ public:
     void playSpaceSound();
     void playLaserSound();
     void playBombSound();
+    void playStompSound();
+    void playDeliverySound();
     void playAchievementSound();
     void playGameOverSound();
     void playWowSound(int index);
@@ -123,6 +129,8 @@ public:
     sf::Sound* getSpaceSound() { return spaceSound.get(); }
     sf::Sound* getLaserSound() { return laserSound.get(); }
     sf::Sound* getBombSound() { return bombSound.get(); }
+    sf::Sound* getStompSound() { return stompSound.get(); }
+    sf::Sound* getDeliverySound() { return deliverySound.get(); }
     sf::Sound* getAchievementSound() { return achievementSound.get(); }
     sf::Sound* getGameOverSound() { return gameOverSound.get(); }
     std::vector<std::unique_ptr<sf::Sound>>& getWowSounds() { return wowSounds; }
