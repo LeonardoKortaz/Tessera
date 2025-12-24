@@ -1307,6 +1307,16 @@ int main(int argc, char* argv[]) {
     PauseOption selectedPauseOption = PauseOption::Resume;
     ConfirmOption selectedConfirmOption = ConfirmOption::No;
     int hoveredAchievement = -1;
+    int hoveredModeCard = -1;
+    int selectedModeCard = 0;
+    int lastSelectedCardBeforeBack = 0;
+    bool isBackButtonHovered = false;
+    int selectedExtrasCard = 0;
+    int lastSelectedExtrasCardBeforeBack = 0;
+    bool isExtrasBackButtonHovered = false;
+    int selectedOptionsCard = 0;
+    int lastSelectedOptionsCardBeforeBack = 0;
+    bool isOptionsBackButtonHovered = false;
     
 
     GameThemeChoice selectedThemeChoice = static_cast<GameThemeChoice>(saveData.selectedTheme);
@@ -1376,6 +1386,10 @@ int main(int argc, char* argv[]) {
     ControlScheme rebindingSelectedScheme = ControlScheme::Classic;
     ControlScheme rebindingHoveredScheme = ControlScheme::Classic;
     ControlScheme rebindingAppliedScheme = ControlScheme::Classic;
+    bool isResetButtonHovered = false;
+    
+
+    KeyBindings customKeyBindings = keyBindings;
     
     int totalLinesCleared = 0;
                             displayedThermometerFill = 0.0f;
@@ -1524,7 +1538,7 @@ int main(int argc, char* argv[]) {
                     float mouseY = mousePos.y;
                     float centerX = WINDOW_WIDTH / 2.0f;
                     
-                    float buttonY = 180.0f;
+                    float buttonY = 140.0f;
                     float buttonSpacing = 350.0f;
                     
 
@@ -1542,6 +1556,19 @@ int main(int argc, char* argv[]) {
                     }
                     else {
                         rebindingHoveredScheme = rebindingSelectedScheme;
+                    }
+                    
+
+                    isResetButtonHovered = false;
+                    if (rebindingSelectedScheme == ControlScheme::Custom) {
+                        float resetButtonY = 920.0f;
+                        float resetButtonWidth = 200.0f;
+                        float resetButtonHeight = 60.0f;
+                        
+                        if (mouseX >= centerX - resetButtonWidth/2 && mouseX <= centerX + resetButtonWidth/2 &&
+                            mouseY >= resetButtonY && mouseY <= resetButtonY + resetButtonHeight) {
+                            isResetButtonHovered = true;
+                        }
                     }
                 }
                 
@@ -1752,29 +1779,192 @@ int main(int argc, char* argv[]) {
                             if (clickX >= centerX - startWidth && clickX <= centerX + startWidth &&
                                 clickY >= centerY - 60 && clickY <= centerY - 60 + buttonHeight) {
                                 audioManager.playMenuClickSound();
-                                gameState = GameState::GameModeSelect;
-                                selectedGameModeOption = GameModeOption::Classic;
-                                std::cout << "Entered GAME MODE selection (mouse)" << std::endl;
+                                gameState = GameState::ModeSelection;
+                                std::cout << "Entered MODE SELECTION screen (mouse)" << std::endl;
                             }
 
                             else if (clickX >= centerX - extrasWidth && clickX <= centerX + extrasWidth &&
                                      clickY >= centerY + 50 && clickY <= centerY + 50 + buttonHeight) {
                                 audioManager.playMenuClickSound();
-                                gameState = GameState::Extras;
-                                selectedExtrasOption = ExtrasOption::Achievements;
-                                std::cout << "Entered EXTRAS menu (mouse)" << std::endl;
+                                gameState = GameState::ExtrasSelection;
+                                selectedExtrasCard = 0;
+                                std::cout << "Entered EXTRAS selection (mouse)" << std::endl;
                             }
 
                             else if (clickX >= centerX - optionsWidth && clickX <= centerX + optionsWidth &&
                                      clickY >= centerY + 160 && clickY <= centerY + 160 + buttonHeight) {
                                 audioManager.playMenuClickSound();
-                                gameState = GameState::Options;
+                                gameState = GameState::OptionsSelection;
+                                selectedOptionsCard = 0;
                                 std::cout << "Entered OPTIONS menu (mouse)" << std::endl;
                             }
 
                             else if (clickX >= centerX - exitWidth && clickX <= centerX + exitWidth &&
                                      clickY >= centerY + 270 && clickY <= centerY + 270 + buttonHeight) {
                                 window.close();
+                            }
+                        }
+                    } else if (gameState == GameState::ModeSelection) {
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        float centerX = WINDOW_WIDTH / 2.0f;
+                        float centerY = WINDOW_HEIGHT / 2.0f;
+                        
+                        int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
+                        if (clickedBombIndex >= 0) {
+                            const auto& bomb = backgroundPieces[clickedBombIndex];
+                            explodeMenuBomb(bomb, explosionEffects, glowEffects, audioManager, 
+                                          shakeIntensity, shakeDuration, shakeTimer, 
+                                          saveData, achievementPopups);
+                            backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
+                        }
+                        else {
+                            float backButtonY = WINDOW_HEIGHT - 100.0f;
+                            float backButtonWidth = 200.0f;
+                            float backButtonHeight = 60.0f;
+                            
+                            if (clickX >= centerX - backButtonWidth/2 && clickX <= centerX + backButtonWidth/2 &&
+                                clickY >= backButtonY && clickY <= backButtonY + backButtonHeight) {
+                                audioManager.playMenuBackSound();
+                                gameState = GameState::MainMenu;
+                                std::cout << "Clicked BACK button, returning to main menu" << std::endl;
+                            }
+                            else {
+                                float cardWidth = 380.0f;
+                                float cardHeight = 700.0f;
+                                float spacing = 40.0f;
+                                float totalWidth = cardWidth * 4 + spacing * 3;
+                                float startX = centerX - totalWidth / 2.0f + cardWidth / 2.0f;
+                                float cardY = centerY - cardHeight / 2.0f;
+                                
+                                for (int i = 0; i < 4; i++) {
+                                    float cardX = startX + i * (cardWidth + spacing);
+                                    if (clickX >= cardX - cardWidth/2 && clickX <= cardX + cardWidth/2 &&
+                                        clickY >= cardY && clickY <= cardY + cardHeight) {
+                                        audioManager.playMenuClickSound();
+                                        
+                                        if (i == 0) {
+                                            gameState = GameState::ClassicDifficultySelect;
+                                            selectedGameModeOption = GameModeOption::Classic;
+                                            std::cout << "Selected CLASSIC mode" << std::endl;
+                                        } else if (i == 1) {
+                                            gameState = GameState::SprintLinesSelect;
+                                            selectedGameModeOption = GameModeOption::Sprint;
+                                            std::cout << "Selected BLITZ mode" << std::endl;
+                                        } else if (i == 2) {
+                                            gameState = GameState::ChallengeSelect;
+                                            selectedGameModeOption = GameModeOption::Challenge;
+                                            std::cout << "Selected CHALLENGE mode" << std::endl;
+                                        } else if (i == 3) {
+                                            gameState = GameState::PracticeSelect;
+                                            selectedGameModeOption = GameModeOption::Practice;
+                                            std::cout << "Selected PRACTICE mode" << std::endl;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } else if (gameState == GameState::ExtrasSelection) {
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        float centerX = WINDOW_WIDTH / 2.0f;
+                        float centerY = WINDOW_HEIGHT / 2.0f;
+                        
+                        float cardWidth = 380.0f;
+                        float cardHeight = 700.0f;
+                        float spacing = 40.0f;
+                        int numCards = 3;
+                        float totalWidth = cardWidth * numCards + spacing * (numCards - 1);
+                        float startX = centerX - totalWidth / 2.0f;
+                        float cardY = centerY - cardHeight / 2.0f;
+                        
+                        bool clicked = false;
+                        for (int i = 0; i < numCards && !clicked; i++) {
+                            float cardX = startX + i * (cardWidth + spacing);
+                            if (clickX >= cardX && clickX <= cardX + cardWidth &&
+                                clickY >= cardY && clickY <= cardY + cardHeight) {
+                                audioManager.playMenuClickSound();
+                                if (i == 0) {
+                                    gameState = GameState::AchievementsView;
+                                    selectedExtrasOption = ExtrasOption::Achievements;
+                                    std::cout << "Selected ACHIEVEMENTS" << std::endl;
+                                } else if (i == 1) {
+                                    gameState = GameState::StatisticsView;
+                                    selectedExtrasOption = ExtrasOption::Statistics;
+                                    std::cout << "Selected STATISTICS" << std::endl;
+                                } else if (i == 2) {
+                                    gameState = GameState::BestScoresView;
+                                    selectedExtrasOption = ExtrasOption::BestScores;
+                                    std::cout << "Selected BEST SCORES" << std::endl;
+                                }
+                                clicked = true;
+                            }
+                        }
+                        
+                        if (!clicked) {
+                            float backButtonY = WINDOW_HEIGHT - 100.0f;
+                            float backButtonWidth = 200.0f;
+                            float backButtonHeight = 60.0f;
+                            if (clickX >= centerX - backButtonWidth/2 && clickX <= centerX + backButtonWidth/2 &&
+                                clickY >= backButtonY && clickY <= backButtonY + backButtonHeight) {
+                                audioManager.playMenuBackSound();
+                                gameState = GameState::MainMenu;
+                                std::cout << "Back to main menu from EXTRAS selection" << std::endl;
+                            }
+                        }
+                    } else if (gameState == GameState::OptionsSelection) {
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
+                        float clickX = clickPos.x;
+                        float clickY = clickPos.y;
+                        float centerX = WINDOW_WIDTH / 2.0f;
+                        float centerY = WINDOW_HEIGHT / 2.0f;
+                        
+                        float cardWidth = 380.0f;
+                        float cardHeight = 700.0f;
+                        float spacing = 40.0f;
+                        int numCards = 3;
+                        float totalWidth = cardWidth * numCards + spacing * (numCards - 1);
+                        float startX = centerX - totalWidth / 2.0f;
+                        float cardY = centerY - cardHeight / 2.0f;
+                        
+                        bool clicked = false;
+                        for (int i = 0; i < numCards && !clicked; i++) {
+                            float cardX = startX + i * (cardWidth + spacing);
+                            if (clickX >= cardX && clickX <= cardX + cardWidth &&
+                                clickY >= cardY && clickY <= cardY + cardHeight) {
+                                audioManager.playMenuClickSound();
+                                if (i == 0) {
+                                    gameState = GameState::AudioSettings;
+                                    selectedOptionsOption = OptionsMenuOption::Audio;
+                                    std::cout << "Selected AUDIO settings" << std::endl;
+                                } else if (i == 1) {
+                                    gameState = GameState::Rebinding;
+                                    selectedOptionsOption = OptionsMenuOption::RebindKeys;
+                                    std::cout << "Selected REBIND KEYS" << std::endl;
+                                } else if (i == 2) {
+                                    gameState = GameState::ConfirmClearScores;
+                                    selectedConfirmOption = ConfirmOption::No;
+                                    std::cout << "Selected CLEAR DATA" << std::endl;
+                                }
+                                clicked = true;
+                            }
+                        }
+                        
+                        if (!clicked) {
+                            float backButtonY = WINDOW_HEIGHT - 100.0f;
+                            float backButtonWidth = 200.0f;
+                            float backButtonHeight = 60.0f;
+                            if (clickX >= centerX - backButtonWidth/2 && clickX <= centerX + backButtonWidth/2 &&
+                                clickY >= backButtonY && clickY <= backButtonY + backButtonHeight) {
+                                audioManager.playMenuBackSound();
+                                gameState = GameState::MainMenu;
+                                std::cout << "Back to main menu from OPTIONS selection" << std::endl;
                             }
                         }
                     } else if (gameState == GameState::GameModeSelect) {
@@ -2769,15 +2959,15 @@ int main(int argc, char* argv[]) {
                         float centerX = WINDOW_WIDTH / 2.0f;
                         
 
-                        float buttonY = 180.0f;
+                        float buttonY = 140.0f;
                         float buttonSpacing = 350.0f;
                         
 
                         if (clickX >= centerX - buttonSpacing - 160 && clickX <= centerX - buttonSpacing + 160 &&
                             clickY >= buttonY && clickY <= buttonY + 60) {
                             rebindingSelectedScheme = ControlScheme::Classic;
-                            selectedRebindingIndex = 0;
-                            waitingForKeyPress = false;
+                            rebindingHoveredScheme = ControlScheme::Classic;
+                            rebindingAppliedScheme = ControlScheme::Classic;
                             
 
                             keyBindings.moveLeft = sf::Keyboard::Key::Left;
@@ -2788,6 +2978,11 @@ int main(int argc, char* argv[]) {
                             keyBindings.drop = sf::Keyboard::Key::Space;
                             keyBindings.hold = sf::Keyboard::Key::LShift;
                             keyBindings.bomb = sf::Keyboard::Key::Z;
+                            keyBindings.restart = sf::Keyboard::Key::R;
+                            keyBindings.mute = sf::Keyboard::Key::M;
+                            keyBindings.volumeDown = sf::Keyboard::Key::Comma;
+                            keyBindings.volumeUp = sf::Keyboard::Key::Period;
+                            
                             saveData.moveLeft = static_cast<int>(sf::Keyboard::Key::Left);
                             saveData.moveRight = static_cast<int>(sf::Keyboard::Key::Right);
                             saveData.rotateLeft = static_cast<int>(sf::Keyboard::Key::LControl);
@@ -2796,17 +2991,23 @@ int main(int argc, char* argv[]) {
                             saveData.drop = static_cast<int>(sf::Keyboard::Key::Space);
                             saveData.hold = static_cast<int>(sf::Keyboard::Key::LShift);
                             saveData.bomb = static_cast<int>(sf::Keyboard::Key::Z);
+                            saveData.restart = static_cast<int>(sf::Keyboard::Key::R);
+                            saveData.mute = static_cast<int>(sf::Keyboard::Key::M);
+                            saveData.volumeDown = static_cast<int>(sf::Keyboard::Key::Comma);
+                            saveData.volumeUp = static_cast<int>(sf::Keyboard::Key::Period);
                             saveGameData(saveData);
-                            rebindingAppliedScheme = ControlScheme::Classic;
+                            
+                            selectedRebindingIndex = 0;
+                            waitingForKeyPress = false;
                             audioManager.playMenuClickSound();
-                            std::cout << "Classic controls applied and saved!" << std::endl;
+                            std::cout << "Classic scheme applied!" << std::endl;
                         }
 
                         else if (clickX >= centerX - 160 && clickX <= centerX + 160 &&
                                  clickY >= buttonY && clickY <= buttonY + 60) {
                             rebindingSelectedScheme = ControlScheme::Alternative;
-                            selectedRebindingIndex = 0;
-                            waitingForKeyPress = false;
+                            rebindingHoveredScheme = ControlScheme::Alternative;
+                            rebindingAppliedScheme = ControlScheme::Alternative;
                             
 
                             keyBindings.moveLeft = sf::Keyboard::Key::A;
@@ -2817,6 +3018,11 @@ int main(int argc, char* argv[]) {
                             keyBindings.drop = sf::Keyboard::Key::Space;
                             keyBindings.hold = sf::Keyboard::Key::L;
                             keyBindings.bomb = sf::Keyboard::Key::I;
+                            keyBindings.restart = sf::Keyboard::Key::R;
+                            keyBindings.mute = sf::Keyboard::Key::M;
+                            keyBindings.volumeDown = sf::Keyboard::Key::Comma;
+                            keyBindings.volumeUp = sf::Keyboard::Key::Period;
+                            
                             saveData.moveLeft = static_cast<int>(sf::Keyboard::Key::A);
                             saveData.moveRight = static_cast<int>(sf::Keyboard::Key::D);
                             saveData.rotateLeft = static_cast<int>(sf::Keyboard::Key::J);
@@ -2825,20 +3031,72 @@ int main(int argc, char* argv[]) {
                             saveData.drop = static_cast<int>(sf::Keyboard::Key::Space);
                             saveData.hold = static_cast<int>(sf::Keyboard::Key::L);
                             saveData.bomb = static_cast<int>(sf::Keyboard::Key::I);
+                            saveData.restart = static_cast<int>(sf::Keyboard::Key::R);
+                            saveData.mute = static_cast<int>(sf::Keyboard::Key::M);
+                            saveData.volumeDown = static_cast<int>(sf::Keyboard::Key::Comma);
+                            saveData.volumeUp = static_cast<int>(sf::Keyboard::Key::Period);
                             saveGameData(saveData);
-                            rebindingAppliedScheme = ControlScheme::Alternative;
+                            
+                            selectedRebindingIndex = 0;
+                            waitingForKeyPress = false;
                             audioManager.playMenuClickSound();
-                            std::cout << "Alternative controls applied and saved!" << std::endl;
+                            std::cout << "Alternative scheme applied!" << std::endl;
                         }
 
                         else if (clickX >= centerX + buttonSpacing - 160 && clickX <= centerX + buttonSpacing + 160 &&
                                  clickY >= buttonY && clickY <= buttonY + 60) {
                             rebindingSelectedScheme = ControlScheme::Custom;
+                            rebindingHoveredScheme = ControlScheme::Custom;
                             rebindingAppliedScheme = ControlScheme::Custom;
+
+                            keyBindings = customKeyBindings;
                             selectedRebindingIndex = 0;
                             waitingForKeyPress = false;
                             audioManager.playMenuClickSound();
                             std::cout << "Custom mode selected" << std::endl;
+                        }
+                        
+
+                        else if (rebindingSelectedScheme == ControlScheme::Custom) {
+                            float resetButtonY = 950.0f;
+                            float resetButtonWidth = 200.0f;
+                            float resetButtonHeight = 60.0f;
+                            
+                            if (clickX >= centerX - resetButtonWidth/2 && clickX <= centerX + resetButtonWidth/2 &&
+                                clickY >= resetButtonY && clickY <= resetButtonY + resetButtonHeight) {
+
+                                keyBindings.moveLeft = sf::Keyboard::Key::Left;
+                                keyBindings.moveRight = sf::Keyboard::Key::Right;
+                                keyBindings.rotateLeft = sf::Keyboard::Key::LControl;
+                                keyBindings.rotateRight = sf::Keyboard::Key::Up;
+                                keyBindings.quickFall = sf::Keyboard::Key::Down;
+                                keyBindings.drop = sf::Keyboard::Key::Space;
+                                keyBindings.hold = sf::Keyboard::Key::LShift;
+                                keyBindings.bomb = sf::Keyboard::Key::Z;
+                                keyBindings.restart = sf::Keyboard::Key::R;
+                                keyBindings.mute = sf::Keyboard::Key::M;
+                                keyBindings.volumeDown = sf::Keyboard::Key::Comma;
+                                keyBindings.volumeUp = sf::Keyboard::Key::Period;
+                                
+                                customKeyBindings = keyBindings;
+                                
+                                saveData.moveLeft = static_cast<int>(keyBindings.moveLeft);
+                                saveData.moveRight = static_cast<int>(keyBindings.moveRight);
+                                saveData.rotateLeft = static_cast<int>(keyBindings.rotateLeft);
+                                saveData.rotateRight = static_cast<int>(keyBindings.rotateRight);
+                                saveData.quickFall = static_cast<int>(keyBindings.quickFall);
+                                saveData.drop = static_cast<int>(keyBindings.drop);
+                                saveData.hold = static_cast<int>(keyBindings.hold);
+                                saveData.bomb = static_cast<int>(keyBindings.bomb);
+                                saveData.restart = static_cast<int>(keyBindings.restart);
+                                saveData.mute = static_cast<int>(keyBindings.mute);
+                                saveData.volumeDown = static_cast<int>(keyBindings.volumeDown);
+                                saveData.volumeUp = static_cast<int>(keyBindings.volumeUp);
+                                saveGameData(saveData);
+                                
+                                audioManager.playMenuClickSound();
+                                std::cout << "Custom bindings reset to Classic defaults!" << std::endl;
+                            }
                         }
                         
 
@@ -3042,18 +3300,18 @@ int main(int argc, char* argv[]) {
                         case sf::Keyboard::Key::Space:
                             if (selectedMenuOption == MenuOption::Start) {
                                 audioManager.playMenuClickSound();
-                                gameState = GameState::GameModeSelect;
-                                selectedGameModeOption = GameModeOption::Classic;
-                                std::cout << "Entered GAME MODE selection" << std::endl;
+                                gameState = GameState::ModeSelection;
+                                std::cout << "Entered MODE selection" << std::endl;
                             } else if (selectedMenuOption == MenuOption::Extras) {
                                 audioManager.playMenuClickSound();
-                                gameState = GameState::Extras;
-                                selectedExtrasOption = ExtrasOption::Achievements;
-                                std::cout << "Entered EXTRAS menu" << std::endl;
+                                gameState = GameState::ExtrasSelection;
+                                selectedExtrasCard = 0;
+                                std::cout << "Entered EXTRAS selection" << std::endl;
                             } else if (selectedMenuOption == MenuOption::Options) {
                                 audioManager.playMenuClickSound();
-                                gameState = GameState::Options;
-                                std::cout << "Entered OPTIONS menu" << std::endl;
+                                gameState = GameState::OptionsSelection;
+                                selectedOptionsCard = 0;
+                                std::cout << "Entered OPTIONS selection" << std::endl;
                             } else if (selectedMenuOption == MenuOption::Exit) {
                                 window.close();
                             }
@@ -3208,6 +3466,227 @@ int main(int argc, char* argv[]) {
                         default: 
                             break;
                     }
+                } else if (gameState == GameState::ModeSelection) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
+                            gameState = GameState::MainMenu;
+                            std::cout << "Returned to main menu from MODE SELECTION" << std::endl;
+                            break;
+                        case sf::Keyboard::Key::Left:
+                        case sf::Keyboard::Key::A:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedModeCard == 4) {
+                                selectedModeCard = lastSelectedCardBeforeBack;
+                            } else {
+                                selectedModeCard = (selectedModeCard - 1 + 4) % 4;
+                                lastSelectedCardBeforeBack = selectedModeCard;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Right:
+                        case sf::Keyboard::Key::D:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedModeCard == 4) {
+                                selectedModeCard = lastSelectedCardBeforeBack;
+                            } else {
+                                selectedModeCard = (selectedModeCard + 1) % 4;
+                                lastSelectedCardBeforeBack = selectedModeCard;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Up:
+                        case sf::Keyboard::Key::W:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedModeCard == 4) {
+                                selectedModeCard = lastSelectedCardBeforeBack;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Down:
+                        case sf::Keyboard::Key::S:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedModeCard >= 0 && selectedModeCard < 4) {
+                                lastSelectedCardBeforeBack = selectedModeCard;
+                                selectedModeCard = 4;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Enter:
+                        case sf::Keyboard::Key::Space:
+                            if (selectedModeCard == 4) {
+                                audioManager.playMenuBackSound();
+                                gameState = GameState::MainMenu;
+                                std::cout << "BACK button selected via keyboard" << std::endl;
+                            } else if (selectedModeCard == 0) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::ClassicDifficultySelect;
+                                selectedGameModeOption = GameModeOption::Classic;
+                                std::cout << "Selected CLASSIC mode (keyboard)" << std::endl;
+                            } else if (selectedModeCard == 1) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::SprintLinesSelect;
+                                selectedGameModeOption = GameModeOption::Sprint;
+                                std::cout << "Selected BLITZ mode (keyboard)" << std::endl;
+                            } else if (selectedModeCard == 2) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::ChallengeSelect;
+                                selectedGameModeOption = GameModeOption::Challenge;
+                                std::cout << "Selected CHALLENGE mode (keyboard)" << std::endl;
+                            } else if (selectedModeCard == 3) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::PracticeSelect;
+                                selectedGameModeOption = GameModeOption::Practice;
+                                std::cout << "Selected PRACTICE mode (keyboard)" << std::endl;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                } else if (gameState == GameState::ExtrasSelection) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
+                            gameState = GameState::MainMenu;
+                            std::cout << "Returned to main menu from EXTRAS SELECTION" << std::endl;
+                            break;
+                        case sf::Keyboard::Key::Left:
+                        case sf::Keyboard::Key::A:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedExtrasCard == 3) {
+                                selectedExtrasCard = lastSelectedExtrasCardBeforeBack;
+                            } else {
+                                selectedExtrasCard = (selectedExtrasCard - 1 + 3) % 3;
+                                lastSelectedExtrasCardBeforeBack = selectedExtrasCard;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Right:
+                        case sf::Keyboard::Key::D:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedExtrasCard == 3) {
+                                selectedExtrasCard = lastSelectedExtrasCardBeforeBack;
+                            } else {
+                                selectedExtrasCard = (selectedExtrasCard + 1) % 3;
+                                lastSelectedExtrasCardBeforeBack = selectedExtrasCard;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Up:
+                        case sf::Keyboard::Key::W:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedExtrasCard == 3) {
+                                selectedExtrasCard = lastSelectedExtrasCardBeforeBack;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Down:
+                        case sf::Keyboard::Key::S:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedExtrasCard >= 0 && selectedExtrasCard < 3) {
+                                lastSelectedExtrasCardBeforeBack = selectedExtrasCard;
+                                selectedExtrasCard = 3;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Enter:
+                        case sf::Keyboard::Key::Space:
+                            if (selectedExtrasCard == 3) {
+                                audioManager.playMenuBackSound();
+                                gameState = GameState::MainMenu;
+                                std::cout << "BACK button selected via keyboard" << std::endl;
+                            } else if (selectedExtrasCard == 0) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::AchievementsView;
+                                selectedExtrasOption = ExtrasOption::Achievements;
+                                std::cout << "Selected ACHIEVEMENTS (keyboard)" << std::endl;
+                            } else if (selectedExtrasCard == 1) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::StatisticsView;
+                                selectedExtrasOption = ExtrasOption::Statistics;
+                                std::cout << "Selected STATISTICS (keyboard)" << std::endl;
+                            } else if (selectedExtrasCard == 2) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::BestScoresView;
+                                selectedExtrasOption = ExtrasOption::BestScores;
+                                std::cout << "Selected BEST SCORES (keyboard)" << std::endl;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
+                } else if (gameState == GameState::OptionsSelection) {
+                    switch (keyPressed->code) {
+                        case sf::Keyboard::Key::Escape:
+                            audioManager.playMenuBackSound();
+                            gameState = GameState::MainMenu;
+                            std::cout << "Returned to main menu from OPTIONS SELECTION" << std::endl;
+                            break;
+                        case sf::Keyboard::Key::Left:
+                        case sf::Keyboard::Key::A:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedOptionsCard == 3) {
+                                selectedOptionsCard = lastSelectedOptionsCardBeforeBack;
+                            } else {
+                                selectedOptionsCard = (selectedOptionsCard - 1 + 3) % 3;
+                                lastSelectedOptionsCardBeforeBack = selectedOptionsCard;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Right:
+                        case sf::Keyboard::Key::D:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedOptionsCard == 3) {
+                                selectedOptionsCard = lastSelectedOptionsCardBeforeBack;
+                            } else {
+                                selectedOptionsCard = (selectedOptionsCard + 1) % 3;
+                                lastSelectedOptionsCardBeforeBack = selectedOptionsCard;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Up:
+                        case sf::Keyboard::Key::W:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedOptionsCard == 3) {
+                                selectedOptionsCard = lastSelectedOptionsCardBeforeBack;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Down:
+                        case sf::Keyboard::Key::S:
+                            showCustomCursor = false;
+                            useKeyboardNavigation = true;
+                            if (selectedOptionsCard >= 0 && selectedOptionsCard < 3) {
+                                lastSelectedOptionsCardBeforeBack = selectedOptionsCard;
+                                selectedOptionsCard = 3;
+                            }
+                            break;
+                        case sf::Keyboard::Key::Enter:
+                        case sf::Keyboard::Key::Space:
+                            if (selectedOptionsCard == 3) {
+                                audioManager.playMenuBackSound();
+                                gameState = GameState::MainMenu;
+                                std::cout << "BACK button selected via keyboard" << std::endl;
+                            } else if (selectedOptionsCard == 0) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::AudioSettings;
+                                selectedOptionsOption = OptionsMenuOption::Audio;
+                                std::cout << "Selected AUDIO (keyboard)" << std::endl;
+                            } else if (selectedOptionsCard == 1) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::Rebinding;
+                                selectedOptionsOption = OptionsMenuOption::RebindKeys;
+                                std::cout << "Selected REBIND KEYS (keyboard)" << std::endl;
+                            } else if (selectedOptionsCard == 2) {
+                                audioManager.playMenuClickSound();
+                                gameState = GameState::ConfirmClearScores;
+                                selectedConfirmOption = ConfirmOption::No;
+                                std::cout << "Selected CLEAR DATA (keyboard)" << std::endl;
+                            }
+                            break;
+                        default:
+                            break;
+                    }
                 } else if (gameState == GameState::GameModeSelect) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
@@ -3253,8 +3732,8 @@ int main(int argc, char* argv[]) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
                             audioManager.playMenuBackSound();
-                            gameState = GameState::GameModeSelect;
-                            std::cout << "Returned to GAME MODE selection" << std::endl;
+                            gameState = GameState::ModeSelection;
+                            std::cout << "Returned to MODE selection" << std::endl;
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
@@ -3367,8 +3846,8 @@ int main(int argc, char* argv[]) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
                             audioManager.playMenuBackSound();
-                            gameState = GameState::GameModeSelect;
-                            std::cout << "Returned to GAME MODE selection" << std::endl;
+                            gameState = GameState::ModeSelection;
+                            std::cout << "Returned to MODE selection" << std::endl;
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W: {
@@ -3509,8 +3988,8 @@ int main(int argc, char* argv[]) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
                             audioManager.playMenuBackSound();
-                            gameState = GameState::GameModeSelect;
-                            std::cout << "Returned to GAME MODE selection" << std::endl;
+                            gameState = GameState::ModeSelection;
+                            std::cout << "Returned to MODE selection" << std::endl;
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W: {
@@ -3721,8 +4200,8 @@ int main(int argc, char* argv[]) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
                             audioManager.playMenuBackSound();
-                            gameState = GameState::GameModeSelect;
-                            std::cout << "Returned to GAME MODE selection" << std::endl;
+                            gameState = GameState::ModeSelection;
+                            std::cout << "Returned to MODE selection" << std::endl;
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
@@ -3871,8 +4350,8 @@ int main(int argc, char* argv[]) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
                             audioManager.playMenuBackSound();
-                            gameState = GameState::Extras;
-                            std::cout << "Returned to EXTRAS from ACHIEVEMENTS" << std::endl;
+                            gameState = GameState::ExtrasSelection;
+                            std::cout << "Returned to EXTRAS selection from ACHIEVEMENTS" << std::endl;
                             break;
                         case sf::Keyboard::Key::D:
                             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) || 
@@ -3888,8 +4367,8 @@ int main(int argc, char* argv[]) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
                             audioManager.playMenuBackSound();
-                            gameState = GameState::Extras;
-                            std::cout << "Returned to EXTRAS from STATISTICS" << std::endl;
+                            gameState = GameState::ExtrasSelection;
+                            std::cout << "Returned to EXTRAS selection from STATISTICS" << std::endl;
                             break;
                         case sf::Keyboard::Key::D:
                             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) || 
@@ -3905,8 +4384,8 @@ int main(int argc, char* argv[]) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
                             audioManager.playMenuBackSound();
-                            gameState = GameState::Extras;
-                            std::cout << "Returned to EXTRAS from BEST SCORES" << std::endl;
+                            gameState = GameState::ExtrasSelection;
+                            std::cout << "Returned to EXTRAS selection from BEST SCORES" << std::endl;
                             break;
                         case sf::Keyboard::Key::D:
                             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LControl) || 
@@ -3980,8 +4459,8 @@ int main(int argc, char* argv[]) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
                             audioManager.playMenuBackSound();
-                            gameState = GameState::Options;
-                            std::cout << "Returned to OPTIONS menu" << std::endl;
+                            gameState = GameState::OptionsSelection;
+                            std::cout << "Returned to OPTIONS selection" << std::endl;
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
@@ -4070,6 +4549,7 @@ int main(int argc, char* argv[]) {
                                 case 11: keyBindings.volumeUp = keyPressed->code; break;
                             }
                             waitingForKeyPress = false;
+                            customKeyBindings = keyBindings;
                             saveData.moveLeft = static_cast<int>(keyBindings.moveLeft);
                             saveData.moveRight = static_cast<int>(keyBindings.moveRight);
                             saveData.rotateLeft = static_cast<int>(keyBindings.rotateLeft);
@@ -4097,16 +4577,31 @@ int main(int argc, char* argv[]) {
                         switch (keyPressed->code) {
                             case sf::Keyboard::Key::Escape:
                                 audioManager.playMenuBackSound();
-                                gameState = GameState::Options;
+                                gameState = GameState::OptionsSelection;
                                 selectedRebindingIndex = 0;
                                 waitingForKeyPress = false;
-                                std::cout << "Returned to OPTIONS menu" << std::endl;
+                                std::cout << "Returned to OPTIONS selection" << std::endl;
                                 break;
                             case sf::Keyboard::Key::Left:
                             case sf::Keyboard::Key::A:
                                 if (rebindingSelectedScheme == ControlScheme::Classic) {
                                     rebindingSelectedScheme = ControlScheme::Custom;
                                     rebindingAppliedScheme = ControlScheme::Custom;
+                                    
+
+                                    keyBindings.moveLeft = customKeyBindings.moveLeft;
+                                    keyBindings.moveRight = customKeyBindings.moveRight;
+                                    keyBindings.rotateLeft = customKeyBindings.rotateLeft;
+                                    keyBindings.rotateRight = customKeyBindings.rotateRight;
+                                    keyBindings.quickFall = customKeyBindings.quickFall;
+                                    keyBindings.drop = customKeyBindings.drop;
+                                    keyBindings.hold = customKeyBindings.hold;
+                                    keyBindings.bomb = customKeyBindings.bomb;
+                                    keyBindings.restart = customKeyBindings.restart;
+                                    keyBindings.mute = customKeyBindings.mute;
+                                    keyBindings.volumeDown = customKeyBindings.volumeDown;
+                                    keyBindings.volumeUp = customKeyBindings.volumeUp;
+                                    
                                     std::cout << "Custom mode selected" << std::endl;
                                 } else if (rebindingSelectedScheme == ControlScheme::Alternative) {
                                     rebindingSelectedScheme = ControlScheme::Classic;
@@ -4204,6 +4699,21 @@ int main(int argc, char* argv[]) {
                                 } else if (rebindingSelectedScheme == ControlScheme::Alternative) {
                                     rebindingSelectedScheme = ControlScheme::Custom;
                                     rebindingAppliedScheme = ControlScheme::Custom;
+                                    
+
+                                    keyBindings.moveLeft = customKeyBindings.moveLeft;
+                                    keyBindings.moveRight = customKeyBindings.moveRight;
+                                    keyBindings.rotateLeft = customKeyBindings.rotateLeft;
+                                    keyBindings.rotateRight = customKeyBindings.rotateRight;
+                                    keyBindings.quickFall = customKeyBindings.quickFall;
+                                    keyBindings.drop = customKeyBindings.drop;
+                                    keyBindings.hold = customKeyBindings.hold;
+                                    keyBindings.bomb = customKeyBindings.bomb;
+                                    keyBindings.restart = customKeyBindings.restart;
+                                    keyBindings.mute = customKeyBindings.mute;
+                                    keyBindings.volumeDown = customKeyBindings.volumeDown;
+                                    keyBindings.volumeUp = customKeyBindings.volumeUp;
+                                    
                                     std::cout << "Custom mode selected" << std::endl;
                                 } else {
                                     rebindingSelectedScheme = ControlScheme::Classic;
@@ -4312,7 +4822,7 @@ int main(int argc, char* argv[]) {
                     switch (keyPressed->code) {
                         case sf::Keyboard::Key::Escape:
                             audioManager.playMenuBackSound();
-                            gameState = GameState::Options;
+                            gameState = GameState::OptionsSelection;
                             std::cout << "Cancelled clearing scores" << std::endl;
                             break;
                         case sf::Keyboard::Key::Left:
@@ -5813,6 +6323,97 @@ int main(int argc, char* argv[]) {
                      mouseY >= centerY + 270 && mouseY <= centerY + 270 + buttonHeight) {
                 selectedMenuOption = MenuOption::Exit;
             }
+        } else if (gameState == GameState::ModeSelection && !useKeyboardNavigation) {
+            float cardWidth = 380.0f;
+            float cardHeight = 700.0f;
+            float spacing = 40.0f;
+            float totalWidth = cardWidth * 4 + spacing * 3;
+            float startX = centerX - totalWidth / 2.0f + cardWidth / 2.0f;
+            float cardY = centerY - cardHeight / 2.0f;
+            
+            float backButtonY = WINDOW_HEIGHT - 100.0f;
+            float backButtonWidth = 200.0f;
+            float backButtonHeight = 60.0f;
+            
+            hoveredModeCard = -1;
+            isBackButtonHovered = false;
+            selectedModeCard = -1;
+            
+            if (mouseX >= centerX - backButtonWidth/2 && mouseX <= centerX + backButtonWidth/2 &&
+                mouseY >= backButtonY && mouseY <= backButtonY + backButtonHeight) {
+                isBackButtonHovered = true;
+                selectedModeCard = 4;
+            } else {
+                for (int i = 0; i < 4; i++) {
+                    float cardX = startX + i * (cardWidth + spacing);
+                    if (mouseX >= cardX - cardWidth/2 && mouseX <= cardX + cardWidth/2 &&
+                        mouseY >= cardY && mouseY <= cardY + cardHeight) {
+                        hoveredModeCard = i;
+                        selectedModeCard = i;
+                        break;
+                    }
+                }
+            }
+        } else if (gameState == GameState::ExtrasSelection && !useKeyboardNavigation) {
+            float cardWidth = 380.0f;
+            float cardHeight = 700.0f;
+            float spacing = 40.0f;
+            int numCards = 3;
+            float totalWidth = cardWidth * numCards + spacing * (numCards - 1);
+            float startX = centerX - totalWidth / 2.0f + cardWidth / 2.0f;
+            float cardY = centerY - cardHeight / 2.0f;
+            
+            float backButtonY = WINDOW_HEIGHT - 100.0f;
+            float backButtonWidth = 200.0f;
+            float backButtonHeight = 60.0f;
+            
+            isExtrasBackButtonHovered = false;
+            selectedExtrasCard = -1;
+            
+            if (mouseX >= centerX - backButtonWidth/2 && mouseX <= centerX + backButtonWidth/2 &&
+                mouseY >= backButtonY && mouseY <= backButtonY + backButtonHeight) {
+                isExtrasBackButtonHovered = true;
+                selectedExtrasCard = 3;
+            } else {
+                for (int i = 0; i < numCards; i++) {
+                    float cardX = startX + i * (cardWidth + spacing);
+                    if (mouseX >= cardX - cardWidth/2 && mouseX <= cardX + cardWidth/2 &&
+                        mouseY >= cardY && mouseY <= cardY + cardHeight) {
+                        selectedExtrasCard = i;
+                        break;
+                    }
+                }
+            }
+        } else if (gameState == GameState::OptionsSelection && !useKeyboardNavigation) {
+            float cardWidth = 380.0f;
+            float cardHeight = 700.0f;
+            float spacing = 40.0f;
+            int numCards = 3;
+            float totalWidth = cardWidth * numCards + spacing * (numCards - 1);
+            float startX = centerX - totalWidth / 2.0f + cardWidth / 2.0f;
+            float cardY = centerY - cardHeight / 2.0f;
+            
+            float backButtonY = WINDOW_HEIGHT - 100.0f;
+            float backButtonWidth = 200.0f;
+            float backButtonHeight = 60.0f;
+            
+            isOptionsBackButtonHovered = false;
+            selectedOptionsCard = -1;
+            
+            if (mouseX >= centerX - backButtonWidth/2 && mouseX <= centerX + backButtonWidth/2 &&
+                mouseY >= backButtonY && mouseY <= backButtonY + backButtonHeight) {
+                isOptionsBackButtonHovered = true;
+                selectedOptionsCard = 3;
+            } else {
+                for (int i = 0; i < numCards; i++) {
+                    float cardX = startX + i * (cardWidth + spacing);
+                    if (mouseX >= cardX - cardWidth/2 && mouseX <= cardX + cardWidth/2 &&
+                        mouseY >= cardY && mouseY <= cardY + cardHeight) {
+                        selectedOptionsCard = i;
+                        break;
+                    }
+                }
+            }
         } else if (gameState == GameState::GameModeSelect && !useKeyboardNavigation) {
 
             float startY = centerY - 80.0f;
@@ -6118,6 +6719,18 @@ int main(int argc, char* argv[]) {
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
             drawGlowEffects(window, glowEffects, textures);
             drawMainMenu(window, titleFont, menuFont, fontLoaded, selectedMenuOption, debugMode, textures, useTextures, splashElapsedTime);
+        } else if (gameState == GameState::ModeSelection) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
+            drawModeSelectionScreen(window, titleFont, menuFont, fontLoaded, selectedModeCard, isBackButtonHovered, textures, useTextures);
+        } else if (gameState == GameState::ExtrasSelection) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
+            drawExtrasSelectionScreen(window, menuFont, fontLoaded, selectedExtrasCard, isExtrasBackButtonHovered, textures, useTextures);
+        } else if (gameState == GameState::OptionsSelection) {
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
+            drawOptionsSelectionScreen(window, menuFont, fontLoaded, selectedOptionsCard, isOptionsBackButtonHovered, textures, useTextures);
         } else if (gameState == GameState::GameModeSelect) {
             splashElapsedTime += deltaTime;
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
@@ -6173,7 +6786,7 @@ int main(int argc, char* argv[]) {
         } else if (gameState == GameState::Rebinding) {
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
             drawGlowEffects(window, glowEffects, textures);
-            drawRebindingScreen(window, titleFont, menuFont, fontLoaded, keyBindings, rebindingSelectedScheme, rebindingHoveredScheme, rebindingAppliedScheme, selectedRebindingIndex, waitingForKeyPress, textures, useTextures, splashElapsedTime, debugMode);
+            drawRebindingScreen(window, titleFont, menuFont, fontLoaded, keyBindings, rebindingSelectedScheme, rebindingHoveredScheme, rebindingAppliedScheme, selectedRebindingIndex, waitingForKeyPress, isResetButtonHovered, textures, useTextures, splashElapsedTime, debugMode);
         } else if (gameState == GameState::ConfirmClearScores) {
 
             drawOptionsMenu(window, menuFont, fontLoaded, debugMode, selectedOptionsOption, textures, useTextures, splashElapsedTime);

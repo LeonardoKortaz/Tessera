@@ -16,7 +16,18 @@ void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool font
 void drawConfirmClearScores(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, ConfirmOption selectedOption);
 void drawFirstTimeSetup(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ControlScheme selectedScheme, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
 void drawWelcomeScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded);
+struct CardData {
+    std::string title;
+    std::string description;
+    sf::Color color;
+    std::string iconLetter;
+};
+
 void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption, bool debugMode, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime = 0.0f);
+void drawCardSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, const std::vector<CardData>& cards, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
+void drawModeSelectionScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
+void drawExtrasSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
+void drawOptionsSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
 void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, GameModeOption selectedOption, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime, bool debugMode = false);
 void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ClassicDifficulty selectedOption, const SaveData& saveData, const std::map<TextureType, sf::Texture>& textures, bool useTextures, bool debugMode = false);
 void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, SprintLines selectedOption, const SaveData& saveData, bool debugMode, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
@@ -29,7 +40,7 @@ void drawBestScoresScreen(sf::RenderWindow& window, const sf::Font& titleFont, c
 void drawOptionsMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, bool debugMode, OptionsMenuOption selectedOption, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime);
 void drawAudioMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, bool debugMode, AudioOption selectedOption, float mainVolume, float musicVolume, float sfxVolume, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime);
 void drawCustomizationMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, GameThemeChoice hoveredTheme, GameThemeChoice selectedTheme, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime);
-void drawRebindingScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, const KeyBindings& bindings, ControlScheme selectedScheme, ControlScheme hoveredScheme, ControlScheme appliedScheme, int selectedBinding, bool waitingForKey, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime, bool debugMode = false);
+void drawRebindingScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, const KeyBindings& bindings, ControlScheme selectedScheme, ControlScheme hoveredScheme, ControlScheme appliedScheme, int selectedBinding, bool waitingForKey, bool isResetHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime, bool debugMode = false);
 
 
 float calculateButtonWidth(const sf::Font& font, const std::string& text, float textSize);

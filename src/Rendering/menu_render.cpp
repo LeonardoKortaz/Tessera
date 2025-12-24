@@ -836,6 +836,146 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
     }
 }
 
+void drawCardSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, const std::vector<CardData>& cards, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
+    
+    sf::RectangleShape dimOverlay(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
+    dimOverlay.setFillColor(sf::Color(0, 0, 0, 180));
+    window.draw(dimOverlay);
+    
+    if (!fontLoaded) return;
+    
+    int numCards = cards.size();
+    float cardWidth = 380.0f;
+    float cardHeight = 700.0f;
+    float spacing = 40.0f;
+    float totalWidth = cardWidth * numCards + spacing * (numCards - 1);
+    float startX = centerX - totalWidth / 2.0f + cardWidth / 2.0f;
+    float cardY = centerY - cardHeight / 2.0f;
+    
+    for (int i = 0; i < numCards; i++) {
+        float cardX = startX + i * (cardWidth + spacing);
+        bool isSelected = (selectedCard == i);
+        
+        sf::RectangleShape card(sf::Vector2f(cardWidth, cardHeight));
+        card.setPosition(sf::Vector2f(cardX - cardWidth/2, cardY));
+        card.setFillColor(sf::Color(20, 25, 35, 230));
+        card.setOutlineThickness(isSelected ? 6.0f : 3.0f);
+        card.setOutlineColor(isSelected ? cards[i].color : sf::Color(60, 70, 90));
+        window.draw(card);
+        
+        if (isSelected) {
+            sf::RectangleShape glow(sf::Vector2f(cardWidth + 20, cardHeight + 20));
+            glow.setPosition(sf::Vector2f(cardX - cardWidth/2 - 10, cardY - 10));
+            glow.setFillColor(sf::Color(cards[i].color.r, cards[i].color.g, cards[i].color.b, 30));
+            window.draw(glow);
+        }
+        
+        sf::Text titleText(menuFont, cards[i].title);
+        int titleSize = (cards[i].title.length() > 10) ? 48 : 56;
+        titleText.setCharacterSize(titleSize);
+        titleText.setFillColor(cards[i].color);
+        titleText.setStyle(sf::Text::Bold);
+        sf::FloatRect titleBounds = titleText.getLocalBounds();
+        titleText.setPosition(sf::Vector2f(cardX - titleBounds.size.x/2, cardY + 40));
+        window.draw(titleText);
+        
+        sf::RectangleShape iconBg(sf::Vector2f(cardWidth - 60, 200));
+        iconBg.setPosition(sf::Vector2f(cardX - cardWidth/2 + 30, cardY + 130));
+        iconBg.setFillColor(sf::Color(30, 35, 45));
+        iconBg.setOutlineThickness(2);
+        iconBg.setOutlineColor(cards[i].color);
+        window.draw(iconBg);
+        
+        sf::Text iconText(menuFont, cards[i].iconLetter);
+        iconText.setCharacterSize(85);
+        iconText.setFillColor(cards[i].color);
+        iconText.setStyle(sf::Text::Bold);
+        sf::FloatRect iconBounds = iconText.getLocalBounds();
+        iconText.setPosition(sf::Vector2f(cardX - iconBounds.size.x/2, cardY + 165));
+        window.draw(iconText);
+        
+        sf::RectangleShape separator(sf::Vector2f(cardWidth - 60, 3));
+        separator.setPosition(sf::Vector2f(cardX - cardWidth/2 + 30, cardY + 360));
+        separator.setFillColor(cards[i].color);
+        window.draw(separator);
+        
+        std::string desc = cards[i].description;
+        size_t pos = 0;
+        int lineNum = 0;
+        while ((pos = desc.find("\\n")) != std::string::npos) {
+            std::string line = desc.substr(0, pos);
+            sf::Text descText(menuFont, line);
+            descText.setCharacterSize(28);
+            descText.setFillColor(sf::Color(200, 200, 200));
+            sf::FloatRect descBounds = descText.getLocalBounds();
+            descText.setPosition(sf::Vector2f(cardX - descBounds.size.x/2, cardY + 400 + lineNum * 40));
+            window.draw(descText);
+            desc.erase(0, pos + 2);
+            lineNum++;
+        }
+        if (!desc.empty()) {
+            sf::Text descText(menuFont, desc);
+            descText.setCharacterSize(28);
+            descText.setFillColor(sf::Color(200, 200, 200));
+            sf::FloatRect descBounds = descText.getLocalBounds();
+            descText.setPosition(sf::Vector2f(cardX - descBounds.size.x/2, cardY + 400 + lineNum * 40));
+            window.draw(descText);
+        }
+    }
+    
+    float backButtonY = SCREEN_HEIGHT - 100.0f;
+    float backButtonWidth = 200.0f;
+    float backButtonHeight = 60.0f;
+    
+    sf::RectangleShape backButton(sf::Vector2f(backButtonWidth, backButtonHeight));
+    backButton.setPosition(sf::Vector2f(centerX - backButtonWidth/2, backButtonY));
+    backButton.setFillColor(isBackHovered || selectedCard == numCards ? sf::Color(60, 80, 120) : sf::Color(40, 50, 70));
+    backButton.setOutlineThickness(isBackHovered || selectedCard == numCards ? 4 : 3);
+    backButton.setOutlineColor(isBackHovered || selectedCard == numCards ? sf::Color(150, 180, 220) : sf::Color(100, 120, 160));
+    window.draw(backButton);
+    
+    sf::Text backText(menuFont, "BACK");
+    backText.setCharacterSize(36);
+    backText.setFillColor(isBackHovered || selectedCard == numCards ? sf::Color::Yellow : sf::Color::White);
+    backText.setStyle(sf::Text::Bold);
+    sf::FloatRect backBounds = backText.getLocalBounds();
+    backText.setPosition(sf::Vector2f(centerX - backBounds.size.x/2, backButtonY + backButtonHeight/2 - backBounds.size.y/2 - 5));
+    window.draw(backText);
+}
+
+void drawModeSelectionScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
+    std::vector<CardData> modeCards = {
+        {"CLASSIC", "Classic Tetris gameplay\\nwith increasing difficulty", sf::Color(100, 200, 255), "C"},
+        {"BLITZ", "Race against time to clear\\nlines as fast as possible", sf::Color(255, 150, 50), "B"},
+        {"CHALLENGE", "Special game modes with\\nunique twists and rules", sf::Color(200, 100, 255), "C"},
+        {"PRACTICE", "Practice with custom\\nsettings and no pressure", sf::Color(100, 255, 150), "P"}
+    };
+    
+    drawCardSelectionScreen(window, menuFont, fontLoaded, modeCards, selectedCard, isBackHovered, textures, useTextures);
+}
+
+void drawExtrasSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
+    std::vector<CardData> extrasCards = {
+        {"ACHIEVEMENTS", "View your unlocked\\nachievements and progress", sf::Color(255, 215, 0), "A"},
+        {"STATISTICS", "Check your gameplay\\nstatistics and records", sf::Color(100, 255, 255), "S"},
+        {"BEST SCORES", "View your best scores\\nfor each game mode", sf::Color(255, 100, 255), "B"}
+    };
+    
+    drawCardSelectionScreen(window, menuFont, fontLoaded, extrasCards, selectedCard, isBackHovered, textures, useTextures);
+}
+
+void drawOptionsSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
+    std::vector<CardData> optionsCards = {
+        {"AUDIO", "Adjust volume levels\\nand sound settings", sf::Color(100, 200, 255), "A"},
+        {"REBIND KEYS", "Customize your\\nkeyboard controls", sf::Color(255, 150, 100), "R"},
+        {"CLEAR DATA", "Reset scores and\\nstatistics", sf::Color(255, 100, 100), "C"}
+    };
+    
+    drawCardSelectionScreen(window, menuFont, fontLoaded, optionsCards, selectedCard, isBackHovered, textures, useTextures);
+}
+
 void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, GameModeOption selectedOption, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime, bool debugMode) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
@@ -1422,6 +1562,7 @@ void drawAudioMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool font
 
 std::string getKeyName(sf::Keyboard::Key key) {
     switch (key) {
+
         case sf::Keyboard::Key::A: return "A";
         case sf::Keyboard::Key::B: return "B";
         case sf::Keyboard::Key::C: return "C";
@@ -1448,38 +1589,117 @@ std::string getKeyName(sf::Keyboard::Key key) {
         case sf::Keyboard::Key::X: return "X";
         case sf::Keyboard::Key::Y: return "Y";
         case sf::Keyboard::Key::Z: return "Z";
-        case sf::Keyboard::Key::Space: return "SPACE";
-        case sf::Keyboard::Key::Left: return "LEFT";
-        case sf::Keyboard::Key::Right: return "RIGHT";
-        case sf::Keyboard::Key::Up: return "UP";
-        case sf::Keyboard::Key::Down: return "DOWN";
-        case sf::Keyboard::Key::Tab: return "TAB";
-        case sf::Keyboard::Key::LShift: return "LSHIFT";
-        case sf::Keyboard::Key::RShift: return "RSHIFT";
-        case sf::Keyboard::Key::LControl: return "LCTRL";
-        case sf::Keyboard::Key::RControl: return "RCTRL";
-        case sf::Keyboard::Key::Escape: return "ESC";
-        case sf::Keyboard::Key::Comma: return "COMMA";
-        case sf::Keyboard::Key::Period: return "PERIOD";
-        case sf::Keyboard::Key::Slash: return "SLASH";
-        case sf::Keyboard::Key::Semicolon: return "SEMICOLON";
-        case sf::Keyboard::Key::Enter: return "ENTER";
-        case sf::Keyboard::Key::Backspace: return "BACKSPACE";
+        
+
+        case sf::Keyboard::Key::Num0: return "0";
+        case sf::Keyboard::Key::Num1: return "1";
+        case sf::Keyboard::Key::Num2: return "2";
+        case sf::Keyboard::Key::Num3: return "3";
+        case sf::Keyboard::Key::Num4: return "4";
+        case sf::Keyboard::Key::Num5: return "5";
+        case sf::Keyboard::Key::Num6: return "6";
+        case sf::Keyboard::Key::Num7: return "7";
+        case sf::Keyboard::Key::Num8: return "8";
+        case sf::Keyboard::Key::Num9: return "9";
+        
+
+        case sf::Keyboard::Key::Numpad0: return "Num 0";
+        case sf::Keyboard::Key::Numpad1: return "Num 1";
+        case sf::Keyboard::Key::Numpad2: return "Num 2";
+        case sf::Keyboard::Key::Numpad3: return "Num 3";
+        case sf::Keyboard::Key::Numpad4: return "Num 4";
+        case sf::Keyboard::Key::Numpad5: return "Num 5";
+        case sf::Keyboard::Key::Numpad6: return "Num 6";
+        case sf::Keyboard::Key::Numpad7: return "Num 7";
+        case sf::Keyboard::Key::Numpad8: return "Num 8";
+        case sf::Keyboard::Key::Numpad9: return "Num 9";
+        
+
+        case sf::Keyboard::Key::F1: return "F1";
+        case sf::Keyboard::Key::F2: return "F2";
+        case sf::Keyboard::Key::F3: return "F3";
+        case sf::Keyboard::Key::F4: return "F4";
+        case sf::Keyboard::Key::F5: return "F5";
+        case sf::Keyboard::Key::F6: return "F6";
+        case sf::Keyboard::Key::F7: return "F7";
+        case sf::Keyboard::Key::F8: return "F8";
+        case sf::Keyboard::Key::F9: return "F9";
+        case sf::Keyboard::Key::F10: return "F10";
+        case sf::Keyboard::Key::F11: return "F11";
+        case sf::Keyboard::Key::F12: return "F12";
+        
+
+        case sf::Keyboard::Key::Left: return "Left Arrow";
+        case sf::Keyboard::Key::Right: return "Right Arrow";
+        case sf::Keyboard::Key::Up: return "Up Arrow";
+        case sf::Keyboard::Key::Down: return "Down Arrow";
+        
+
+        case sf::Keyboard::Key::Space: return "Space";
+        case sf::Keyboard::Key::Enter: return "Enter";
+        case sf::Keyboard::Key::Backspace: return "Backspace";
+        case sf::Keyboard::Key::Tab: return "Tab";
+        case sf::Keyboard::Key::Escape: return "Esc";
+        case sf::Keyboard::Key::Delete: return "Delete";
+        case sf::Keyboard::Key::Insert: return "Insert";
+        case sf::Keyboard::Key::Home: return "Home";
+        case sf::Keyboard::Key::End: return "End";
+        case sf::Keyboard::Key::PageUp: return "Page Up";
+        case sf::Keyboard::Key::PageDown: return "Page Down";
+        
+
+        case sf::Keyboard::Key::LShift: return "Left Shift";
+        case sf::Keyboard::Key::RShift: return "Right Shift";
+        case sf::Keyboard::Key::LControl: return "Left Ctrl";
+        case sf::Keyboard::Key::RControl: return "Right Ctrl";
+        case sf::Keyboard::Key::LAlt: return "Left Alt";
+        case sf::Keyboard::Key::RAlt: return "Right Alt";
+        case sf::Keyboard::Key::LSystem: return "Left Win";
+        case sf::Keyboard::Key::RSystem: return "Right Win";
+        
+
+        case sf::Keyboard::Key::Comma: return ",";
+        case sf::Keyboard::Key::Period: return ".";
+        case sf::Keyboard::Key::Slash: return "/";
+        case sf::Keyboard::Key::Semicolon: return ";";
+        case sf::Keyboard::Key::LBracket: return "[";
+        case sf::Keyboard::Key::RBracket: return "]";
+        case sf::Keyboard::Key::Backslash: return "\\";
+        case sf::Keyboard::Key::Hyphen: return "-";
+        case sf::Keyboard::Key::Equal: return "=";
+        
+
+        case sf::Keyboard::Key::Add: return "Num +";
+        case sf::Keyboard::Key::Subtract: return "Num -";
+        case sf::Keyboard::Key::Multiply: return "Num *";
+        case sf::Keyboard::Key::Divide: return "Num /";
+        
+
+        case sf::Keyboard::Key::Pause: return "Pause";
+        
         default: return "UNKNOWN";
     }
 }
 
-void drawRebindingScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, const KeyBindings& bindings, ControlScheme selectedScheme, ControlScheme hoveredScheme, ControlScheme appliedScheme, int selectedBinding, bool waitingForKey, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime, bool debugMode) {
+void drawRebindingScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, const KeyBindings& bindings, ControlScheme selectedScheme, ControlScheme hoveredScheme, ControlScheme appliedScheme, int selectedBinding, bool waitingForKey, bool isResetHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime, bool debugMode) {
     const float centerX = SCREEN_WIDTH / 2.0f;
     const float centerY = SCREEN_HEIGHT / 2.0f;
     
     if (!fontLoaded) return;
     
 
+    sf::RectangleShape bgPanel;
+    bgPanel.setSize(sf::Vector2f(1100, 880));
+    bgPanel.setPosition(sf::Vector2f(centerX - 550, 120));
+    bgPanel.setFillColor(sf::Color(15, 20, 30, 240));
+    bgPanel.setOutlineThickness(3);
+    bgPanel.setOutlineColor(sf::Color(60, 80, 120));
+    window.draw(bgPanel);
+
     MenuOptionStyle buttonStyle = MenuOptionStyle::MainMenuStyle();
     buttonStyle.fallbackSelectorWidth = 300.0f;
     
-    float buttonY = 180.0f;
+    float buttonY = 140.0f;
     float buttonSpacing = 350.0f;
     
 
@@ -1558,11 +1778,11 @@ void drawRebindingScreen(sf::RenderWindow& window, const sf::Font& titleFont, co
     window.draw(customText);
     
 
-    float contentStartY = 320.0f;
+    float contentStartY = 240.0f;
     
     if (selectedScheme == ControlScheme::Custom) {
 
-        const float lineHeight = 50.0f;
+        const float lineHeight = 52.0f;
         
         std::vector<std::pair<std::string, std::string>> keyList = {
             {"Move Left", getKeyName(bindings.moveLeft)},
@@ -1584,16 +1804,18 @@ void drawRebindingScreen(sf::RenderWindow& window, const sf::Font& titleFont, co
             
             if (static_cast<int>(i) == selectedBinding) {
                 sf::RectangleShape selector;
-                selector.setSize(sf::Vector2f(700, 45));
-                selector.setFillColor(sf::Color(100, 200, 255, 128));
-                selector.setPosition(sf::Vector2f(centerX - 350, yPos - 5));
+                selector.setSize(sf::Vector2f(760, 48));
+                selector.setFillColor(sf::Color(100, 200, 255, 80));
+                selector.setOutlineThickness(2);
+                selector.setOutlineColor(sf::Color(100, 200, 255, 180));
+                selector.setPosition(sf::Vector2f(centerX - 380, yPos - 6));
                 window.draw(selector);
             }
             
             sf::Text labelText(menuFont, keyList[i].first);
-            labelText.setCharacterSize(32);
+            labelText.setCharacterSize(28);
             labelText.setFillColor(sf::Color::White);
-            labelText.setPosition(sf::Vector2f(centerX - 330, yPos));
+            labelText.setPosition(sf::Vector2f(centerX - 350, yPos));
             window.draw(labelText);
             
             sf::Text keyText(menuFont);
@@ -1604,11 +1826,31 @@ void drawRebindingScreen(sf::RenderWindow& window, const sf::Font& titleFont, co
                 keyText.setString(keyList[i].second);
                 keyText.setFillColor(sf::Color(100, 255, 100));
             }
-            keyText.setCharacterSize(32);
+            keyText.setCharacterSize(28);
             keyText.setStyle(sf::Text::Bold);
             keyText.setPosition(sf::Vector2f(centerX + 100, yPos));
             window.draw(keyText);
         }
+        
+
+        float resetButtonY = 920.0f;
+        float resetButtonWidth = 200.0f;
+        float resetButtonHeight = 60.0f;
+        
+        sf::RectangleShape resetButton(sf::Vector2f(resetButtonWidth, resetButtonHeight));
+        resetButton.setPosition(sf::Vector2f(centerX - resetButtonWidth/2, resetButtonY));
+        resetButton.setFillColor(isResetHovered ? sf::Color(100, 50, 50) : sf::Color(80, 40, 40));
+        resetButton.setOutlineThickness(3);
+        resetButton.setOutlineColor(isResetHovered ? sf::Color(200, 80, 80) : sf::Color(150, 60, 60));
+        window.draw(resetButton);
+        
+        sf::Text resetText(menuFont, "RESET");
+        resetText.setCharacterSize(36);
+        resetText.setFillColor(isResetHovered ? sf::Color::Yellow : sf::Color(255, 100, 100));
+        resetText.setStyle(sf::Text::Bold);
+        sf::FloatRect resetBounds = resetText.getLocalBounds();
+        resetText.setPosition(sf::Vector2f(centerX - resetBounds.size.x/2, resetButtonY + 12));
+        window.draw(resetText);
         
     } else {
 
@@ -1643,18 +1885,18 @@ void drawRebindingScreen(sf::RenderWindow& window, const sf::Font& titleFont, co
         controls.push_back({"Music Volume Down", ","});
         controls.push_back({"Music Volume Up", "."});
         
-        const float lineHeight = 55.0f;
+        const float lineHeight = 52.0f;
         for (size_t i = 0; i < controls.size(); i++) {
             float yPos = contentStartY + i * lineHeight;
             
             sf::Text labelText(menuFont, controls[i].first);
-            labelText.setCharacterSize(32);
+            labelText.setCharacterSize(28);
             labelText.setFillColor(sf::Color::White);
-            labelText.setPosition(sf::Vector2f(centerX - 300, yPos));
+            labelText.setPosition(sf::Vector2f(centerX - 350, yPos));
             window.draw(labelText);
             
             sf::Text keyText(menuFont, controls[i].second);
-            keyText.setCharacterSize(32);
+            keyText.setCharacterSize(28);
             keyText.setStyle(sf::Text::Bold);
             keyText.setFillColor(sf::Color(100, 255, 100));
             keyText.setPosition(sf::Vector2f(centerX + 100, yPos));
