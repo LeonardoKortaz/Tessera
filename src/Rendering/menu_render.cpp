@@ -2,6 +2,7 @@
 #include "menu_config.h"
 #include "piece_utils.h"
 #include "achievements.h"
+#include "game_ui.h"
 #include <algorithm>
 #include <iostream>
 #include <cstdlib>
@@ -9,27 +10,6 @@
 #include <cmath>
 
 const std::string GAME_VERSION = "v0.3.0-beta.10";
-
-float drawButtonSprite(sf::RenderWindow& window, 
-                       const std::map<TextureType, sf::Texture>& textures,
-                       bool useTextures,
-                       float centerX, float y,
-                       float scale,
-                       bool isActive) {
-    if (useTextures && textures.count(TextureType::ButtonActive) && textures.count(TextureType::Button)) {
-        TextureType btnType = isActive ? TextureType::ButtonActive : TextureType::Button;
-        sf::Sprite btn(textures.at(btnType));
-        sf::Vector2u ts = textures.at(btnType).getSize();
-        float btnW = static_cast<float>(ts.x) * scale;
-        float btnH = static_cast<float>(ts.y) * scale;
-        btn.setScale(sf::Vector2f(scale, scale));
-        btn.setPosition(sf::Vector2f(centerX - btnW/2, y));
-        window.draw(btn);
-        return btnH;
-    }
-    return 0.0f;
-}
-
 
 struct MenuOptionStyle {
     float buttonScale = 3.0f;
@@ -200,16 +180,6 @@ void drawMenuOption(sf::RenderWindow& window,
 void drawGameOver(sf::RenderWindow& window, int finalScore, int finalLines, int finalLevel, const std::map<TextureType, sf::Texture>& textures, bool useTextures, const sf::Font& font, bool fontLoaded, const SaveData& saveData, int dropScore, int lineScore, int comboScore, ClassicDifficulty difficulty, bool isSprintMode, float sprintTime, int sprintTarget, bool sprintCompleted, bool isChallengeMode, bool isPracticeMode, float uiAlpha, sf::Color frameColor, float statsRevealTime, bool isNewHighScore, int previousHighScore, sf::Color backgroundColor) {
     if (uiAlpha < 0.0f) uiAlpha = 0.0f;
     if (uiAlpha > 1.0f) uiAlpha = 1.0f;
-
-
-    (void)textures;
-    (void)useTextures;
-    (void)isSprintMode;
-    (void)sprintTime;
-    (void)sprintTarget;
-    (void)sprintCompleted;
-    (void)isChallengeMode;
-    (void)isPracticeMode;
 
     auto scaleAlpha = [uiAlpha](sf::Color c) {
         c.a = static_cast<std::uint8_t>(static_cast<float>(c.a) * uiAlpha);
@@ -489,7 +459,7 @@ void drawPauseMenu(sf::RenderWindow& window, const sf::Font& menuFont, bool font
 void drawConfirmClearScores(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, ConfirmOption selectedOption) {
 
     sf::RectangleShape overlay;
-    overlay.setFillColor(sf::Color(0, 0, 0, 180));
+    overlay.setFillColor(sf::Color(0, 0, 0, 230));
     overlay.setSize(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
     overlay.setPosition(sf::Vector2f(0, 0));
     window.draw(overlay);
@@ -499,87 +469,59 @@ void drawConfirmClearScores(sf::RenderWindow& window, const sf::Font& menuFont, 
     
 
     sf::RectangleShape dialogBg;
-    dialogBg.setFillColor(sf::Color(40, 40, 50, 240));
-    dialogBg.setOutlineColor(sf::Color(100, 150, 255, 255));
-    dialogBg.setOutlineThickness(4);
-    dialogBg.setSize(sf::Vector2f(600, 280));
-    dialogBg.setPosition(sf::Vector2f(centerX - 300, centerY - 140));
+    dialogBg.setFillColor(sf::Color(20, 25, 35, 250));
+    dialogBg.setOutlineColor(sf::Color(255, 80, 80, 255));
+    dialogBg.setOutlineThickness(5);
+    dialogBg.setSize(sf::Vector2f(900, 420));
+    dialogBg.setPosition(sf::Vector2f(centerX - 450, centerY - 210));
     window.draw(dialogBg);
     
     if (fontLoaded) {
 
-        sf::Text titleText(menuFont, "Confirm");
-        titleText.setCharacterSize(42);
+        sf::Text warningIcon(menuFont, "!");
+        warningIcon.setCharacterSize(120);
+        warningIcon.setFillColor(sf::Color(255, 80, 80));
+        warningIcon.setStyle(sf::Text::Bold);
+        sf::FloatRect iconBounds = warningIcon.getLocalBounds();
+        warningIcon.setPosition(sf::Vector2f(centerX - iconBounds.size.x/2, centerY - 160));
+        window.draw(warningIcon);
+        
+
+        sf::Text titleText(menuFont, "WARNING");
+        titleText.setCharacterSize(56);
         titleText.setFillColor(sf::Color(255, 100, 100));
         titleText.setStyle(sf::Text::Bold);
         sf::FloatRect titleBounds = titleText.getLocalBounds();
-        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 110));
+        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 50));
         window.draw(titleText);
         
 
-        sf::Text questionText(menuFont, "Are you sure you want to clear");
-        questionText.setCharacterSize(26);
+        sf::Text questionText(menuFont, "Delete ALL data?");
+        questionText.setCharacterSize(38);
         questionText.setFillColor(sf::Color::White);
+        questionText.setStyle(sf::Text::Bold);
         sf::FloatRect q1Bounds = questionText.getLocalBounds();
-        questionText.setPosition(sf::Vector2f(centerX - q1Bounds.size.x/2, centerY - 50));
+        questionText.setPosition(sf::Vector2f(centerX - q1Bounds.size.x/2, centerY + 15));
         window.draw(questionText);
         
-        sf::Text questionText2(menuFont, "all your data (scores, times & achievements)?");
-        questionText2.setCharacterSize(26);
-        questionText2.setFillColor(sf::Color::White);
-        sf::FloatRect q2Bounds = questionText2.getLocalBounds();
-        questionText2.setPosition(sf::Vector2f(centerX - q2Bounds.size.x/2, centerY - 20));
-        window.draw(questionText2);
+
+        sf::Text detailsText(menuFont, "This will erase scores, times & achievements");
+        detailsText.setCharacterSize(26);
+        detailsText.setFillColor(sf::Color(200, 200, 200));
+        sf::FloatRect detailsBounds = detailsText.getLocalBounds();
+        detailsText.setPosition(sf::Vector2f(centerX - detailsBounds.size.x/2, centerY + 60));
+        window.draw(detailsText);
         
 
-        sf::Text yesText(menuFont, "YES");
-        yesText.setCharacterSize(36);
-        if (selectedOption == ConfirmOption::Yes) {
-            yesText.setFillColor(sf::Color::Yellow);
-            yesText.setStyle(sf::Text::Bold);
+        sf::Text instructionsText(menuFont, "Press ENTER to confirm  |  Press ESC to cancel");
+        instructionsText.setCharacterSize(28);
+        instructionsText.setFillColor(sf::Color(150, 200, 255));
+        sf::FloatRect instrBounds = instructionsText.getLocalBounds();
+        instructionsText.setPosition(sf::Vector2f(centerX - instrBounds.size.x/2, centerY + 140));
+        window.draw(instructionsText);
             
-            sf::RectangleShape yesSelector;
-            yesSelector.setSize(sf::Vector2f(200, 60));
-            yesSelector.setFillColor(sf::Color(255, 255, 0, 50));
-            yesSelector.setOutlineColor(sf::Color::Yellow);
-            yesSelector.setOutlineThickness(3);
-            yesSelector.setPosition(sf::Vector2f(centerX - 250, centerY + 40));
-            window.draw(yesSelector);
-        } else {
-            yesText.setFillColor(sf::Color::White);
-        }
-        sf::FloatRect yesBounds = yesText.getLocalBounds();
-        yesText.setPosition(sf::Vector2f(centerX - 150 - yesBounds.size.x/2, centerY + 55));
-        window.draw(yesText);
-        
-
-        sf::Text noText(menuFont, "NO");
-        noText.setCharacterSize(36);
-        if (selectedOption == ConfirmOption::No) {
-            noText.setFillColor(sf::Color::Yellow);
-            noText.setStyle(sf::Text::Bold);
-            
-            sf::RectangleShape noSelector;
-            noSelector.setSize(sf::Vector2f(200, 60));
-            noSelector.setFillColor(sf::Color(255, 255, 0, 50));
-            noSelector.setOutlineColor(sf::Color::Yellow);
-            noSelector.setOutlineThickness(3);
-            noSelector.setPosition(sf::Vector2f(centerX + 50, centerY + 40));
-            window.draw(noSelector);
-        } else {
-            noText.setFillColor(sf::Color::White);
-        }
-        sf::FloatRect noBounds = noText.getLocalBounds();
-        noText.setPosition(sf::Vector2f(centerX + 150 - noBounds.size.x/2, centerY + 55));
-        window.draw(noText);
-        
-
-        sf::Text instructText(menuFont, "Arrow keys to select, SPACE/ENTER to confirm");
-        instructText.setCharacterSize(18);
-        instructText.setFillColor(sf::Color(180, 180, 180));
-        sf::FloatRect instructBounds = instructText.getLocalBounds();
-        instructText.setPosition(sf::Vector2f(centerX - instructBounds.size.x/2, centerY + 120));
-        window.draw(instructText);
+        instructionsText.setPosition(sf::Vector2f(centerX - instrBounds.size.x/2, centerY + 140));
+        window.draw(instructionsText);
     }
 }
 
@@ -836,6 +778,46 @@ void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf:
     }
 }
 
+CardLayoutInfo getCardLayout(int numCards) {
+    CardLayoutInfo layout;
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
+    
+
+    layout.cols = (numCards == 6) ? 3 : numCards;
+    layout.rows = (numCards == 6) ? 2 : 1;
+    
+    layout.cardWidth = (numCards == 6) ? 420.0f : 380.0f;
+    layout.cardHeight = (numCards == 6) ? 380.0f : 700.0f;
+    layout.spacingX = 40.0f;
+    layout.spacingY = 40.0f;
+    
+    float totalWidth = layout.cols * layout.cardWidth + (layout.cols - 1) * layout.spacingX;
+    float totalHeight = layout.rows * layout.cardHeight + (layout.rows - 1) * layout.spacingY;
+    layout.startX = centerX - totalWidth / 2.0f;
+    layout.startY = centerY - totalHeight / 2.0f + 20.0f;
+    
+    return layout;
+}
+
+int getCardIndexAtPosition(float mouseX, float mouseY, int numCards) {
+    CardLayoutInfo layout = getCardLayout(numCards);
+    
+    for (int i = 0; i < numCards; i++) {
+        int row = i / layout.cols;
+        int col = i % layout.cols;
+        float cardX = layout.startX + col * (layout.cardWidth + layout.spacingX);
+        float cardY = layout.startY + row * (layout.cardHeight + layout.spacingY);
+        
+        if (mouseX >= cardX && mouseX <= cardX + layout.cardWidth &&
+            mouseY >= cardY && mouseY <= cardY + layout.cardHeight) {
+            return i;
+        }
+    }
+    
+    return -1;
+}
+
 void drawCardSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, const std::vector<CardData>& cards, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
@@ -847,81 +829,101 @@ void drawCardSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont,
     if (!fontLoaded) return;
     
     int numCards = cards.size();
-    float cardWidth = 380.0f;
-    float cardHeight = 700.0f;
-    float spacing = 40.0f;
-    float totalWidth = cardWidth * numCards + spacing * (numCards - 1);
-    float startX = centerX - totalWidth / 2.0f + cardWidth / 2.0f;
-    float cardY = centerY - cardHeight / 2.0f;
+    CardLayoutInfo layout = getCardLayout(numCards);
     
     for (int i = 0; i < numCards; i++) {
-        float cardX = startX + i * (cardWidth + spacing);
-        bool isSelected = (selectedCard == i);
+        int row = i / layout.cols;
+        int col = i % layout.cols;
+        float cardX = layout.startX + col * (layout.cardWidth + layout.spacingX);
+        float cardY = layout.startY + row * (layout.cardHeight + layout.spacingY);
         
-        sf::RectangleShape card(sf::Vector2f(cardWidth, cardHeight));
-        card.setPosition(sf::Vector2f(cardX - cardWidth/2, cardY));
-        card.setFillColor(sf::Color(20, 25, 35, 230));
-        card.setOutlineThickness(isSelected ? 6.0f : 3.0f);
-        card.setOutlineColor(isSelected ? cards[i].color : sf::Color(60, 70, 90));
+        bool isSelected = (selectedCard == i);
+        bool isDisabled = cards[i].isDisabled;
+        
+        sf::RectangleShape card(sf::Vector2f(layout.cardWidth, layout.cardHeight));
+        card.setPosition(sf::Vector2f(cardX, cardY));
+        card.setFillColor(isDisabled ? sf::Color(15, 18, 25, 230) : sf::Color(20, 25, 35, 230));
+        card.setOutlineThickness(isSelected && !isDisabled ? 6.0f : 3.0f);
+        card.setOutlineColor(isDisabled ? sf::Color(40, 45, 55) : (isSelected ? cards[i].color : sf::Color(60, 70, 90)));
         window.draw(card);
         
-        if (isSelected) {
-            sf::RectangleShape glow(sf::Vector2f(cardWidth + 20, cardHeight + 20));
-            glow.setPosition(sf::Vector2f(cardX - cardWidth/2 - 10, cardY - 10));
+        if (isSelected && !isDisabled) {
+            sf::RectangleShape glow(sf::Vector2f(layout.cardWidth + 20, layout.cardHeight + 20));
+            glow.setPosition(sf::Vector2f(cardX - 10, cardY - 10));
             glow.setFillColor(sf::Color(cards[i].color.r, cards[i].color.g, cards[i].color.b, 30));
             window.draw(glow);
         }
         
-        sf::Text titleText(menuFont, cards[i].title);
-        int titleSize = (cards[i].title.length() > 10) ? 48 : 56;
+
+        std::string title = cards[i].title;
+        int titleSize = (title.length() > 10) ? 48 : 56;
+        sf::Text titleText(menuFont, title);
         titleText.setCharacterSize(titleSize);
-        titleText.setFillColor(cards[i].color);
+        titleText.setFillColor(isDisabled ? sf::Color(80, 85, 95) : cards[i].color);
         titleText.setStyle(sf::Text::Bold);
         sf::FloatRect titleBounds = titleText.getLocalBounds();
-        titleText.setPosition(sf::Vector2f(cardX - titleBounds.size.x/2, cardY + 40));
+        titleText.setPosition(sf::Vector2f(cardX + layout.cardWidth/2 - titleBounds.size.x/2, cardY + 20));
         window.draw(titleText);
         
-        sf::RectangleShape iconBg(sf::Vector2f(cardWidth - 60, 200));
-        iconBg.setPosition(sf::Vector2f(cardX - cardWidth/2 + 30, cardY + 130));
-        iconBg.setFillColor(sf::Color(30, 35, 45));
+
+        float iconSize = (numCards == 6) ? 160.0f : 200.0f;
+        float iconY = (numCards == 6) ? cardY + 100 : cardY + 130;
+        sf::RectangleShape iconBg(sf::Vector2f(layout.cardWidth - 60, iconSize));
+        iconBg.setPosition(sf::Vector2f(cardX + 30, iconY));
+        iconBg.setFillColor(isDisabled ? sf::Color(20, 23, 30) : sf::Color(30, 35, 45));
         iconBg.setOutlineThickness(2);
-        iconBg.setOutlineColor(cards[i].color);
+        iconBg.setOutlineColor(isDisabled ? sf::Color(50, 55, 65) : cards[i].color);
         window.draw(iconBg);
         
+
         sf::Text iconText(menuFont, cards[i].iconLetter);
-        iconText.setCharacterSize(85);
-        iconText.setFillColor(cards[i].color);
+        iconText.setCharacterSize((numCards == 6) ? 65 : 85);
+        iconText.setFillColor(isDisabled ? sf::Color(60, 65, 75) : cards[i].color);
         iconText.setStyle(sf::Text::Bold);
         sf::FloatRect iconBounds = iconText.getLocalBounds();
-        iconText.setPosition(sf::Vector2f(cardX - iconBounds.size.x/2, cardY + 165));
+        iconText.setPosition(sf::Vector2f(cardX + layout.cardWidth/2 - iconBounds.size.x/2, iconY + iconSize/2 - iconBounds.size.y/2 - 8));
         window.draw(iconText);
         
-        sf::RectangleShape separator(sf::Vector2f(cardWidth - 60, 3));
-        separator.setPosition(sf::Vector2f(cardX - cardWidth/2 + 30, cardY + 360));
-        separator.setFillColor(cards[i].color);
+
+        float sepY = iconY + iconSize + 30;
+        sf::RectangleShape separator(sf::Vector2f(layout.cardWidth - 60, 3));
+        separator.setPosition(sf::Vector2f(cardX + 30, sepY));
+        separator.setFillColor(isDisabled ? sf::Color(50, 55, 65) : cards[i].color);
         window.draw(separator);
         
-        std::string desc = cards[i].description;
-        size_t pos = 0;
-        int lineNum = 0;
-        while ((pos = desc.find("\\n")) != std::string::npos) {
-            std::string line = desc.substr(0, pos);
-            sf::Text descText(menuFont, line);
-            descText.setCharacterSize(28);
-            descText.setFillColor(sf::Color(200, 200, 200));
+
+        if (numCards != 6) {
+            std::string desc = cards[i].description;
+            size_t pos = 0;
+            int lineNum = 0;
+            while ((pos = desc.find("\\n")) != std::string::npos) {
+                std::string line = desc.substr(0, pos);
+                sf::Text descText(menuFont, line);
+                descText.setCharacterSize(28);
+                descText.setFillColor(isDisabled ? sf::Color(70, 75, 85) : sf::Color(200, 200, 200));
+                sf::FloatRect descBounds = descText.getLocalBounds();
+                descText.setPosition(sf::Vector2f(cardX + layout.cardWidth/2 - descBounds.size.x/2, sepY + 40 + lineNum * 40));
+                window.draw(descText);
+                desc.erase(0, pos + 2);
+                lineNum++;
+            }
+            if (!desc.empty()) {
+                sf::Text descText(menuFont, desc);
+                descText.setCharacterSize(28);
+                descText.setFillColor(isDisabled ? sf::Color(70, 75, 85) : sf::Color(200, 200, 200));
+                sf::FloatRect descBounds = descText.getLocalBounds();
+                descText.setPosition(sf::Vector2f(cardX + layout.cardWidth/2 - descBounds.size.x/2, sepY + 40 + lineNum * 40));
+                window.draw(descText);
+            }
+        } else {
+
+            sf::Text descText(menuFont, isDisabled ? "Coming Soon" : "");
+            descText.setCharacterSize(22);
+            descText.setFillColor(sf::Color(120, 125, 135));
+            descText.setStyle(sf::Text::Italic);
             sf::FloatRect descBounds = descText.getLocalBounds();
-            descText.setPosition(sf::Vector2f(cardX - descBounds.size.x/2, cardY + 400 + lineNum * 40));
-            window.draw(descText);
-            desc.erase(0, pos + 2);
-            lineNum++;
-        }
-        if (!desc.empty()) {
-            sf::Text descText(menuFont, desc);
-            descText.setCharacterSize(28);
-            descText.setFillColor(sf::Color(200, 200, 200));
-            sf::FloatRect descBounds = descText.getLocalBounds();
-            descText.setPosition(sf::Vector2f(cardX - descBounds.size.x/2, cardY + 400 + lineNum * 40));
-            window.draw(descText);
+            descText.setPosition(sf::Vector2f(cardX + layout.cardWidth/2 - descBounds.size.x/2, sepY + 30));
+            if (isDisabled) window.draw(descText);
         }
     }
     
@@ -947,10 +949,12 @@ void drawCardSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont,
 
 void drawModeSelectionScreen(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures) {
     std::vector<CardData> modeCards = {
-        {"CLASSIC", "Classic Tetris gameplay\\nwith increasing difficulty", sf::Color(100, 200, 255), "C"},
-        {"BLITZ", "Race against time to clear\\nlines as fast as possible", sf::Color(255, 150, 50), "B"},
-        {"CHALLENGE", "Special game modes with\\nunique twists and rules", sf::Color(200, 100, 255), "C"},
-        {"PRACTICE", "Practice with custom\\nsettings and no pressure", sf::Color(100, 255, 150), "P"}
+        {"CLASSIC", "Classic Tetris gameplay\\nwith increasing difficulty", sf::Color(100, 200, 255), "C", false},
+        {"BLITZ", "Race against time to clear\\nlines as fast as possible", sf::Color(255, 150, 50), "B", false},
+        {"CHALLENGE", "Special game modes with\\nunique twists and rules", sf::Color(200, 100, 255), "C", false},
+        {"VERSUS", "Compete against\\nother players", sf::Color(255, 100, 100), "V", true},
+        {"TRIALS", "Complete specific\\nobjectives", sf::Color(100, 255, 200), "T", true},
+        {"PRACTICE", "Practice with custom\\nsettings and no pressure", sf::Color(100, 255, 150), "P", false}
     };
     
     drawCardSelectionScreen(window, menuFont, fontLoaded, modeCards, selectedCard, isBackHovered, textures, useTextures);
@@ -1014,53 +1018,78 @@ void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const
     }
 }
 
-void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ClassicDifficulty selectedOption, const SaveData& saveData, const std::map<TextureType, sf::Texture>& textures, bool useTextures, bool debugMode) {
+void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ClassicDifficulty selectedOption, const SaveData& saveData, const std::map<TextureType, sf::Texture>& textures, bool useTextures, bool debugMode, int selectedElement, bool isPlayHovered) {
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
     
+    bool playHighlighted = (selectedElement == 3) || isPlayHovered;
+    
+    sf::RectangleShape dimOverlay(sf::Vector2f(SCREEN_WIDTH, SCREEN_HEIGHT));
+    dimOverlay.setFillColor(sf::Color(0, 0, 0, 180));
+    window.draw(dimOverlay);
+    
     if (fontLoaded) {
+        float panelWidth = 800.0f;
+        float panelHeight = 900.0f;
+        sf::RectangleShape panel(sf::Vector2f(panelWidth, panelHeight));
+        panel.setPosition(sf::Vector2f(centerX - panelWidth/2, centerY - panelHeight/2));
+        panel.setFillColor(sf::Color(20, 25, 35, 255));
+        panel.setOutlineThickness(3);
+        panel.setOutlineColor(sf::Color(100, 200, 255));
+        window.draw(panel);
+        
         sf::Text titleText(titleFont, "CLASSIC MODE");
         titleText.setCharacterSize(80);
         titleText.setFillColor(sf::Color(100, 200, 255));
         titleText.setStyle(sf::Text::Bold);
-        titleText.setOutlineColor(sf::Color::Black);
-        titleText.setOutlineThickness(4);
         sf::FloatRect titleBounds = titleText.getLocalBounds();
-        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - 300));
+        titleText.setPosition(sf::Vector2f(centerX - titleBounds.size.x/2, centerY - panelHeight/2 + 40));
         window.draw(titleText);
         
-        std::vector<std::tuple<std::string, ClassicDifficulty, int>> options = {
-            {"HARD", ClassicDifficulty::Hard, saveData.highScoreClassicHard},
-            {"NORMAL", ClassicDifficulty::Normal, saveData.highScoreClassicNormal}
-        };
+        float playButtonY = centerY + panelHeight/2 - 110;
+        sf::RectangleShape playButton(sf::Vector2f(300, 70));
+        playButton.setPosition(sf::Vector2f(centerX - 150, playButtonY));
+        playButton.setFillColor(playHighlighted ? sf::Color(70, 180, 70) : sf::Color(50, 150, 50));
+        playButton.setOutlineThickness(playHighlighted ? 4 : 3);
+        playButton.setOutlineColor(playHighlighted ? sf::Color(255, 255, 100) : sf::Color(100, 255, 100));
+        window.draw(playButton);
         
-        float startY = centerY - 80;
-        float spacing = 90;
-        MenuOptionStyle style = MenuOptionStyle::MainMenuStyle();
-        style.fallbackSelectorWidth = 550.0f;
+        sf::Text playText(menuFont, "PLAY");
+        playText.setCharacterSize(48);
+        playText.setFillColor(sf::Color::White);
+        playText.setStyle(sf::Text::Bold);
+        sf::FloatRect playBounds = playText.getLocalBounds();
+        playText.setPosition(sf::Vector2f(centerX - playBounds.size.x/2, playButtonY + 10));
+        window.draw(playText);
         
-        for (size_t i = 0; i < options.size(); ++i) {
-            bool isSelected = (selectedOption == std::get<1>(options[i]));
-            float btnH = drawMenuButton(window, centerX, startY + i * spacing - 5, isSelected, textures, useTextures, style, debugMode, 550.0f);
-            
-
-            sf::Text optionText(menuFont, std::get<0>(options[i]));
-            optionText.setCharacterSize(48);
-            optionText.setFillColor(isSelected ? sf::Color::Yellow : sf::Color::White);
-            if (isSelected) optionText.setStyle(sf::Text::Bold);
-            float textY = startY + i * spacing + btnH/2 - 20;
-            optionText.setPosition(sf::Vector2f(centerX - 200, textY));
-            window.draw(optionText);
-            
-
-            int highScore = std::get<2>(options[i]);
-            sf::Text scoreText(menuFont, "Best: " + std::to_string(highScore));
-            scoreText.setCharacterSize(32);
-            scoreText.setFillColor(sf::Color(180, 180, 180));
-            scoreText.setPosition(sf::Vector2f(centerX + 80, textY + 8));
-            window.draw(scoreText);
-        }
+        int highScore = (selectedOption == ClassicDifficulty::Hard) ? saveData.highScoreClassicHard : saveData.highScoreClassicNormal;
+        float leftPanelWidth = 300.0f;
+        float leftPanelHeight = 125.0f;
+        float leftPanelX = centerX - 750.0f;
+        float leftPanelY = centerY - leftPanelHeight/2 - 180.0f;
         
+        sf::RectangleShape leftPanel(sf::Vector2f(leftPanelWidth, leftPanelHeight));
+        leftPanel.setPosition(sf::Vector2f(leftPanelX, leftPanelY));
+        leftPanel.setFillColor(sf::Color(25, 30, 40, 255));
+        leftPanel.setOutlineThickness(3);
+        leftPanel.setOutlineColor(sf::Color(255, 215, 0));
+        window.draw(leftPanel);
+        
+        sf::Text bestScoreTitle(menuFont, "BEST SCORE");
+        bestScoreTitle.setCharacterSize(24);
+        bestScoreTitle.setFillColor(sf::Color(255, 215, 0));
+        bestScoreTitle.setStyle(sf::Text::Bold);
+        sf::FloatRect bestTitleBounds = bestScoreTitle.getLocalBounds();
+        bestScoreTitle.setPosition(sf::Vector2f(leftPanelX + leftPanelWidth/2 - bestTitleBounds.size.x/2, leftPanelY + 25));
+        window.draw(bestScoreTitle);
+        
+        sf::Text scoreValue(menuFont, std::to_string(highScore));
+        scoreValue.setCharacterSize(48);
+        scoreValue.setFillColor(sf::Color(255, 255, 100));
+        scoreValue.setStyle(sf::Text::Bold);
+        sf::FloatRect scoreValueBounds = scoreValue.getLocalBounds();
+        scoreValue.setPosition(sf::Vector2f(leftPanelX + leftPanelWidth/2 - scoreValueBounds.size.x/2, leftPanelY + 50));
+        window.draw(scoreValue);
     }
 }
 

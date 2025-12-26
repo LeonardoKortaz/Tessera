@@ -386,3 +386,17 @@ bool insertNewScore(SaveData& saveData, int score, int lines, int level, Classic
     
     return madeTopThree;
 }
+
+void deleteSaveFile() {
+    std::string filePath = getSaveFilePath();
+    try {
+        if (std::filesystem::exists(filePath)) {
+            std::filesystem::remove(filePath);
+            std::cout << "Save file deleted: " << filePath << std::endl;
+        } else {
+            std::cout << "Save file does not exist: " << filePath << std::endl;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error deleting save file: " << e.what() << std::endl;
+    }
+}

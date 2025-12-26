@@ -1,5 +1,6 @@
 ﻿#include "game_ui.h"
 #include "piece_utils.h"
+#include "menu_render.h"
 #include <iostream>
 
 void drawGridBackground(sf::RenderWindow& window, const sf::Color& backgroundColor) {
@@ -790,183 +791,220 @@ void drawFallingCells(sf::RenderWindow& window, const std::vector<FallingCell>& 
     }
 }
 
+
+const PickerDimensions& getPickerDimensions() {
+    static PickerDimensions dims;
+    return dims;
+}
+
+
+float getDifficultyPickerY() {
+    return SCREEN_HEIGHT / 2.0f - 200.0f;
+}
+
+float getAbilityPickerY() {
+    return SCREEN_HEIGHT / 2.0f;
+}
+
+float getThemePickerY() {
+    return SCREEN_HEIGHT / 2.0f + 200.0f;
+}
+
+float getPlayButtonY() {
+    float centerY = SCREEN_HEIGHT / 2.0f;
+    float panelHeight = 900.0f;
+    return centerY + panelHeight/2 - 120;
+}
+
+
+PickerHitboxes createPickerHitbox(float pickerY) {
+    float centerX = SCREEN_WIDTH / 2.0f;
+    const PickerDimensions& dims = getPickerDimensions();
+    
+    return PickerHitboxes{
+        pickerY,
+        centerX - dims.pickerWidth/2,
+        centerX - dims.pickerWidth/2 + dims.arrowWidth,
+        centerX + dims.pickerWidth/2 - dims.arrowWidth,
+        centerX + dims.pickerWidth/2,
+        dims.pickerHeight
+    };
+}
+
+
+BoxPosition getDifficultyBoxPosition() {
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float pickerY = getDifficultyPickerY();
+    const PickerDimensions& dims = getPickerDimensions();
+    
+    return BoxPosition{
+        centerX - dims.boxWidth/2,
+        pickerY - dims.labelHeight,
+        dims.boxWidth,
+        dims.boxHeight
+    };
+}
+
+BoxPosition getAbilityBoxPosition() {
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float pickerY = getAbilityPickerY();
+    const PickerDimensions& dims = getPickerDimensions();
+    
+    return BoxPosition{
+        centerX - dims.boxWidth/2,
+        pickerY - dims.labelHeight,
+        dims.boxWidth,
+        dims.boxHeight
+    };
+}
+
+BoxPosition getThemeBoxPosition() {
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float pickerY = getThemePickerY();
+    const PickerDimensions& dims = getPickerDimensions();
+    
+    return BoxPosition{
+        centerX - dims.boxWidth/2,
+        pickerY - dims.labelHeight,
+        dims.boxWidth,
+        dims.boxHeight
+    };
+}
+
+
+void drawPickerWithBox(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded,
+                      const std::string& labelText, const sf::Color& labelColor,
+                      const std::string& displayText, const sf::Color& textColor,
+                      const sf::Color& highlightColor, float pickerY,
+                      bool isLeftArrowHovered, bool isRightArrowHovered, bool isKeyboardSelected) {
+    float centerX = SCREEN_WIDTH / 2.0f;
+    const PickerDimensions& dims = getPickerDimensions();
+    
+
+    float boxX = centerX - dims.boxWidth/2;
+    float boxY = pickerY - dims.labelHeight;
+    
+
+    sf::RectangleShape box(sf::Vector2f(dims.boxWidth, dims.boxHeight));
+    box.setPosition(sf::Vector2f(boxX, boxY));
+    box.setFillColor(sf::Color(35, 42, 55, 255));
+    box.setOutlineThickness(2);
+    box.setOutlineColor(sf::Color(60, 70, 90));
+    window.draw(box);
+    
+
+    sf::Text label(font, labelText);
+    label.setCharacterSize(28);
+    label.setFillColor(labelColor);
+    label.setStyle(sf::Text::Bold);
+    sf::FloatRect labelBounds = label.getLocalBounds();
+    label.setPosition(sf::Vector2f(centerX - labelBounds.size.x/2, boxY + dims.labelYOffset));
+    window.draw(label);
+    
+
+    sf::RectangleShape pickerBg(sf::Vector2f(dims.pickerWidth, dims.pickerHeight));
+    pickerBg.setPosition(sf::Vector2f(centerX - dims.pickerWidth/2, pickerY));
+    pickerBg.setFillColor(sf::Color(45, 52, 65));
+    pickerBg.setOutlineThickness(isKeyboardSelected ? 3 : 2);
+    pickerBg.setOutlineColor(isKeyboardSelected ? highlightColor : sf::Color(80, 90, 110));
+    window.draw(pickerBg);
+    
+
+    sf::RectangleShape leftArrowBox(sf::Vector2f(dims.arrowWidth, dims.arrowWidth));
+    leftArrowBox.setPosition(sf::Vector2f(centerX - dims.pickerWidth/2, pickerY));
+    leftArrowBox.setFillColor(sf::Color(55, 62, 75));
+    leftArrowBox.setOutlineThickness(2);
+    leftArrowBox.setOutlineColor((isLeftArrowHovered || isKeyboardSelected) ? highlightColor : sf::Color(70, 80, 100));
+    window.draw(leftArrowBox);
+    
+
+    sf::Text leftArrow(font, "<");
+    leftArrow.setCharacterSize(50);
+    leftArrow.setFillColor((isLeftArrowHovered || isKeyboardSelected) ? highlightColor : sf::Color::White);
+    leftArrow.setStyle(sf::Text::Bold);
+    leftArrow.setPosition(sf::Vector2f(centerX - dims.pickerWidth/2 + 30, pickerY + 10));
+    window.draw(leftArrow);
+    
+
+    sf::Text displayTextObj(font, displayText);
+    displayTextObj.setCharacterSize(42);
+    displayTextObj.setFillColor(textColor);
+    displayTextObj.setStyle(sf::Text::Bold);
+    sf::FloatRect textBounds = displayTextObj.getLocalBounds();
+    displayTextObj.setPosition(sf::Vector2f(centerX - textBounds.size.x/2, pickerY + 12));
+    window.draw(displayTextObj);
+    
+
+    sf::RectangleShape rightArrowBox(sf::Vector2f(dims.arrowWidth, dims.arrowWidth));
+    rightArrowBox.setPosition(sf::Vector2f(centerX + dims.pickerWidth/2 - dims.arrowWidth, pickerY));
+    rightArrowBox.setFillColor(sf::Color(55, 62, 75));
+    rightArrowBox.setOutlineThickness(2);
+    rightArrowBox.setOutlineColor((isRightArrowHovered || isKeyboardSelected) ? highlightColor : sf::Color(70, 80, 100));
+    window.draw(rightArrowBox);
+    
+
+    sf::Text rightArrow(font, ">");
+    rightArrow.setCharacterSize(50);
+    rightArrow.setFillColor((isRightArrowHovered || isKeyboardSelected) ? highlightColor : sf::Color::White);
+    rightArrow.setStyle(sf::Text::Bold);
+    rightArrow.setPosition(sf::Vector2f(centerX + dims.pickerWidth/2 - dims.arrowWidth + 10, pickerY + 10));
+    window.draw(rightArrow);
+}
+
+
 void drawThemeSelector(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded, 
                       GameThemeChoice currentTheme, GameThemeChoice hoveredTheme, 
-                      bool isHovered) {
-    float panelX = 1400;
-    float panelY = 450;
-    float panelWidth = 220;
-    float themeHeight = 70;
-    
-
-    sf::RectangleShape panelBg;
-    panelBg.setFillColor(sf::Color(20, 25, 35, 230));
-    panelBg.setOutlineColor(sf::Color(100, 150, 255, 255));
-    panelBg.setOutlineThickness(2);
-    panelBg.setPosition(sf::Vector2f(panelX - 10, panelY - 10));
-    panelBg.setSize(sf::Vector2f(panelWidth + 20, themeHeight * 3 + 40));
-    window.draw(panelBg);
-    
-
-    sf::Text titleText(font, "THEMES");
-    titleText.setCharacterSize(20);
-    titleText.setFillColor(sf::Color(200, 220, 255));
-    titleText.setStyle(sf::Text::Bold);
-    titleText.setPosition(sf::Vector2f(panelX + 60, panelY));
-    window.draw(titleText);
-    
-
+                      bool isLeftArrowHovered, bool isRightArrowHovered, bool isKeyboardSelected) {
     std::vector<std::pair<GameThemeChoice, std::string>> themes = {
         {GameThemeChoice::Classic, "CLASSIC"},
         {GameThemeChoice::Forest, "FOREST"},
         {GameThemeChoice::Racer, "RACER"}
     };
     
-    for (size_t i = 0; i < themes.size(); i++) {
-        float yPos = panelY + 35 + i * themeHeight;
-        GameThemeChoice theme = themes[i].first;
-        bool isSelected = (theme == currentTheme);
-        bool isHover = isHovered && (theme == hoveredTheme);
-        
-
-        sf::RectangleShape themeButton;
-        themeButton.setSize(sf::Vector2f(panelWidth, themeHeight - 10));
-        themeButton.setPosition(sf::Vector2f(panelX, yPos));
-        
-        if (isSelected) {
-            themeButton.setFillColor(sf::Color(50, 100, 200, 200));
-            themeButton.setOutlineColor(sf::Color(100, 200, 255, 255));
-            themeButton.setOutlineThickness(3);
-        } else if (isHover) {
-            themeButton.setFillColor(sf::Color(40, 80, 160, 180));
-            themeButton.setOutlineColor(sf::Color(80, 160, 220, 200));
-            themeButton.setOutlineThickness(2);
-        } else {
-            themeButton.setFillColor(sf::Color(30, 40, 60, 150));
-            themeButton.setOutlineColor(sf::Color(60, 80, 120, 150));
-            themeButton.setOutlineThickness(1);
-        }
-        
-        window.draw(themeButton);
-        
-
-        sf::Text themeName(font, themes[i].second);
-        themeName.setCharacterSize(isSelected ? 24 : 20);
-        themeName.setFillColor(isSelected ? sf::Color(255, 255, 255) : 
-                              isHover ? sf::Color(220, 220, 255) : sf::Color(180, 180, 200));
-        themeName.setStyle(isSelected ? sf::Text::Bold : sf::Text::Regular);
-        
-
-        sf::FloatRect textBounds = themeName.getLocalBounds();
-        themeName.setPosition(sf::Vector2f(
-            panelX + (panelWidth - textBounds.size.x) / 2,
-            yPos + (themeHeight - 10 - textBounds.size.y) / 2 - 5
-        ));
-        
-        window.draw(themeName);
-        
-
-        if (isSelected) {
-            sf::CircleShape indicator(6);
-            indicator.setFillColor(sf::Color(100, 255, 150));
-            indicator.setPosition(sf::Vector2f(panelX + 15, yPos + themeHeight/2 - 11));
-            window.draw(indicator);
+    std::string themeName = "CLASSIC";
+    for (const auto& theme : themes) {
+        if (theme.first == currentTheme) {
+            themeName = theme.second;
+            break;
         }
     }
+    
+    drawPickerWithBox(window, font, fontLoaded,
+                     "THEME", sf::Color(150, 170, 200),
+                     themeName, sf::Color(100, 200, 255), sf::Color(100, 200, 255),
+                     getThemePickerY(), isLeftArrowHovered, isRightArrowHovered, isKeyboardSelected);
 }
 
 void drawAbilitySelector(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded, 
                         AbilityChoice currentAbility, AbilityChoice hoveredAbility, 
-                        bool isHovered) {
-    float panelX = 300;
-    float panelY = 450;
-    float panelWidth = 220;
-    float abilityHeight = 70;
-    
-
-    sf::RectangleShape panelBg;
-    panelBg.setFillColor(sf::Color(20, 25, 35, 230));
-    panelBg.setOutlineColor(sf::Color(255, 150, 100, 255));
-    panelBg.setOutlineThickness(2);
-    panelBg.setPosition(sf::Vector2f(panelX - 10, panelY - 10));
-    panelBg.setSize(sf::Vector2f(panelWidth + 20, abilityHeight * 3 + 40));
-    window.draw(panelBg);
-    
-
-    sf::Text titleText(font, "ABILITY");
-    titleText.setCharacterSize(20);
-    titleText.setFillColor(sf::Color(255, 220, 200));
-    titleText.setStyle(sf::Text::Bold);
-    titleText.setPosition(sf::Vector2f(panelX + 60, panelY));
-    window.draw(titleText);
-    
-
+                        bool isLeftArrowHovered, bool isRightArrowHovered, bool isKeyboardSelected) {
     std::vector<std::pair<AbilityChoice, std::string>> abilities = {
         {AbilityChoice::Bomb, "BOMB"},
         {AbilityChoice::Delivery, "DELIVERY"},
         {AbilityChoice::Stomp, "STOMP"}
     };
     
-    for (size_t i = 0; i < abilities.size(); i++) {
-        float yPos = panelY + 35 + i * abilityHeight;
-        AbilityChoice ability = abilities[i].first;
-        bool isSelected = (ability == currentAbility);
-        bool isHover = isHovered && (ability == hoveredAbility);
-        bool isLocked = false;
-        
-
-        sf::RectangleShape abilityButton;
-        abilityButton.setSize(sf::Vector2f(panelWidth, abilityHeight - 10));
-        abilityButton.setPosition(sf::Vector2f(panelX, yPos));
-        
-        if (isLocked) {
-            abilityButton.setFillColor(sf::Color(40, 40, 40, 150));
-            abilityButton.setOutlineColor(sf::Color(80, 80, 80, 150));
-            abilityButton.setOutlineThickness(1);
-        } else if (isSelected) {
-            abilityButton.setFillColor(sf::Color(200, 100, 50, 200));
-            abilityButton.setOutlineColor(sf::Color(255, 150, 100, 255));
-            abilityButton.setOutlineThickness(3);
-        } else if (isHover) {
-            abilityButton.setFillColor(sf::Color(160, 80, 40, 180));
-            abilityButton.setOutlineColor(sf::Color(220, 130, 80, 200));
-            abilityButton.setOutlineThickness(2);
-        } else {
-            abilityButton.setFillColor(sf::Color(60, 40, 30, 150));
-            abilityButton.setOutlineColor(sf::Color(120, 80, 60, 150));
-            abilityButton.setOutlineThickness(1);
-        }
-        
-        window.draw(abilityButton);
-        
-
-        sf::Text abilityName(font, abilities[i].second);
-        abilityName.setCharacterSize(isLocked ? 18 : (isSelected ? 24 : 20));
-        
-        if (isLocked) {
-            abilityName.setFillColor(sf::Color(100, 100, 100));
-        } else {
-            abilityName.setFillColor(isSelected ? sf::Color(255, 255, 255) : 
-                                  isHover ? sf::Color(255, 220, 200) : sf::Color(200, 180, 160));
-        }
-        
-        abilityName.setStyle(isSelected ? sf::Text::Bold : sf::Text::Regular);
-        
-
-        sf::FloatRect textBounds = abilityName.getLocalBounds();
-        abilityName.setPosition(sf::Vector2f(
-            panelX + (panelWidth - textBounds.size.x) / 2,
-            yPos + (abilityHeight - 10 - textBounds.size.y) / 2 - 5
-        ));
-        
-        window.draw(abilityName);
-        
-
-        if (isSelected && !isLocked) {
-            sf::CircleShape indicator(6);
-            indicator.setFillColor(sf::Color(255, 150, 100));
-            indicator.setPosition(sf::Vector2f(panelX + 15, yPos + abilityHeight/2 - 11));
-            window.draw(indicator);
+    std::string abilityName = "BOMB";
+    for (const auto& ability : abilities) {
+        if (ability.first == currentAbility) {
+            abilityName = ability.second;
+            break;
         }
     }
+    
+    drawPickerWithBox(window, font, fontLoaded,
+                     "ABILITY", sf::Color(200, 170, 150),
+                     abilityName, sf::Color(255, 180, 100), sf::Color(255, 200, 100),
+                     getAbilityPickerY(), isLeftArrowHovered, isRightArrowHovered, isKeyboardSelected);
+}
+
+void drawDifficultySelector(sf::RenderWindow& window, const sf::Font& font, bool fontLoaded,
+                           ClassicDifficulty currentDifficulty, bool isLeftArrowHovered,
+                           bool isRightArrowHovered, bool isKeyboardSelected) {
+    std::string difficultyName = (currentDifficulty == ClassicDifficulty::Hard) ? "HARD" : "NORMAL";
+    
+    drawPickerWithBox(window, font, fontLoaded,
+                     "DIFFICULTY", sf::Color(150, 170, 200),
+                     difficultyName, sf::Color::Yellow, sf::Color(255, 200, 100),
+                     getDifficultyPickerY(), isLeftArrowHovered, isRightArrowHovered, isKeyboardSelected);
 }

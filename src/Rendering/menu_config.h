@@ -17,20 +17,6 @@ namespace MenuConfig {
 
 
 
-namespace MainMenu {
-    constexpr const char* START = "START";
-    constexpr const char* EXTRAS = "EXTRAS";
-    constexpr const char* OPTIONS = "OPTIONS";
-    constexpr const char* EXIT = "EXIT";
-    
-
-    constexpr float START_Y_OFFSET = -60.0f;
-    constexpr float SPACING = 110.0f;
-}
-
-
-
-
 namespace GameModeMenu {
     constexpr const char* CLASSIC = "CLASSIC";
     constexpr const char* BLITZ = "BLITZ";
@@ -38,36 +24,6 @@ namespace GameModeMenu {
     constexpr const char* PRACTICE = "PRACTICE";
     
 
-    constexpr float START_Y_OFFSET = -80.0f;
-    constexpr float SPACING = 90.0f;
-}
-
-
-
-
-namespace ClassicMenu {
-    constexpr const char* TITLE = "CLASSIC MODE";
-    constexpr const char* EASY = "EASY";
-    constexpr const char* MEDIUM = "MEDIUM";
-    constexpr const char* HARD = "HARD";
-    
-
-    constexpr float BUTTON_WIDTH = 550.0f;
-    constexpr float START_Y_OFFSET = -80.0f;
-    constexpr float SPACING = 90.0f;
-}
-
-
-
-
-namespace BlitzMenu {
-    constexpr const char* TITLE = "BLITZ MODE";
-    constexpr const char* LINES_24 = "24 LINES";
-    constexpr const char* LINES_48 = "48 LINES";
-    constexpr const char* LINES_96 = "96 LINES";
-    
-
-    constexpr float BUTTON_WIDTH = 550.0f;
     constexpr float START_Y_OFFSET = -80.0f;
     constexpr float SPACING = 90.0f;
 }
@@ -196,27 +152,6 @@ namespace RebindScreen {
     constexpr const char* BOMB = "Bomb";
     
     constexpr const char* PRESS_KEY = "Press key...";
-}
-
-
-
-
-namespace PauseMenu {
-    constexpr const char* TITLE = "PAUSED";
-    constexpr const char* RESUME = "RESUME";
-    constexpr const char* RESTART = "RESTART";
-    constexpr const char* MAIN_MENU = "MAIN MENU";
-}
-
-
-
-
-namespace ConfirmDialog {
-    constexpr const char* QUESTION_LINE1 = "Are you sure you want to clear";
-    constexpr const char* QUESTION_LINE2 = "all your data (scores, times & achievements)?";
-    constexpr const char* YES = "YES";
-    constexpr const char* NO = "NO";
-    constexpr const char* INSTRUCTION = "Arrow keys to select, SPACE/ENTER to confirm";
 }
 
 

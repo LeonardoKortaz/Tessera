@@ -13,5 +13,7 @@ void saveGameData(const SaveData& data);
 SaveData loadGameData();
 
 
+void deleteSaveFile();
+
 
 bool insertNewScore(SaveData& saveData, int score, int lines, int level, ClassicDifficulty difficulty);

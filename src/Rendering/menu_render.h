@@ -21,7 +21,22 @@ struct CardData {
     std::string description;
     sf::Color color;
     std::string iconLetter;
+    bool isDisabled = false;
 };
+
+struct CardLayoutInfo {
+    int cols;
+    int rows;
+    float cardWidth;
+    float cardHeight;
+    float spacingX;
+    float spacingY;
+    float startX;
+    float startY;
+};
+
+CardLayoutInfo getCardLayout(int numCards);
+int getCardIndexAtPosition(float mouseX, float mouseY, int numCards);
 
 void drawMainMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, MenuOption selectedOption, bool debugMode, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime = 0.0f);
 void drawCardSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, const std::vector<CardData>& cards, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
@@ -29,7 +44,7 @@ void drawModeSelectionScreen(sf::RenderWindow& window, const sf::Font& titleFont
 void drawExtrasSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
 void drawOptionsSelectionScreen(sf::RenderWindow& window, const sf::Font& menuFont, bool fontLoaded, int selectedCard, bool isBackHovered, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
 void drawGameModeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, GameModeOption selectedOption, const std::map<TextureType, sf::Texture>& textures, bool useTextures, float elapsedTime, bool debugMode = false);
-void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ClassicDifficulty selectedOption, const SaveData& saveData, const std::map<TextureType, sf::Texture>& textures, bool useTextures, bool debugMode = false);
+void drawClassicDifficultyMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ClassicDifficulty selectedOption, const SaveData& saveData, const std::map<TextureType, sf::Texture>& textures, bool useTextures, bool debugMode = false, int selectedElement = -1, bool isPlayHovered = false);
 void drawSprintLinesMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, SprintLines selectedOption, const SaveData& saveData, bool debugMode, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
 void drawChallengeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, ChallengeMode selectedOption, bool debugMode, const SaveData& saveData, const std::map<TextureType, sf::Texture>& textures, bool useTextures);
 void drawPracticeMenu(sf::RenderWindow& window, const sf::Font& titleFont, const sf::Font& menuFont, bool fontLoaded, PracticeDifficulty selectedDifficulty, PracticeLineGoal selectedLineGoal, bool infiniteBombs, PracticeStartLevel selectedStartLevel, int selectedOption, const std::map<TextureType, sf::Texture>& textures, bool useTextures, bool debugMode = false);

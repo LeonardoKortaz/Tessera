@@ -1293,6 +1293,7 @@ int main(int argc, char* argv[]) {
     MenuOption selectedMenuOption = MenuOption::Start;
     GameModeOption selectedGameModeOption = GameModeOption::Classic;
     ClassicDifficulty selectedClassicDifficulty = ClassicDifficulty::Hard;
+    int selectedClassicElement = 0;
     SprintLines selectedSprintLines = SprintLines::Lines24;
     ChallengeMode selectedChallengeMode = ChallengeMode::Randomness;
     PracticeDifficulty selectedPracticeDifficulty = PracticeDifficulty::Easy;
@@ -1325,7 +1326,8 @@ int main(int argc, char* argv[]) {
 
     AbilityChoice selectedAbilityChoice = AbilityChoice::Bomb;
     AbilityChoice hoveredAbilityChoice = selectedAbilityChoice;
-    bool isAbilitySelectorHovered = false;
+    bool isAbilityLeftArrowHovered = false;
+    bool isAbilityRightArrowHovered = false;
     
 
     GameModeTheme currentTheme = GameThemes::getDefaultTheme();
@@ -1337,7 +1339,11 @@ int main(int argc, char* argv[]) {
     sf::Vector2f lastMousePos(-1.0f, -1.0f);
     
 
-    bool isThemeSelectorHovered = false;
+    bool isThemeLeftArrowHovered = false;
+    bool isThemeRightArrowHovered = false;
+    bool isDiffLeftArrowHovered = false;
+    bool isDiffRightArrowHovered = false;
+    bool isPlayButtonHovered = false;
     
 
     int splashSequenceStep = 0;
@@ -1600,44 +1606,50 @@ int main(int argc, char* argv[]) {
                 
 
                 if (gameState == GameState::ClassicDifficultySelect) {
-                    sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
-                    sf::Vector2f mousePos = window.mapPixelToCoords(pixelPos);
-                    float mouseX = mousePos.x;
-                    float mouseY = mousePos.y;
-                    
-                    float panelX = 1400;
-                    float panelY = 450;
-                    float themeHeight = 70;
-                    
-                    isThemeSelectorHovered = false;
-                    
-                    if (mouseX >= panelX && mouseX <= panelX + 220) {
-                        for (int i = 0; i < 3; i++) {
-                            float yPos = panelY + 35 + i * themeHeight;
-                            if (mouseY >= yPos && mouseY <= yPos + themeHeight - 10) {
-                                isThemeSelectorHovered = true;
-                                hoveredThemeChoice = static_cast<GameThemeChoice>(i);
-                                break;
-                            }
-                        }
-                    }
-                    
 
-                    float abilityPanelX = 300;
-                    float abilityPanelY = 450;
-                    float abilityHeight = 70;
-                    
-                    isAbilitySelectorHovered = false;
-                    
-                    if (mouseX >= abilityPanelX && mouseX <= abilityPanelX + 220) {
-                        for (int i = 0; i < 3; i++) {
-                            float yPos = abilityPanelY + 35 + i * abilityHeight;
-                            if (mouseY >= yPos && mouseY <= yPos + abilityHeight - 10) {
-                                isAbilitySelectorHovered = true;
-                                hoveredAbilityChoice = static_cast<AbilityChoice>(i);
-                                break;
-                            }
-                        }
+                    if (!useKeyboardNavigation) {
+                        sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
+                        sf::Vector2f mousePos = window.mapPixelToCoords(pixelPos);
+                        float mouseX = mousePos.x;
+                        float mouseY = mousePos.y;
+                        float centerX = WINDOW_WIDTH / 2.0f;
+                        
+
+                        PickerHitboxes diffHitbox = getDifficultyPickerHitboxes();
+                        PickerHitboxes abilityHitbox = getAbilityPickerHitboxes();
+                        PickerHitboxes themeHitbox = getThemePickerHitboxes();
+                        float playButtonY = getPlayButtonY();
+                        
+
+                        isDiffLeftArrowHovered = (mouseY >= diffHitbox.pickerY && mouseY <= diffHitbox.pickerY + diffHitbox.pickerHeight && 
+                                                  mouseX >= diffHitbox.leftArrowX1 && mouseX <= diffHitbox.leftArrowX2);
+                        isDiffRightArrowHovered = (mouseY >= diffHitbox.pickerY && mouseY <= diffHitbox.pickerY + diffHitbox.pickerHeight && 
+                                                   mouseX >= diffHitbox.rightArrowX1 && mouseX <= diffHitbox.rightArrowX2);
+                        
+
+                        isAbilityLeftArrowHovered = (mouseY >= abilityHitbox.pickerY && mouseY <= abilityHitbox.pickerY + abilityHitbox.pickerHeight && 
+                                                     mouseX >= abilityHitbox.leftArrowX1 && mouseX <= abilityHitbox.leftArrowX2);
+                        isAbilityRightArrowHovered = (mouseY >= abilityHitbox.pickerY && mouseY <= abilityHitbox.pickerY + abilityHitbox.pickerHeight && 
+                                                      mouseX >= abilityHitbox.rightArrowX1 && mouseX <= abilityHitbox.rightArrowX2);
+                        
+
+                        isThemeLeftArrowHovered = (mouseY >= themeHitbox.pickerY && mouseY <= themeHitbox.pickerY + themeHitbox.pickerHeight && 
+                                                   mouseX >= themeHitbox.leftArrowX1 && mouseX <= themeHitbox.leftArrowX2);
+                        isThemeRightArrowHovered = (mouseY >= themeHitbox.pickerY && mouseY <= themeHitbox.pickerY + themeHitbox.pickerHeight && 
+                                                    mouseX >= themeHitbox.rightArrowX1 && mouseX <= themeHitbox.rightArrowX2);
+                        
+
+                        isPlayButtonHovered = (mouseY >= playButtonY && mouseY <= playButtonY + 70 && 
+                                              mouseX >= centerX - 150 && mouseX <= centerX + 150);
+                    } else {
+
+                        isDiffLeftArrowHovered = false;
+                        isDiffRightArrowHovered = false;
+                        isAbilityLeftArrowHovered = false;
+                        isAbilityRightArrowHovered = false;
+                        isThemeLeftArrowHovered = false;
+                        isThemeRightArrowHovered = false;
+                        isPlayButtonHovered = false;
                     }
                 }
             }
@@ -1832,37 +1844,33 @@ int main(int argc, char* argv[]) {
                                 std::cout << "Clicked BACK button, returning to main menu" << std::endl;
                             }
                             else {
-                                float cardWidth = 380.0f;
-                                float cardHeight = 700.0f;
-                                float spacing = 40.0f;
-                                float totalWidth = cardWidth * 4 + spacing * 3;
-                                float startX = centerX - totalWidth / 2.0f + cardWidth / 2.0f;
-                                float cardY = centerY - cardHeight / 2.0f;
+
+                                int clickedCard = getCardIndexAtPosition(clickX, clickY, 6);
                                 
-                                for (int i = 0; i < 4; i++) {
-                                    float cardX = startX + i * (cardWidth + spacing);
-                                    if (clickX >= cardX - cardWidth/2 && clickX <= cardX + cardWidth/2 &&
-                                        clickY >= cardY && clickY <= cardY + cardHeight) {
+                                if (clickedCard != -1) {
+
+                                    if (clickedCard == 3 || clickedCard == 4) {
+                                        std::cout << (clickedCard == 3 ? "VERSUS" : "TRIALS") << " mode not yet available" << std::endl;
+                                    } else {
                                         audioManager.playMenuClickSound();
                                         
-                                        if (i == 0) {
+                                        if (clickedCard == 0) {
                                             gameState = GameState::ClassicDifficultySelect;
                                             selectedGameModeOption = GameModeOption::Classic;
                                             std::cout << "Selected CLASSIC mode" << std::endl;
-                                        } else if (i == 1) {
+                                        } else if (clickedCard == 1) {
                                             gameState = GameState::SprintLinesSelect;
                                             selectedGameModeOption = GameModeOption::Sprint;
                                             std::cout << "Selected BLITZ mode" << std::endl;
-                                        } else if (i == 2) {
+                                        } else if (clickedCard == 2) {
                                             gameState = GameState::ChallengeSelect;
                                             selectedGameModeOption = GameModeOption::Challenge;
                                             std::cout << "Selected CHALLENGE mode" << std::endl;
-                                        } else if (i == 3) {
+                                        } else if (clickedCard == 5) {
                                             gameState = GameState::PracticeSelect;
                                             selectedGameModeOption = GameModeOption::Practice;
                                             std::cout << "Selected PRACTICE mode" << std::endl;
                                         }
-                                        break;
                                     }
                                 }
                             }
@@ -1873,40 +1881,25 @@ int main(int argc, char* argv[]) {
                         float clickX = clickPos.x;
                         float clickY = clickPos.y;
                         float centerX = WINDOW_WIDTH / 2.0f;
-                        float centerY = WINDOW_HEIGHT / 2.0f;
                         
-                        float cardWidth = 380.0f;
-                        float cardHeight = 700.0f;
-                        float spacing = 40.0f;
-                        int numCards = 3;
-                        float totalWidth = cardWidth * numCards + spacing * (numCards - 1);
-                        float startX = centerX - totalWidth / 2.0f;
-                        float cardY = centerY - cardHeight / 2.0f;
+                        int clickedCard = getCardIndexAtPosition(clickX, clickY, 3);
                         
-                        bool clicked = false;
-                        for (int i = 0; i < numCards && !clicked; i++) {
-                            float cardX = startX + i * (cardWidth + spacing);
-                            if (clickX >= cardX && clickX <= cardX + cardWidth &&
-                                clickY >= cardY && clickY <= cardY + cardHeight) {
-                                audioManager.playMenuClickSound();
-                                if (i == 0) {
-                                    gameState = GameState::AchievementsView;
-                                    selectedExtrasOption = ExtrasOption::Achievements;
-                                    std::cout << "Selected ACHIEVEMENTS" << std::endl;
-                                } else if (i == 1) {
-                                    gameState = GameState::StatisticsView;
-                                    selectedExtrasOption = ExtrasOption::Statistics;
-                                    std::cout << "Selected STATISTICS" << std::endl;
-                                } else if (i == 2) {
-                                    gameState = GameState::BestScoresView;
-                                    selectedExtrasOption = ExtrasOption::BestScores;
-                                    std::cout << "Selected BEST SCORES" << std::endl;
-                                }
-                                clicked = true;
+                        if (clickedCard != -1) {
+                            audioManager.playMenuClickSound();
+                            if (clickedCard == 0) {
+                                gameState = GameState::AchievementsView;
+                                selectedExtrasOption = ExtrasOption::Achievements;
+                                std::cout << "Selected ACHIEVEMENTS" << std::endl;
+                            } else if (clickedCard == 1) {
+                                gameState = GameState::StatisticsView;
+                                selectedExtrasOption = ExtrasOption::Statistics;
+                                std::cout << "Selected STATISTICS" << std::endl;
+                            } else if (clickedCard == 2) {
+                                gameState = GameState::BestScoresView;
+                                selectedExtrasOption = ExtrasOption::BestScores;
+                                std::cout << "Selected BEST SCORES" << std::endl;
                             }
-                        }
-                        
-                        if (!clicked) {
+                        } else {
                             float backButtonY = WINDOW_HEIGHT - 100.0f;
                             float backButtonWidth = 200.0f;
                             float backButtonHeight = 60.0f;
@@ -1923,40 +1916,25 @@ int main(int argc, char* argv[]) {
                         float clickX = clickPos.x;
                         float clickY = clickPos.y;
                         float centerX = WINDOW_WIDTH / 2.0f;
-                        float centerY = WINDOW_HEIGHT / 2.0f;
                         
-                        float cardWidth = 380.0f;
-                        float cardHeight = 700.0f;
-                        float spacing = 40.0f;
-                        int numCards = 3;
-                        float totalWidth = cardWidth * numCards + spacing * (numCards - 1);
-                        float startX = centerX - totalWidth / 2.0f;
-                        float cardY = centerY - cardHeight / 2.0f;
+                        int clickedCard = getCardIndexAtPosition(clickX, clickY, 3);
                         
-                        bool clicked = false;
-                        for (int i = 0; i < numCards && !clicked; i++) {
-                            float cardX = startX + i * (cardWidth + spacing);
-                            if (clickX >= cardX && clickX <= cardX + cardWidth &&
-                                clickY >= cardY && clickY <= cardY + cardHeight) {
-                                audioManager.playMenuClickSound();
-                                if (i == 0) {
-                                    gameState = GameState::AudioSettings;
-                                    selectedOptionsOption = OptionsMenuOption::Audio;
-                                    std::cout << "Selected AUDIO settings" << std::endl;
-                                } else if (i == 1) {
-                                    gameState = GameState::Rebinding;
-                                    selectedOptionsOption = OptionsMenuOption::RebindKeys;
-                                    std::cout << "Selected REBIND KEYS" << std::endl;
-                                } else if (i == 2) {
-                                    gameState = GameState::ConfirmClearScores;
-                                    selectedConfirmOption = ConfirmOption::No;
-                                    std::cout << "Selected CLEAR DATA" << std::endl;
-                                }
-                                clicked = true;
+                        if (clickedCard != -1) {
+                            audioManager.playMenuClickSound();
+                            if (clickedCard == 0) {
+                                gameState = GameState::AudioSettings;
+                                selectedOptionsOption = OptionsMenuOption::Audio;
+                                std::cout << "Selected AUDIO settings" << std::endl;
+                            } else if (clickedCard == 1) {
+                                gameState = GameState::Rebinding;
+                                selectedOptionsOption = OptionsMenuOption::RebindKeys;
+                                std::cout << "Selected REBIND KEYS" << std::endl;
+                            } else if (clickedCard == 2) {
+                                gameState = GameState::ConfirmClearScores;
+                                selectedConfirmOption = ConfirmOption::No;
+                                std::cout << "Selected CLEAR DATA" << std::endl;
                             }
-                        }
-                        
-                        if (!clicked) {
+                        } else {
                             float backButtonY = WINDOW_HEIGHT - 100.0f;
                             float backButtonWidth = 200.0f;
                             float backButtonHeight = 60.0f;
@@ -2588,7 +2566,6 @@ int main(int argc, char* argv[]) {
                             std::cout << "Returned to main menu (mouse)" << std::endl;
                         }
                     } else if (gameState == GameState::ClassicDifficultySelect) {
-
                         sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
                         sf::Vector2f clickPos = window.mapPixelToCoords(pixelPos);
                         float clickX = clickPos.x;
@@ -2596,7 +2573,6 @@ int main(int argc, char* argv[]) {
                         float centerX = WINDOW_WIDTH / 2.0f;
                         float centerY = WINDOW_HEIGHT / 2.0f;
                         
-
                         int clickedBombIndex = checkBombClick(backgroundPieces, clickX, clickY);
                         if (clickedBombIndex >= 0) {
                             const auto& bomb = backgroundPieces[clickedBombIndex];
@@ -2606,100 +2582,138 @@ int main(int argc, char* argv[]) {
                             backgroundPieces.erase(backgroundPieces.begin() + clickedBombIndex);
                         } else {
 
-                            float startY = centerY - 80.0f;
-                            float spacing = 90.0f;
-                            float buttonHeight = 80.0f;
-                            float buttonWidth = 550.0f;
+                            PickerHitboxes diffHitbox = getDifficultyPickerHitboxes();
+                            PickerHitboxes abilityHitbox = getAbilityPickerHitboxes();
+                            PickerHitboxes themeHitbox = getThemePickerHitboxes();
+                            float playButtonY = getPlayButtonY();
                             
-                            for (int i = 0; i < 3; i++) {
-                                float selectorY = startY + i * spacing - 5;
-                                if (clickX >= centerX - buttonWidth/2 && clickX <= centerX + buttonWidth/2 &&
-                                    clickY >= selectorY && clickY <= selectorY + buttonHeight) {
 
+                            if (clickX >= diffHitbox.leftArrowX1 && clickX <= diffHitbox.leftArrowX2 &&
+                                clickY >= diffHitbox.pickerY && clickY <= diffHitbox.pickerY + diffHitbox.pickerHeight) {
+                                audioManager.playMenuClickSound();
+                                selectedClassicDifficulty = (selectedClassicDifficulty == ClassicDifficulty::Hard) ? 
+                                    ClassicDifficulty::Normal : ClassicDifficulty::Hard;
+                            }
+                            else if (clickX >= diffHitbox.rightArrowX1 && clickX <= diffHitbox.rightArrowX2 &&
+                                     clickY >= diffHitbox.pickerY && clickY <= diffHitbox.pickerY + diffHitbox.pickerHeight) {
+                                audioManager.playMenuClickSound();
+                                selectedClassicDifficulty = (selectedClassicDifficulty == ClassicDifficulty::Hard) ? 
+                                    ClassicDifficulty::Normal : ClassicDifficulty::Hard;
+                            }
 
-                                    ClassicDifficulty menuToDifficulty[] = {ClassicDifficulty::Hard, ClassicDifficulty::Normal};
-                                    selectedClassicDifficulty = menuToDifficulty[i];
-                                    audioManager.playMenuClickSound();
-                                    
+                            else if (clickX >= abilityHitbox.leftArrowX1 && clickX <= abilityHitbox.leftArrowX2 &&
+                                     clickY >= abilityHitbox.pickerY && clickY <= abilityHitbox.pickerY + abilityHitbox.pickerHeight) {
 
-                                    const DifficultyConfig* config = getDifficultyConfig(
-                                        selectedGameModeOption,
-                                        selectedClassicDifficulty,
-                                        selectedSprintLines,
-                                        selectedChallengeMode,
-                                        selectedPracticeDifficulty,
-                                        selectedPracticeLineGoal,
-                                        practiceInfiniteBombs
-                                    );
-                                    TesseraBag.setDifficultyConfig(config);
-                                    currentConfig = config;
-                                    
-                                    applyGameTheme(currentTheme, audioManager, selectedGameModeOption, selectedClassicDifficulty, selectedChallengeMode, selectedThemeChoice);
-                                    gameState = GameState::Playing;
-                                    showCustomCursor = false;
-                                    gameOver = false;
-                                    gameOverSoundPlayed = false;
-                                    gameOverMusicTimer = 0.0f;
-                                    sprintModeActive = false;
-                                    challengeModeActive = false;
-                                    practiceModeActive = false;
-                                    sprintCompleted = false;
-                                    bombUsedThisGame = false;
-                                    maxComboThisGame = 0;
-                                    consecutiveBombsUsed = 0;
-                                    hardDropCooldown = 0.0f;
-                                    
-                                    for (int row = 0; row < GRID_HEIGHT; ++row) {
-                                        for (int col = 0; col < GRID_WIDTH; ++col) {
-                                            grid[row][col] = Cell();
-                                        }
+                                audioManager.playMenuClickSound();
+                                int abilityInt = static_cast<int>(selectedAbilityChoice);
+                                abilityInt = (abilityInt == 0) ? 2 : abilityInt - 1;
+                                selectedAbilityChoice = static_cast<AbilityChoice>(abilityInt);
+                            }
+                            else if (clickX >= abilityHitbox.rightArrowX1 && clickX <= abilityHitbox.rightArrowX2 &&
+                                     clickY >= abilityHitbox.pickerY && clickY <= abilityHitbox.pickerY + abilityHitbox.pickerHeight) {
+
+                                audioManager.playMenuClickSound();
+                                int abilityInt = static_cast<int>(selectedAbilityChoice);
+                                abilityInt = (abilityInt == 2) ? 0 : abilityInt + 1;
+                                selectedAbilityChoice = static_cast<AbilityChoice>(abilityInt);
+                            }
+
+                            else if (clickX >= themeHitbox.leftArrowX1 && clickX <= themeHitbox.leftArrowX2 &&
+                                     clickY >= themeHitbox.pickerY && clickY <= themeHitbox.pickerY + themeHitbox.pickerHeight) {
+
+                                audioManager.playMenuClickSound();
+                                int themeInt = static_cast<int>(selectedThemeChoice);
+                                themeInt = (themeInt == 0) ? 2 : themeInt - 1;
+                                selectedThemeChoice = static_cast<GameThemeChoice>(themeInt);
+                            }
+                            else if (clickX >= themeHitbox.rightArrowX1 && clickX <= themeHitbox.rightArrowX2 &&
+                                     clickY >= themeHitbox.pickerY && clickY <= themeHitbox.pickerY + themeHitbox.pickerHeight) {
+
+                                audioManager.playMenuClickSound();
+                                int themeInt = static_cast<int>(selectedThemeChoice);
+                                themeInt = (themeInt == 2) ? 0 : themeInt + 1;
+                                selectedThemeChoice = static_cast<GameThemeChoice>(themeInt);
+                            }
+
+                            else if (clickX >= centerX - 150 && clickX <= centerX + 150 &&
+                                     clickY >= playButtonY && clickY <= playButtonY + 70) {
+                                audioManager.playMenuClickSound();
+                                
+                                const DifficultyConfig* config = getDifficultyConfig(
+                                    selectedGameModeOption,
+                                    selectedClassicDifficulty,
+                                    selectedSprintLines,
+                                    selectedChallengeMode,
+                                    selectedPracticeDifficulty,
+                                    selectedPracticeLineGoal,
+                                    practiceInfiniteBombs
+                                );
+                                TesseraBag.setDifficultyConfig(config);
+                                currentConfig = config;
+                                
+                                applyGameTheme(currentTheme, audioManager, selectedGameModeOption, selectedClassicDifficulty, selectedChallengeMode, selectedThemeChoice);
+                                gameState = GameState::Playing;
+                                showCustomCursor = false;
+                                gameOver = false;
+                                gameOverSoundPlayed = false;
+                                gameOverMusicTimer = 0.0f;
+                                sprintModeActive = false;
+                                challengeModeActive = false;
+                                practiceModeActive = false;
+                                sprintCompleted = false;
+                                bombUsedThisGame = false;
+                                maxComboThisGame = 0;
+                                consecutiveBombsUsed = 0;
+                                hardDropCooldown = 0.0f;
+                                
+                                for (int row = 0; row < GRID_HEIGHT; ++row) {
+                                    for (int col = 0; col < GRID_WIDTH; ++col) {
+                                        grid[row][col] = Cell();
                                     }
-                                    totalLinesCleared = 0;
-                            displayedThermometerFill = 0.0f;
-                                    currentLevel = 0;
-                                    totalScore = 0;
-                                    currentCombo = 0;
-                                    lastMoveScore = 0;
-                                    totalHardDropScore = 0;
-                                    totalLineScore = 0;
-                                    totalComboScore = 0;
-                                    RESET_SESSION_STATS();
-                                    TesseraBag.reset();
-                                    hasHeldPiece = false;
-                                    canUseHold = true;
-                                    linesSinceLastAbility = 0;
-                                    bombAbilityAvailable = debugMode;
-                                    explosionEffects.clear();
-                                    glowEffects.clear();
-                            thermometerParticles.clear();
-                                    leftHoldTime = 0.0f;
-                                    rightHoldTime = 0.0f;
-                                    dasTimer = 0.0f;
-                                    leftPressed = false;
-                                    rightPressed = false;
-                                    
-                                    PieceType startType = TesseraBag.getNextPiece();
-                                    PieceShape startShape = getPieceShape(startType);
-                                    int startX = (GRID_WIDTH - startShape.width) / 2;
-                                    int firstFilledRow = findFirstFilledRow(startShape);
-                                    int startY = -firstFilledRow;
-                                    activePiece = Piece(startX, startY, startType);
-                                    
-                                    if (currentConfig && currentConfig->useTypeBasedColors && !currentConfig->colorPalette.empty()) {
-                                        int colorIndex = getColorIndexForPieceType(startType);
-                                        if (colorIndex < static_cast<int>(currentConfig->colorPalette.size())) {
-                                            activePiece.setColor(currentConfig->colorPalette[colorIndex]);
-                                        }
-                                    } else if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
-                                        int randomIndex = rand() % currentConfig->colorPalette.size();
-                                        activePiece.setColor(currentConfig->colorPalette[randomIndex]);
-                                    }
-                                    std::cout << "Game started (Classic " << static_cast<int>(selectedClassicDifficulty) << ") - mouse click" << std::endl;
-                                    break;
                                 }
+                                totalLinesCleared = 0;
+                                displayedThermometerFill = 0.0f;
+                                currentLevel = 0;
+                                totalScore = 0;
+                                currentCombo = 0;
+                                lastMoveScore = 0;
+                                totalHardDropScore = 0;
+                                totalLineScore = 0;
+                                totalComboScore = 0;
+                                RESET_SESSION_STATS();
+                                TesseraBag.reset();
+                                hasHeldPiece = false;
+                                canUseHold = true;
+                                linesSinceLastAbility = 0;
+                                bombAbilityAvailable = debugMode;
+                                explosionEffects.clear();
+                                glowEffects.clear();
+                                thermometerParticles.clear();
+                                leftHoldTime = 0.0f;
+                                rightHoldTime = 0.0f;
+                                dasTimer = 0.0f;
+                                leftPressed = false;
+                                rightPressed = false;
+                                
+                                PieceType startType = TesseraBag.getNextPiece();
+                                PieceShape startShape = getPieceShape(startType);
+                                int startX = (GRID_WIDTH - startShape.width) / 2;
+                                int firstFilledRow = findFirstFilledRow(startShape);
+                                int startY = -firstFilledRow;
+                                activePiece = Piece(startX, startY, startType);
+                                
+                                if (currentConfig && currentConfig->useTypeBasedColors && !currentConfig->colorPalette.empty()) {
+                                    int colorIndex = getColorIndexForPieceType(startType);
+                                    if (colorIndex < static_cast<int>(currentConfig->colorPalette.size())) {
+                                        activePiece.setColor(currentConfig->colorPalette[colorIndex]);
+                                    }
+                                } else if (currentConfig && currentConfig->useRandomColorPalette && !currentConfig->colorPalette.empty()) {
+                                    int randomIndex = rand() % currentConfig->colorPalette.size();
+                                    activePiece.setColor(currentConfig->colorPalette[randomIndex]);
+                                }
+                                std::cout << "Game started (Classic " << static_cast<int>(selectedClassicDifficulty) << ")" << std::endl;
                             }
                         }
-
                     } else if (gameState == GameState::SprintLinesSelect) {
 
                         sf::Vector2i pixelPos = sf::Mouse::getPosition(window);
@@ -3133,28 +3147,8 @@ int main(int argc, char* argv[]) {
             if (const auto* mouseButtonReleased = event->getIf<sf::Event::MouseButtonReleased>()) {
                 if (mouseButtonReleased->button == sf::Mouse::Button::Left) {
                     if (draggingAudioSlider >= 0) {
-
                         saveGameData(saveData);
                         draggingAudioSlider = -1;
-                    }
-                    
-
-                    if (gameState == GameState::ClassicDifficultySelect && isThemeSelectorHovered) {
-                        audioManager.playMenuClickSound();
-                        selectedThemeChoice = hoveredThemeChoice;
-                        std::cout << "Theme changed to: " << static_cast<int>(selectedThemeChoice) << std::endl;
-                    }
-                    
-
-                    if (gameState == GameState::ClassicDifficultySelect && isAbilitySelectorHovered) {
-
-                        if (hoveredAbilityChoice == AbilityChoice::Bomb || 
-                            hoveredAbilityChoice == AbilityChoice::Delivery || 
-                            hoveredAbilityChoice == AbilityChoice::Stomp) {
-                            audioManager.playMenuClickSound();
-                            selectedAbilityChoice = hoveredAbilityChoice;
-                            std::cout << "Ability changed to: " << static_cast<int>(selectedAbilityChoice) << std::endl;
-                        }
                     }
                 }
             }
@@ -3477,44 +3471,53 @@ int main(int argc, char* argv[]) {
                         case sf::Keyboard::Key::A:
                             showCustomCursor = false;
                             useKeyboardNavigation = true;
-                            if (selectedModeCard == 4) {
+                            if (selectedModeCard == 6) {
                                 selectedModeCard = lastSelectedCardBeforeBack;
+                            } else if (selectedModeCard % 3 == 0) {
+                                selectedModeCard = selectedModeCard + 2;
                             } else {
-                                selectedModeCard = (selectedModeCard - 1 + 4) % 4;
-                                lastSelectedCardBeforeBack = selectedModeCard;
+                                selectedModeCard--;
                             }
+                            lastSelectedCardBeforeBack = selectedModeCard;
                             break;
                         case sf::Keyboard::Key::Right:
                         case sf::Keyboard::Key::D:
                             showCustomCursor = false;
                             useKeyboardNavigation = true;
-                            if (selectedModeCard == 4) {
+                            if (selectedModeCard == 6) {
                                 selectedModeCard = lastSelectedCardBeforeBack;
+                            } else if (selectedModeCard % 3 == 2) {
+                                selectedModeCard = selectedModeCard - 2;
                             } else {
-                                selectedModeCard = (selectedModeCard + 1) % 4;
-                                lastSelectedCardBeforeBack = selectedModeCard;
+                                selectedModeCard++;
                             }
+                            lastSelectedCardBeforeBack = selectedModeCard;
                             break;
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
                             showCustomCursor = false;
                             useKeyboardNavigation = true;
-                            if (selectedModeCard == 4) {
+                            if (selectedModeCard == 6) {
                                 selectedModeCard = lastSelectedCardBeforeBack;
+                            } else if (selectedModeCard >= 3) {
+                                selectedModeCard -= 3;
                             }
                             break;
                         case sf::Keyboard::Key::Down:
                         case sf::Keyboard::Key::S:
                             showCustomCursor = false;
                             useKeyboardNavigation = true;
-                            if (selectedModeCard >= 0 && selectedModeCard < 4) {
+                            if (selectedModeCard >= 0 && selectedModeCard < 3) {
+                                selectedModeCard += 3;
                                 lastSelectedCardBeforeBack = selectedModeCard;
-                                selectedModeCard = 4;
+                            } else if (selectedModeCard >= 3 && selectedModeCard < 6) {
+                                lastSelectedCardBeforeBack = selectedModeCard;
+                                selectedModeCard = 6;
                             }
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
-                            if (selectedModeCard == 4) {
+                            if (selectedModeCard == 6) {
                                 audioManager.playMenuBackSound();
                                 gameState = GameState::MainMenu;
                                 std::cout << "BACK button selected via keyboard" << std::endl;
@@ -3534,6 +3537,12 @@ int main(int argc, char* argv[]) {
                                 selectedGameModeOption = GameModeOption::Challenge;
                                 std::cout << "Selected CHALLENGE mode (keyboard)" << std::endl;
                             } else if (selectedModeCard == 3) {
+
+                                std::cout << "VERSUS mode not yet available" << std::endl;
+                            } else if (selectedModeCard == 4) {
+
+                                std::cout << "TRIALS mode not yet available" << std::endl;
+                            } else if (selectedModeCard == 5) {
                                 audioManager.playMenuClickSound();
                                 gameState = GameState::PracticeSelect;
                                 selectedGameModeOption = GameModeOption::Practice;
@@ -3738,29 +3747,103 @@ int main(int argc, char* argv[]) {
                         case sf::Keyboard::Key::Up:
                         case sf::Keyboard::Key::W:
                             useKeyboardNavigation = true;
+                            showCustomCursor = false;
+                            isDiffLeftArrowHovered = false;
+                            isDiffRightArrowHovered = false;
+                            isAbilityLeftArrowHovered = false;
+                            isAbilityRightArrowHovered = false;
+                            isThemeLeftArrowHovered = false;
+                            isThemeRightArrowHovered = false;
+                            isPlayButtonHovered = false;
+                            audioManager.playMenuClickSound();
 
-
-                            if (selectedClassicDifficulty == ClassicDifficulty::Normal) {
-                                selectedClassicDifficulty = ClassicDifficulty::Hard;
-                            } else {
-                                selectedClassicDifficulty = ClassicDifficulty::Normal;
-                            }
+                            selectedClassicElement = (selectedClassicElement == 0) ? 3 : selectedClassicElement - 1;
                             break;
                         case sf::Keyboard::Key::Down:
                         case sf::Keyboard::Key::S:
                             useKeyboardNavigation = true;
+                            showCustomCursor = false;
+                            isDiffLeftArrowHovered = false;
+                            isDiffRightArrowHovered = false;
+                            isAbilityLeftArrowHovered = false;
+                            isAbilityRightArrowHovered = false;
+                            isThemeLeftArrowHovered = false;
+                            isThemeRightArrowHovered = false;
+                            isPlayButtonHovered = false;
+                            audioManager.playMenuClickSound();
 
+                            selectedClassicElement = (selectedClassicElement == 3) ? 0 : selectedClassicElement + 1;
+                            break;
+                        case sf::Keyboard::Key::Left:
+                        case sf::Keyboard::Key::A:
+                            useKeyboardNavigation = true;
+                            showCustomCursor = false;
+                            isDiffLeftArrowHovered = false;
+                            isDiffRightArrowHovered = false;
+                            isAbilityLeftArrowHovered = false;
+                            isAbilityRightArrowHovered = false;
+                            isThemeLeftArrowHovered = false;
+                            isThemeRightArrowHovered = false;
+                            isPlayButtonHovered = false;
+                            audioManager.playMenuClickSound();
 
-                            if (selectedClassicDifficulty == ClassicDifficulty::Hard) {
-                                selectedClassicDifficulty = ClassicDifficulty::Normal;
-                            } else {
-                                selectedClassicDifficulty = ClassicDifficulty::Hard;
+                            if (selectedClassicElement == 0) {
+
+                                selectedClassicDifficulty = (selectedClassicDifficulty == ClassicDifficulty::Hard) ? 
+                                    ClassicDifficulty::Normal : ClassicDifficulty::Hard;
+                            } else if (selectedClassicElement == 1) {
+
+                                int abilityInt = static_cast<int>(selectedAbilityChoice);
+                                abilityInt = (abilityInt == 0) ? 2 : abilityInt - 1;
+                                selectedAbilityChoice = static_cast<AbilityChoice>(abilityInt);
+                            } else if (selectedClassicElement == 2) {
+
+                                int themeInt = static_cast<int>(selectedThemeChoice);
+                                themeInt = (themeInt == 0) ? 2 : themeInt - 1;
+                                selectedThemeChoice = static_cast<GameThemeChoice>(themeInt);
+                            }
+                            break;
+                        case sf::Keyboard::Key::Right:
+                        case sf::Keyboard::Key::D:
+                            useKeyboardNavigation = true;
+                            showCustomCursor = false;
+                            isDiffLeftArrowHovered = false;
+                            isDiffRightArrowHovered = false;
+                            isAbilityLeftArrowHovered = false;
+                            isAbilityRightArrowHovered = false;
+                            isThemeLeftArrowHovered = false;
+                            isThemeRightArrowHovered = false;
+                            isPlayButtonHovered = false;
+                            audioManager.playMenuClickSound();
+
+                            if (selectedClassicElement == 0) {
+
+                                selectedClassicDifficulty = (selectedClassicDifficulty == ClassicDifficulty::Hard) ? 
+                                    ClassicDifficulty::Normal : ClassicDifficulty::Hard;
+                            } else if (selectedClassicElement == 1) {
+
+                                int abilityInt = static_cast<int>(selectedAbilityChoice);
+                                abilityInt = (abilityInt == 2) ? 0 : abilityInt + 1;
+                                selectedAbilityChoice = static_cast<AbilityChoice>(abilityInt);
+                            } else if (selectedClassicElement == 2) {
+
+                                int themeInt = static_cast<int>(selectedThemeChoice);
+                                themeInt = (themeInt == 2) ? 0 : themeInt + 1;
+                                selectedThemeChoice = static_cast<GameThemeChoice>(themeInt);
                             }
                             break;
                         case sf::Keyboard::Key::Enter:
                         case sf::Keyboard::Key::Space:
                         {
 
+                            if (selectedClassicElement != 3) {
+
+                                useKeyboardNavigation = true;
+                                audioManager.playMenuClickSound();
+                                selectedClassicElement = 3;
+                                break;
+                            }
+                            
                             const DifficultyConfig* config = getDifficultyConfig(
                                 selectedGameModeOption,
                                 selectedClassicDifficulty,
@@ -3785,7 +3868,6 @@ int main(int argc, char* argv[]) {
                             practiceModeActive = false;
                             sprintCompleted = false;
                             
-
                             bombUsedThisGame = false;
                             maxComboThisGame = 0;
                             consecutiveBombsUsed = 0;
@@ -4825,70 +4907,55 @@ int main(int argc, char* argv[]) {
                             gameState = GameState::OptionsSelection;
                             std::cout << "Cancelled clearing scores" << std::endl;
                             break;
-                        case sf::Keyboard::Key::Left:
-                        case sf::Keyboard::Key::A:
-                            selectedConfirmOption = ConfirmOption::Yes;
-                            break;
-                        case sf::Keyboard::Key::Right:
-                        case sf::Keyboard::Key::D:
-                            selectedConfirmOption = ConfirmOption::No;
-                            break;
                         case sf::Keyboard::Key::Enter:
-                        case sf::Keyboard::Key::Space:
                             audioManager.playMenuClickSound();
-                            if (selectedConfirmOption == ConfirmOption::Yes) {
 
-                                saveData.highScore = 0;
-                                saveData.highScoreClassicNormal = 0;
-                                saveData.highScoreClassicHard = 0;
-                                saveData.bestLines = 0;
-                                saveData.bestLevel = 0;
-                                
+                            deleteSaveFile();
+                            
 
-                                saveData.bestTimeSprint1 = 0.0f;
-                                saveData.bestTimeSprint24 = 0.0f;
-                                saveData.bestTimeSprint48 = 0.0f;
-                                saveData.bestTimeSprint96 = 0.0f;
-                                
-
-                                saveData.bestTimeChallengeDebug = 0.0f;
-                                saveData.bestTimeChallengeTheForest = 0.0f;
-                                saveData.bestTimeChallengeRandomness = 0.0f;
-                                saveData.bestTimeChallengeNonStraight = 0.0f;
-                                saveData.bestTimeChallengeOneRot = 0.0f;
-                                saveData.bestTimeChallengeChristopherCurse = 0.0f;
-                                saveData.bestTimeChallengeVanishing = 0.0f;
-                                saveData.bestTimeChallengeAutoDrop = 0.0f;
-                                saveData.bestTimeChallengeGravityFlip = 0.0f;
-                                
-
-                                for (int i = 0; i < TOTAL_ACHIEVEMENTS; i++) {
-                                    saveData.achievements[i] = false;
-                                }
-
-                                for (int i = 0; i < 3; i++) {
-                                    saveData.topScores[i].score = 0;
-                                    saveData.topScores[i].lines = 0;
-                                    saveData.topScores[i].level = 0;
-                                    
-                                    saveData.topScoresNormal[i].score = 0;
-                                    saveData.topScoresNormal[i].lines = 0;
-                                    saveData.topScoresNormal[i].level = 0;
-                                    
-                                    saveData.topScoresHard[i].score = 0;
-                                    saveData.topScoresHard[i].lines = 0;
-                                    saveData.topScoresHard[i].level = 0;
-                                }
-                                saveGameData(saveData);
-                                std::cout << "All data cleared (scores, times, achievements)!" << std::endl;
-                                gameState = GameState::Options;
-                            } else {
-
-                                std::cout << "Cancelled clearing scores" << std::endl;
-                                gameState = GameState::Options;
+                            saveData.highScore = 0;
+                            saveData.highScoreClassicNormal = 0;
+                            saveData.highScoreClassicHard = 0;
+                            saveData.bestLines = 0;
+                            saveData.bestLevel = 0;
+                            
+                            saveData.bestTimeSprint1 = 0.0f;
+                            saveData.bestTimeSprint24 = 0.0f;
+                            saveData.bestTimeSprint48 = 0.0f;
+                            saveData.bestTimeSprint96 = 0.0f;
+                            
+                            saveData.bestTimeChallengeDebug = 0.0f;
+                            saveData.bestTimeChallengeTheForest = 0.0f;
+                            saveData.bestTimeChallengeRandomness = 0.0f;
+                            saveData.bestTimeChallengeNonStraight = 0.0f;
+                            saveData.bestTimeChallengeOneRot = 0.0f;
+                            saveData.bestTimeChallengeChristopherCurse = 0.0f;
+                            saveData.bestTimeChallengeVanishing = 0.0f;
+                            saveData.bestTimeChallengeAutoDrop = 0.0f;
+                            saveData.bestTimeChallengeGravityFlip = 0.0f;
+                            
+                            for (int i = 0; i < TOTAL_ACHIEVEMENTS; i++) {
+                                saveData.achievements[i] = false;
                             }
+
+                            for (int i = 0; i < 3; i++) {
+                                saveData.topScores[i].score = 0;
+                                saveData.topScores[i].lines = 0;
+                                saveData.topScores[i].level = 0;
+                                
+                                saveData.topScoresNormal[i].score = 0;
+                                saveData.topScoresNormal[i].lines = 0;
+                                saveData.topScoresNormal[i].level = 0;
+                                
+                                saveData.topScoresHard[i].score = 0;
+                                saveData.topScoresHard[i].lines = 0;
+                                saveData.topScoresHard[i].level = 0;
+                            }
+                            
+                            std::cout << "Save file deleted and all data cleared!" << std::endl;
+                            gameState = GameState::OptionsSelection;
                             break;
-                        default: 
+                        default:
                             break;
                     }
                 } else if (gameState == GameState::Playing) {
@@ -6324,13 +6391,6 @@ int main(int argc, char* argv[]) {
                 selectedMenuOption = MenuOption::Exit;
             }
         } else if (gameState == GameState::ModeSelection && !useKeyboardNavigation) {
-            float cardWidth = 380.0f;
-            float cardHeight = 700.0f;
-            float spacing = 40.0f;
-            float totalWidth = cardWidth * 4 + spacing * 3;
-            float startX = centerX - totalWidth / 2.0f + cardWidth / 2.0f;
-            float cardY = centerY - cardHeight / 2.0f;
-            
             float backButtonY = WINDOW_HEIGHT - 100.0f;
             float backButtonWidth = 200.0f;
             float backButtonHeight = 60.0f;
@@ -6342,27 +6402,15 @@ int main(int argc, char* argv[]) {
             if (mouseX >= centerX - backButtonWidth/2 && mouseX <= centerX + backButtonWidth/2 &&
                 mouseY >= backButtonY && mouseY <= backButtonY + backButtonHeight) {
                 isBackButtonHovered = true;
-                selectedModeCard = 4;
+                selectedModeCard = 6;
             } else {
-                for (int i = 0; i < 4; i++) {
-                    float cardX = startX + i * (cardWidth + spacing);
-                    if (mouseX >= cardX - cardWidth/2 && mouseX <= cardX + cardWidth/2 &&
-                        mouseY >= cardY && mouseY <= cardY + cardHeight) {
-                        hoveredModeCard = i;
-                        selectedModeCard = i;
-                        break;
-                    }
+                int hoveredCard = getCardIndexAtPosition(mouseX, mouseY, 6);
+                if (hoveredCard != -1) {
+                    hoveredModeCard = hoveredCard;
+                    selectedModeCard = hoveredCard;
                 }
             }
         } else if (gameState == GameState::ExtrasSelection && !useKeyboardNavigation) {
-            float cardWidth = 380.0f;
-            float cardHeight = 700.0f;
-            float spacing = 40.0f;
-            int numCards = 3;
-            float totalWidth = cardWidth * numCards + spacing * (numCards - 1);
-            float startX = centerX - totalWidth / 2.0f + cardWidth / 2.0f;
-            float cardY = centerY - cardHeight / 2.0f;
-            
             float backButtonY = WINDOW_HEIGHT - 100.0f;
             float backButtonWidth = 200.0f;
             float backButtonHeight = 60.0f;
@@ -6375,24 +6423,12 @@ int main(int argc, char* argv[]) {
                 isExtrasBackButtonHovered = true;
                 selectedExtrasCard = 3;
             } else {
-                for (int i = 0; i < numCards; i++) {
-                    float cardX = startX + i * (cardWidth + spacing);
-                    if (mouseX >= cardX - cardWidth/2 && mouseX <= cardX + cardWidth/2 &&
-                        mouseY >= cardY && mouseY <= cardY + cardHeight) {
-                        selectedExtrasCard = i;
-                        break;
-                    }
+                int hoveredCard = getCardIndexAtPosition(mouseX, mouseY, 3);
+                if (hoveredCard != -1) {
+                    selectedExtrasCard = hoveredCard;
                 }
             }
         } else if (gameState == GameState::OptionsSelection && !useKeyboardNavigation) {
-            float cardWidth = 380.0f;
-            float cardHeight = 700.0f;
-            float spacing = 40.0f;
-            int numCards = 3;
-            float totalWidth = cardWidth * numCards + spacing * (numCards - 1);
-            float startX = centerX - totalWidth / 2.0f + cardWidth / 2.0f;
-            float cardY = centerY - cardHeight / 2.0f;
-            
             float backButtonY = WINDOW_HEIGHT - 100.0f;
             float backButtonWidth = 200.0f;
             float backButtonHeight = 60.0f;
@@ -6405,13 +6441,9 @@ int main(int argc, char* argv[]) {
                 isOptionsBackButtonHovered = true;
                 selectedOptionsCard = 3;
             } else {
-                for (int i = 0; i < numCards; i++) {
-                    float cardX = startX + i * (cardWidth + spacing);
-                    if (mouseX >= cardX - cardWidth/2 && mouseX <= cardX + cardWidth/2 &&
-                        mouseY >= cardY && mouseY <= cardY + cardHeight) {
-                        selectedOptionsCard = i;
-                        break;
-                    }
+                int hoveredCard = getCardIndexAtPosition(mouseX, mouseY, 3);
+                if (hoveredCard != -1) {
+                    selectedOptionsCard = hoveredCard;
                 }
             }
         } else if (gameState == GameState::GameModeSelect && !useKeyboardNavigation) {
@@ -6432,20 +6464,6 @@ int main(int argc, char* argv[]) {
             }
         } else if (gameState == GameState::ClassicDifficultySelect && !useKeyboardNavigation) {
 
-            float startY = centerY - 80.0f;
-            float spacing = 90.0f;
-            float buttonHeight = 80.0f;
-
-            ClassicDifficulty menuToDifficulty[] = {ClassicDifficulty::Hard, ClassicDifficulty::Normal};
-            
-            for (int i = 0; i < 2; i++) {
-                float selectorY = startY + i * spacing - 5;
-                if (mouseX >= centerX - 275 && mouseX <= centerX + 275 &&
-                    mouseY >= selectorY && mouseY <= selectorY + buttonHeight) {
-                    selectedClassicDifficulty = menuToDifficulty[i];
-                    break;
-                }
-            }
         } else if (gameState == GameState::SprintLinesSelect && !useKeyboardNavigation) {
 
             float startY = centerY - 80.0f;
@@ -6739,9 +6757,14 @@ int main(int argc, char* argv[]) {
         } else if (gameState == GameState::ClassicDifficultySelect) {
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
             drawGlowEffects(window, glowEffects, textures);
-            drawClassicDifficultyMenu(window, titleFont, menuFont, fontLoaded, selectedClassicDifficulty, saveData, textures, useTextures, debugMode);
-            drawThemeSelector(window, menuFont, fontLoaded, selectedThemeChoice, hoveredThemeChoice, isThemeSelectorHovered);
-            drawAbilitySelector(window, menuFont, fontLoaded, selectedAbilityChoice, hoveredAbilityChoice, isAbilitySelectorHovered);
+            drawClassicDifficultyMenu(window, titleFont, menuFont, fontLoaded, selectedClassicDifficulty, saveData, textures, useTextures, debugMode, 
+                                      useKeyboardNavigation ? selectedClassicElement : -1, isPlayButtonHovered);
+            drawDifficultySelector(window, menuFont, fontLoaded, selectedClassicDifficulty, 
+                                  isDiffLeftArrowHovered, isDiffRightArrowHovered, useKeyboardNavigation && selectedClassicElement == 0);
+            drawThemeSelector(window, menuFont, fontLoaded, selectedThemeChoice, hoveredThemeChoice, 
+                            isThemeLeftArrowHovered, isThemeRightArrowHovered, useKeyboardNavigation && selectedClassicElement == 2);
+            drawAbilitySelector(window, menuFont, fontLoaded, selectedAbilityChoice, hoveredAbilityChoice, 
+                              isAbilityLeftArrowHovered, isAbilityRightArrowHovered, useKeyboardNavigation && selectedClassicElement == 1);
         } else if (gameState == GameState::SprintLinesSelect) {
             drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
             drawGlowEffects(window, glowEffects, textures);
@@ -6789,8 +6812,8 @@ int main(int argc, char* argv[]) {
             drawRebindingScreen(window, titleFont, menuFont, fontLoaded, keyBindings, rebindingSelectedScheme, rebindingHoveredScheme, rebindingAppliedScheme, selectedRebindingIndex, waitingForKeyPress, isResetButtonHovered, textures, useTextures, splashElapsedTime, debugMode);
         } else if (gameState == GameState::ConfirmClearScores) {
 
-            drawOptionsMenu(window, menuFont, fontLoaded, debugMode, selectedOptionsOption, textures, useTextures, splashElapsedTime);
-
+            drawBackgroundPiecesWithExplosions(window, backgroundPieces, explosionEffects, textures, useTextures);
+            drawGlowEffects(window, glowEffects, textures);
             drawConfirmClearScores(window, menuFont, fontLoaded, selectedConfirmOption);
         } else if (gameState == GameState::Playing || gameState == GameState::Paused) {
 
